@@ -1,0 +1,3 @@
+gateway_order_id,client_order_id,strategy_id,symbol,side,order_type,quantity,estimated_price,submitted_at,status,reason,source
+GW-20260620T130054+0000,CLIENT-ORDER-0001,template_price_breakout_entry_threshold_1680_exit_threshold_1670_order_size_0_2,600519.SH,buy,market,11,1683.34125,2026-06-20T13:00:54+00:00,filled,entry_rule,paper_trading_promotion
+GW-20260620T130105+0000,CLIENT-ORDER-REJECT-0001,template_price_breakout_entry_threshold_1680_exit_threshold_1670_order_size_0_2,600519.SH,buy,market,100,1683.34125,2026-06-20T13:01:05+00:00,rejected,entry_rule,risk_test

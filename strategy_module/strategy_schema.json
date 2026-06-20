@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aquant.local/schemas/strategy.schema.json",
+  "title": "AQuant Strategy DSL",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "strategy_id",
+    "name",
+    "market",
+    "universe",
+    "data",
+    "entry",
+    "exit",
+    "position",
+    "risk"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "1.0" },
+    "strategy_id": { "type": "string", "minLength": 1 },
+    "name": { "type": "string", "minLength": 1, "maxLength": 80 },
+    "description": { "type": "string", "maxLength": 500 },
+    "market": { "type": "string", "const": "a_share" },
+    "universe": {
+      "type": "object",
+      "required": ["type", "symbols"],
+      "properties": {
+        "type": { "type": "string", "const": "single" },
+        "symbols": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1,
+          "items": { "type": "string", "pattern": "^[0-9]{6}\\.(SH|SZ)$" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "data": {
+      "type": "object",
+      "required": ["frequency", "adjustment", "start_date", "end_date"],
+      "properties": {
+        "frequency": { "type": "string", "enum": ["1d", "60m", "30m", "15m"] },
+        "adjustment": { "type": "string", "enum": ["forward", "backward", "none"] },
+        "start_date": { "type": "string" },
+        "end_date": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "entry": { "$ref": "#/$defs/rule_group" },
+    "exit": { "$ref": "#/$defs/rule_group" },
+    "position": {
+      "type": "object",
+      "required": ["initial_cash", "order_size_type", "order_size_value", "max_position_pct"],
+      "properties": {
+        "initial_cash": { "type": "number", "exclusiveMinimum": 0 },
+        "order_size_type": { "type": "string", "enum": ["cash_pct"] },
+        "order_size_value": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+        "max_position_pct": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 }
+      },
+      "additionalProperties": false
+    },
+    "execution": {
+      "type": "object",
+      "properties": {
+        "entry_price": { "type": "string", "enum": ["next_open", "current_close"] },
+        "exit_price": { "type": "string", "enum": ["next_open", "current_close"] },
+        "fee_rate": { "type": "number", "minimum": 0 },
+        "slippage_rate": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "risk": {
+      "type": "object",
+      "required": ["stop_loss_pct", "take_profit_pct", "max_drawdown_pct"],
+      "properties": {
+        "stop_loss_pct": { "type": ["number", "null"], "exclusiveMinimum": 0, "maximum": 1 },
+        "take_profit_pct": { "type": ["number", "null"], "exclusiveMinimum": 0, "maximum": 5 },
+        "max_drawdown_pct": { "type": ["number", "null"], "exclusiveMinimum": 0, "maximum": 1 },
+        "max_holding_bars": { "type": ["integer", "null"], "exclusiveMinimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "created_by": { "type": "string" },
+        "created_at": { "type": "string" },
+        "updated_at": { "type": "string" }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "rule_group": {
+      "type": "object",
+      "required": ["logic", "conditions"],
+      "properties": {
+        "logic": { "type": "string", "enum": ["all", "any"] },
+        "conditions": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/condition" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "condition": {
+      "type": "object",
+      "required": ["left", "operator", "right"],
+      "properties": {
+        "left": { "$ref": "#/$defs/expression" },
+        "operator": {
+          "type": "string",
+          "enum": ["gt", "lt", "eq", "gte", "lte", "cross_above", "cross_below"]
+        },
+        "right": { "$ref": "#/$defs/expression" },
+        "lookback_bars": { "type": ["integer", "null"], "exclusiveMinimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "expression": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "type": "string", "enum": ["price", "indicator", "constant"] },
+        "field": { "type": "string", "enum": ["open", "high", "low", "close", "volume", "amount"] },
+        "name": { "type": "string", "enum": ["MA", "EMA", "MACD", "RSI", "BOLL", "VOLUME_MA", "RETURN", "VOLATILITY"] },
+        "params": { "type": "object", "additionalProperties": { "type": ["number", "string"] } },
+        "value": { "type": "number" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

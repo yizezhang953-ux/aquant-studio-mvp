@@ -1,0 +1,31 @@
+{
+  "optimization_id": "opt_price_breakout_grid",
+  "name": "价格突破策略参数网格搜索",
+  "base_strategy": "template_module/templates/price_breakout.json",
+  "db_path": "data_module/market_data.sqlite",
+  "objective": {
+    "primary_metric": "total_return",
+    "direction": "max",
+    "tie_breakers": [
+      { "metric": "max_drawdown", "direction": "min" },
+      { "metric": "trade_count", "direction": "max" }
+    ]
+  },
+  "parameters": [
+    {
+      "name": "entry_threshold",
+      "path": "entry.conditions.0.right.value",
+      "values": [1660, 1670, 1680, 1690]
+    },
+    {
+      "name": "exit_threshold",
+      "path": "exit.conditions.0.right.value",
+      "values": [1660, 1670, 1680]
+    },
+    {
+      "name": "order_size",
+      "path": "position.order_size_value",
+      "values": [0.2, 0.3, 0.4]
+    }
+  ]
+}

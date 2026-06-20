@@ -1,0 +1,35 @@
+{
+  "gateway_id": "gateway_a_share_sandbox_001",
+  "mode": "sandbox",
+  "decision": {
+    "accepted": false,
+    "status": "rejected",
+    "reasons": [
+      "order value exceeds max_order_value",
+      "cash is insufficient"
+    ]
+  },
+  "order": {
+    "gateway_order_id": "GW-20260620T130105+0000",
+    "client_order_id": "CLIENT-ORDER-REJECT-0001",
+    "strategy_id": "template_price_breakout_entry_threshold_1680_exit_threshold_1670_order_size_0_2",
+    "symbol": "600519.SH",
+    "side": "buy",
+    "order_type": "market",
+    "quantity": 100,
+    "estimated_price": 1683.34125,
+    "submitted_at": "2026-06-20T13:01:05+00:00",
+    "status": "rejected",
+    "reason": "entry_rule",
+    "source": "risk_test"
+  },
+  "fill": null,
+  "account_state": {
+    "account_id": "sandbox_account_001",
+    "cash": 81468.430069,
+    "positions": {
+      "600519.SH": 11
+    },
+    "updated_at": "2026-06-20T13:00:54+00:00"
+  }
+}

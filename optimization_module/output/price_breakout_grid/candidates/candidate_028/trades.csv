@@ -1,0 +1,2 @@
+symbol,entry_time,exit_time,entry_price,exit_price,quantity,gross_pnl,net_pnl,return_pct,entry_fee,exit_fee,exit_reason,holding_bars
+600519.SH,2024-01-03,2024-01-08,1700.2497,1658.87015,11,-455.17505,-466.260146,-0.024923,5.610824,5.474271,exit_rule,4

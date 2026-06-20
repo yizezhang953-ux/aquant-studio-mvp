@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>安全与合规检查报告</title>
+  <style>
+    body { margin:0; background:#f5f7f8; color:#17202a; font-family:"Microsoft YaHei","PingFang SC",Arial,sans-serif; }
+    header { background:#fff; border-bottom:1px solid #dfe5e8; padding:22px 28px; }
+    h1 { margin:0; font-size:22px; }
+    .sub { color:#667085; margin-top:8px; }
+    main { padding:24px 28px; display:grid; gap:20px; }
+    .cards { display:grid; grid-template-columns:repeat(4,minmax(150px,1fr)); gap:14px; }
+    .card { background:#fff; border:1px solid #dfe5e8; border-radius:8px; padding:15px; }
+    .card span { display:block; color:#667085; font-size:13px; }
+    .card strong { display:block; margin-top:8px; font-size:22px; }
+    .blocked strong { color:#c2410c; }
+    section { background:#fff; border:1px solid #dfe5e8; border-radius:8px; overflow:hidden; }
+    h2 { margin:0; padding:16px 18px; font-size:16px; border-bottom:1px solid #dfe5e8; }
+    table { width:100%; border-collapse:collapse; font-size:14px; }
+    th,td { padding:11px 13px; border-bottom:1px solid #dfe5e8; text-align:left; vertical-align:top; }
+    th { background:#fafafa; color:#667085; }
+    .wrap { overflow-x:auto; }
+    li { margin:8px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>安全与合规检查报告</h1>
+    <div class="sub">策略平台 MVP / 沙箱阶段 / 当前不得进入实盘交易</div>
+  </header>
+  <main>
+    <div class="cards">
+      <div class="card blocked"><span>实盘状态</span><strong>blocked_for_live_trading</strong></div>
+      <div class="card"><span>通过检查</span><strong>21</strong></div>
+      <div class="card"><span>失败检查</span><strong>0</strong></div>
+      <div class="card"><span>审计事件</span><strong>5</strong></div>
+    </div>
+    <section>
+      <h2>生产阻断项</h2>
+      <ul><li>No real broker adapter has been reviewed.</li><li>No credential vault or key rotation is implemented.</li><li>No legal review has been completed.</li><li>No live-trading emergency stop has been implemented.</li><li>No A-share T+1, lot-size, price-limit, halt, stamp-duty rule set has been fully implemented.</li></ul>
+    </section>
+    <section>
+      <h2>检查明细</h2>
+      <div class="wrap"><table><thead><tr><th>检查项</th><th>状态</th><th>严重性</th><th>说明</th><th>证据</th></tr></thead><tbody><tr><td>LIVE_TRADING_DISABLED</td><td>pass</td><td>critical</td><td>实盘交易开关必须关闭</td><td>live_trading_enabled=False, live_trading_allowed=False</td></tr>
+<tr><td>SANDBOX_MODE</td><td>pass</td><td>critical</td><td>当前阶段必须运行在 sandbox 模式</td><td>mode=sandbox</td></tr>
+<tr><td>AUDIT_ENABLED</td><td>pass</td><td>high</td><td>必须启用审计日志</td><td>write_audit_log=True</td></tr>
+<tr><td>ACCOUNT_STATE_ENABLED</td><td>pass</td><td>high</td><td>必须写入账户状态</td><td>write_account_state=True</td></tr>
+<tr><td>SHORT_SELL_REJECTED</td><td>pass</td><td>high</td><td>必须禁止裸卖空</td><td>reject_short_sell=True</td></tr>
+<tr><td>MAX_ORDER_VALUE_SET</td><td>pass</td><td>high</td><td>必须设置单笔最大订单金额</td><td>max_order_value=30000</td></tr>
+<tr><td>DAILY_ORDER_LIMIT_SET</td><td>pass</td><td>medium</td><td>必须设置每日订单数量限制</td><td>daily_order_limit=20</td></tr>
+<tr><td>SYMBOL_WHITELIST_SET</td><td>pass</td><td>medium</td><td>必须设置可交易标的白名单</td><td>allowed_symbols=['600519.SH', '000001.SZ', '300750.SZ']</td></tr>
+<tr><td>AUDIT_LOG_EXISTS</td><td>pass</td><td>high</td><td>审计日志文件必须存在且非空</td><td>trading_gateway_module\output\sandbox\audit_log.csv</td></tr>
+<tr><td>ACCOUNT_STATE_EXISTS</td><td>pass</td><td>high</td><td>账户状态文件必须存在且非空</td><td>trading_gateway_module\output\sandbox\account_state.json</td></tr>
+<tr><td>ORDER_LOG_EXISTS</td><td>pass</td><td>medium</td><td>订单记录必须存在</td><td>trading_gateway_module\output\sandbox\orders.csv</td></tr>
+<tr><td>FILL_LOG_EXISTS</td><td>pass</td><td>medium</td><td>成交记录必须存在</td><td>trading_gateway_module\output\sandbox\fills.csv</td></tr>
+<tr><td>AUDIT_EVENT_ORDER_RECEIVED</td><td>pass</td><td>medium</td><td>审计日志必须包含 order_received</td><td>present_events=['order_filled', 'order_received', 'risk_check']</td></tr>
+<tr><td>AUDIT_EVENT_RISK_CHECK</td><td>pass</td><td>medium</td><td>审计日志必须包含 risk_check</td><td>present_events=['order_filled', 'order_received', 'risk_check']</td></tr>
+<tr><td>REJECTION_AUDITED</td><td>pass</td><td>medium</td><td>必须至少验证并审计一条风控拒单</td><td>rejected_orders=1</td></tr>
+<tr><td>DISCLOSURE_BACKTEST_NOT_FUTURE_PERFORMANCE</td><td>pass</td><td>medium</td><td>风险披露必须包含：历史表现不代表未来收益</td><td>security_compliance_module\disclosures\risk_disclosure_zh.md</td></tr>
+<tr><td>DISCLOSURE_NOT_INVESTMENT_ADVICE</td><td>pass</td><td>medium</td><td>风险披露必须包含：不构成任何投资建议</td><td>security_compliance_module\disclosures\risk_disclosure_zh.md</td></tr>
+<tr><td>DISCLOSURE_USER_BEARS_TRADING_RISK</td><td>pass</td><td>medium</td><td>风险披露必须包含：自行承担</td><td>security_compliance_module\disclosures\risk_disclosure_zh.md</td></tr>
+<tr><td>DISCLOSURE_SANDBOX_NOT_REAL_TRADING</td><td>pass</td><td>medium</td><td>风险披露必须包含：不连接真实券商</td><td>security_compliance_module\disclosures\risk_disclosure_zh.md</td></tr>
+<tr><td>DISCLOSURE_LIVE_TRADING_REQUIRES_SEPARATE_APPROVAL</td><td>pass</td><td>medium</td><td>风险披露必须包含：单独审批</td><td>security_compliance_module\disclosures\risk_disclosure_zh.md</td></tr>
+<tr><td>LIVE_CHECKLIST_EXISTS</td><td>pass</td><td>high</td><td>必须存在实盘上线前检查清单并明确当前不得实盘</td><td>security_compliance_module\live-readiness-checklist.md</td></tr></tbody></table></div>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,80 @@
+{
+  "strategy_id": "template_price_breakout_entry_threshold_1660_exit_threshold_1660_order_size_0_4",
+  "strategy_name": "价格突破策略",
+  "symbol": "600519.SH",
+  "frequency": "1d",
+  "start_date": "2024-01-02",
+  "end_date": "2024-01-08",
+  "metrics": {
+    "initial_cash": 100000.0,
+    "final_equity": 99414.103441,
+    "total_return": -0.005859,
+    "annualized_return": -0.256332,
+    "max_drawdown": 0.009403,
+    "win_rate": 0.0,
+    "profit_factor": 0.0,
+    "trade_count": 1,
+    "average_holding_bars": 5.0,
+    "total_fees": 23.061259,
+    "sharpe": -4.104863
+  },
+  "trades": [
+    {
+      "symbol": "600519.SH",
+      "entry_time": "2024-01-02",
+      "exit_time": "2024-01-08",
+      "entry_price": 1683.34125,
+      "exit_price": 1658.87015,
+      "quantity": 23,
+      "gross_pnl": -562.8353,
+      "net_pnl": -585.896559,
+      "return_pct": -0.015128,
+      "entry_fee": 11.615055,
+      "exit_fee": 11.446204,
+      "exit_reason": "exit_rule",
+      "holding_bars": 5
+    }
+  ],
+  "equity_curve": [
+    {
+      "trade_time": "2024-01-02",
+      "cash": 61271.536195,
+      "position_qty": 23,
+      "close": 1682.5,
+      "equity": 99969.036195,
+      "drawdown_pct": 0.00031
+    },
+    {
+      "trade_time": "2024-01-03",
+      "cash": 61271.536195,
+      "position_qty": 23,
+      "close": 1699.4,
+      "equity": 100357.736195,
+      "drawdown_pct": 0.0
+    },
+    {
+      "trade_time": "2024-01-04",
+      "cash": 61271.536195,
+      "position_qty": 23,
+      "close": 1668.8,
+      "equity": 99653.936195,
+      "drawdown_pct": 0.007013
+    },
+    {
+      "trade_time": "2024-01-05",
+      "cash": 61271.536195,
+      "position_qty": 23,
+      "close": 1679.2,
+      "equity": 99893.136195,
+      "drawdown_pct": 0.004629
+    },
+    {
+      "trade_time": "2024-01-08",
+      "cash": 99414.103441,
+      "position_qty": 0,
+      "close": 1659.7,
+      "equity": 99414.103441,
+      "drawdown_pct": 0.009403
+    }
+  ]
+}

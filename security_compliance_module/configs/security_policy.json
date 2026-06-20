@@ -1,0 +1,32 @@
+{
+  "policy_id": "aquant_security_policy_v1",
+  "environment": "mvp_sandbox",
+  "live_trading_allowed": false,
+  "required_gateway_controls": {
+    "live_trading_enabled_must_be_false": true,
+    "audit_log_required": true,
+    "account_state_required": true,
+    "reject_short_sell_required": true,
+    "daily_order_limit_required": true,
+    "max_order_value_required": true,
+    "allowed_symbols_required": true
+  },
+  "required_disclosures": [
+    "backtest_not_future_performance",
+    "not_investment_advice",
+    "user_bears_trading_risk",
+    "sandbox_not_real_trading",
+    "live_trading_requires_separate_approval"
+  ],
+  "minimum_audit_events": [
+    "order_received",
+    "risk_check"
+  ],
+  "production_blockers": [
+    "No real broker adapter has been reviewed.",
+    "No credential vault or key rotation is implemented.",
+    "No legal review has been completed.",
+    "No live-trading emergency stop has been implemented.",
+    "No A-share T+1, lot-size, price-limit, halt, stamp-duty rule set has been fully implemented."
+  ]
+}

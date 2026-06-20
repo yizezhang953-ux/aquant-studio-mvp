@@ -1,0 +1,56 @@
+{
+  "library_version": "1.0",
+  "market": "a_share",
+  "templates": [
+    {
+      "template_id": "tpl_double_ma_trend",
+      "name": "双均线趋势策略",
+      "category": "trend",
+      "risk_level": "medium",
+      "default_symbol": "600519.SH",
+      "default_frequency": "1d",
+      "file": "double_ma_trend.json",
+      "description": "短周期均线上穿长周期均线买入，下穿卖出，适合趋势跟随。"
+    },
+    {
+      "template_id": "tpl_rsi_reversal",
+      "name": "RSI 波段反转策略",
+      "category": "mean_reversion",
+      "risk_level": "medium",
+      "default_symbol": "000001.SZ",
+      "default_frequency": "1d",
+      "file": "rsi_reversal.json",
+      "description": "RSI 低位买入，高位卖出，适合观察超买超卖。"
+    },
+    {
+      "template_id": "tpl_price_breakout",
+      "name": "价格突破策略",
+      "category": "breakout",
+      "risk_level": "medium",
+      "default_symbol": "600519.SH",
+      "default_frequency": "1d",
+      "file": "price_breakout.json",
+      "description": "收盘价突破阈值买入，跌破阈值卖出，适合演示完整交易闭环。"
+    },
+    {
+      "template_id": "tpl_volume_breakout",
+      "name": "成交量突破策略",
+      "category": "breakout",
+      "risk_level": "high",
+      "default_symbol": "000001.SZ",
+      "default_frequency": "15m",
+      "file": "volume_breakout.json",
+      "description": "价格上涨并伴随成交量放大时买入，适合短线突破观察。"
+    },
+    {
+      "template_id": "tpl_return_momentum",
+      "name": "收益率动量策略",
+      "category": "momentum",
+      "risk_level": "medium",
+      "default_symbol": "300750.SZ",
+      "default_frequency": "1d",
+      "file": "return_momentum.json",
+      "description": "短期收益率转强时买入，转弱时卖出，适合动量研究。"
+    }
+  ]
+}

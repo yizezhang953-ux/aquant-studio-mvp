@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>价格突破策略参数网格搜索 - 参数优化</title>
+  <style>
+    :root {
+      --bg: #f5f7f8;
+      --panel: #fff;
+      --line: #dfe5e8;
+      --text: #17202a;
+      --muted: #667085;
+      --brand: #0f766e;
+      --soft: #e5f3ef;
+      --bad: #c2410c;
+      font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); }
+    header { background: var(--panel); border-bottom: 1px solid var(--line); padding: 22px 28px; }
+    h1 { margin: 0; font-size: 22px; }
+    .sub { color: var(--muted); margin-top: 8px; }
+    main { padding: 24px 28px; display: grid; gap: 20px; }
+    .cards { display: grid; grid-template-columns: repeat(4, minmax(160px, 1fr)); gap: 14px; }
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 15px; }
+    .card span { display: block; color: var(--muted); font-size: 13px; }
+    .card strong { display: block; margin-top: 8px; font-size: 24px; }
+    .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+    .panel-head { padding: 16px 18px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; }
+    .panel-head h2 { margin: 0; font-size: 16px; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { padding: 12px 14px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+    th { color: var(--muted); background: #fafafa; }
+    .table-wrap { overflow-x: auto; }
+    .badge { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 999px; background: var(--soft); color: var(--brand); font-size: 13px; }
+    @media (max-width: 760px) { .cards { grid-template-columns: 1fr 1fr; } main { padding: 16px; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>价格突破策略参数网格搜索</h1>
+    <div class="sub">优化 ID：opt_price_breakout_grid · 参数组合：36 · 目标：total_return</div>
+  </header>
+  <main>
+    <section class="cards">
+      <div class="card"><span>最佳总收益率</span><strong>-0.18%</strong></div>
+      <div class="card"><span>最佳最大回撤</span><strong>0.35%</strong></div>
+      <div class="card"><span>最佳交易次数</span><strong>1</strong></div>
+      <div class="card"><span>最佳参数</span><strong>1680/1670</strong></div>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><h2>参数排行榜</h2><span class="badge">按目标排序</span></div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>排名</th><th>买入阈值</th><th>卖出阈值</th><th>仓位</th><th>总收益率</th><th>最大回撤</th><th>交易次数</th><th>夏普</th>
+            </tr>
+          </thead>
+          <tbody><tr><td>1</td><td>1680</td><td>1670</td><td>0.2</td><td>-0.18%</td><td>0.35%</td><td>1</td><td>-2.9167</td></tr>
+<tr><td>2</td><td>1680</td><td>1680</td><td>0.2</td><td>-0.18%</td><td>0.35%</td><td>1</td><td>-2.9167</td></tr>
+<tr><td>3</td><td>1680</td><td>1670</td><td>0.3</td><td>-0.28%</td><td>0.54%</td><td>1</td><td>-2.9126</td></tr>
+<tr><td>4</td><td>1680</td><td>1680</td><td>0.3</td><td>-0.28%</td><td>0.54%</td><td>1</td><td>-2.9126</td></tr>
+<tr><td>5</td><td>1660</td><td>1660</td><td>0.2</td><td>-0.28%</td><td>0.45%</td><td>1</td><td>-4.1141</td></tr>
+<tr><td>6</td><td>1670</td><td>1660</td><td>0.2</td><td>-0.28%</td><td>0.45%</td><td>1</td><td>-4.1141</td></tr>
+<tr><td>7</td><td>1680</td><td>1660</td><td>0.2</td><td>-0.28%</td><td>0.45%</td><td>1</td><td>-4.1141</td></tr>
+<tr><td>8</td><td>1660</td><td>1670</td><td>0.2</td><td>-0.31%</td><td>0.48%</td><td>2</td><td>-4.3890</td></tr>
+<tr><td>9</td><td>1660</td><td>1680</td><td>0.2</td><td>-0.34%</td><td>0.51%</td><td>3</td><td>-4.9557</td></tr>
+<tr><td>10</td><td>1690</td><td>1670</td><td>0.2</td><td>-0.37%</td><td>0.37%</td><td>1</td><td>-8.3873</td></tr>
+<tr><td>11</td><td>1690</td><td>1680</td><td>0.2</td><td>-0.37%</td><td>0.37%</td><td>1</td><td>-8.3873</td></tr>
+<tr><td>12</td><td>1680</td><td>1670</td><td>0.4</td><td>-0.38%</td><td>0.73%</td><td>1</td><td>-2.9084</td></tr>
+<tr><td>13</td><td>1680</td><td>1680</td><td>0.4</td><td>-0.38%</td><td>0.73%</td><td>1</td><td>-2.9084</td></tr>
+<tr><td>14</td><td>1670</td><td>1670</td><td>0.2</td><td>-0.42%</td><td>0.59%</td><td>2</td><td>-6.8485</td></tr>
+<tr><td>15</td><td>1670</td><td>1680</td><td>0.2</td><td>-0.42%</td><td>0.59%</td><td>2</td><td>-6.8485</td></tr>
+<tr><td>16</td><td>1660</td><td>1660</td><td>0.3</td><td>-0.43%</td><td>0.70%</td><td>1</td><td>-4.1095</td></tr>
+<tr><td>17</td><td>1670</td><td>1660</td><td>0.3</td><td>-0.43%</td><td>0.70%</td><td>1</td><td>-4.1095</td></tr>
+<tr><td>18</td><td>1680</td><td>1660</td><td>0.3</td><td>-0.43%</td><td>0.70%</td><td>1</td><td>-4.1095</td></tr>
+<tr><td>19</td><td>1690</td><td>1660</td><td>0.2</td><td>-0.47%</td><td>0.47%</td><td>1</td><td>-9.0659</td></tr>
+<tr><td>20</td><td>1660</td><td>1670</td><td>0.3</td><td>-0.48%</td><td>0.74%</td><td>2</td><td>-4.3845</td></tr>
+<tr><td>21</td><td>1660</td><td>1680</td><td>0.3</td><td>-0.52%</td><td>0.79%</td><td>3</td><td>-4.9524</td></tr>
+<tr><td>22</td><td>1690</td><td>1670</td><td>0.3</td><td>-0.57%</td><td>0.57%</td><td>1</td><td>-8.3873</td></tr>
+<tr><td>23</td><td>1690</td><td>1680</td><td>0.3</td><td>-0.57%</td><td>0.57%</td><td>1</td><td>-8.3873</td></tr>
+<tr><td>24</td><td>1660</td><td>1660</td><td>0.4</td><td>-0.59%</td><td>0.94%</td><td>1</td><td>-4.1049</td></tr>
+<tr><td>25</td><td>1670</td><td>1660</td><td>0.4</td><td>-0.59%</td><td>0.94%</td><td>1</td><td>-4.1049</td></tr>
+<tr><td>26</td><td>1680</td><td>1660</td><td>0.4</td><td>-0.59%</td><td>0.94%</td><td>1</td><td>-4.1049</td></tr>
+<tr><td>27</td><td>1660</td><td>1670</td><td>0.4</td><td>-0.65%</td><td>1.00%</td><td>2</td><td>-4.3801</td></tr>
+<tr><td>28</td><td>1670</td><td>1670</td><td>0.3</td><td>-0.66%</td><td>0.92%</td><td>2</td><td>-6.8490</td></tr>
+<tr><td>29</td><td>1670</td><td>1680</td><td>0.3</td><td>-0.66%</td><td>0.92%</td><td>2</td><td>-6.8490</td></tr>
+<tr><td>30</td><td>1660</td><td>1680</td><td>0.4</td><td>-0.71%</td><td>1.06%</td><td>3</td><td>-4.9491</td></tr>
+<tr><td>31</td><td>1690</td><td>1660</td><td>0.3</td><td>-0.72%</td><td>0.72%</td><td>1</td><td>-9.0614</td></tr>
+<tr><td>32</td><td>1690</td><td>1670</td><td>0.4</td><td>-0.77%</td><td>0.77%</td><td>1</td><td>-8.3873</td></tr>
+<tr><td>33</td><td>1690</td><td>1680</td><td>0.4</td><td>-0.77%</td><td>0.77%</td><td>1</td><td>-8.3873</td></tr>
+<tr><td>34</td><td>1670</td><td>1670</td><td>0.4</td><td>-0.89%</td><td>1.24%</td><td>2</td><td>-6.8495</td></tr>
+<tr><td>35</td><td>1670</td><td>1680</td><td>0.4</td><td>-0.89%</td><td>1.24%</td><td>2</td><td>-6.8495</td></tr>
+<tr><td>36</td><td>1690</td><td>1660</td><td>0.4</td><td>-0.97%</td><td>0.97%</td><td>1</td><td>-9.0568</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

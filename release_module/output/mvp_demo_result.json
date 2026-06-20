@@ -1,0 +1,78 @@
+{
+  "ok": true,
+  "steps": [
+    {
+      "name": "data health",
+      "ok": true,
+      "return_code": 0,
+      "stdout": "{\n  \"instrument_count\": 3,\n  \"bar_count\": 25,\n  \"coverage\": [\n    {\n      \"symbol\": \"000001.SZ\",\n      \"frequency\": \"15m\",\n      \"rows\": 5,\n      \"start_time\": \"2024-01-02 09:45:00\",\n      \"end_time\": \"2024-01-02 10:45:00\"\n    },\n    {\n      \"symbol\": \"000001.SZ\",\n      \"frequency\": \"1d\",\n      \"rows\": 5,\n      \"start_time\": \"2024-01-02\",\n      \"end_time\": \"2024-01-08\"\n    },\n    {\n      \"symbol\": \"300750.SZ\",\n      \"frequency\": \"1d\",\n      \"rows\": 5,\n      \"start_time\": \"2024-01-02\",\n      \"end_time\": \"2024-01-08\"\n    },\n    {\n      \"symbol\": \"600519.SH\",\n      \"frequency\": \"15m\",\n      \"rows\": 5,\n      \"start_time\": \"2024-01-02 09:45:00\",\n      \"end_time\": \"2024-01-02 10:45:00\"\n    },\n    {\n      \"symbol\": \"600519.SH\",\n      \"frequency\": \"1d\",\n      \"rows\": 5,\n      \"start_time\": \"2024-01-02\",\n      \"end_time\": \"2024-01-08\"\n    }\n  ]\n}",
+      "stderr": ""
+    },
+    {
+      "name": "strategy validation",
+      "ok": true,
+      "return_code": 0,
+      "stdout": "{\n  \"ok\": true,\n  \"errors\": [],\n  \"warnings\": [\n    \"data coverage: 5 bars from 2024-01-02 to 2024-01-08\"\n  ]\n}",
+      "stderr": ""
+    },
+    {
+      "name": "backtest smoke",
+      "ok": true,
+      "return_code": 0,
+      "stdout": "{\n  \"ok\": true,\n  \"output_dir\": \"release_module/output/backtest_smoke\",\n  \"metrics\": {\n    \"initial_cash\": 100000.0,\n    \"final_equity\": 99721.522285,\n    \"total_return\": -0.002785,\n    \"annualized_return\": -0.131119,\n    \"max_drawdown\": 0.005415,\n    \"win_rate\": 0.0,\n    \"profit_factor\": 0.0,\n    \"trade_count\": 1,\n    \"average_holding_bars\": 3.0,\n    \"total_fees\": 17.091665,\n    \"sharpe\": -2.912563\n  }\n}",
+      "stderr": ""
+    },
+    {
+      "name": "template validation",
+      "ok": true,
+      "return_code": 0,
+      "stdout": " [],\n      \"warnings\": [\n        \"data coverage: 5 bars from 2024-01-02 to 2024-01-08\"\n      ],\n      \"return_code\": 0\n    }\n  },\n  {\n    \"template_id\": \"tpl_rsi_reversal\",\n    \"file\": \"rsi_reversal.json\",\n    \"validation\": {\n      \"ok\": true,\n      \"errors\": [],\n      \"warnings\": [\n        \"data coverage: 5 bars from 2024-01-02 to 2024-01-08\"\n      ],\n      \"return_code\": 0\n    }\n  },\n  {\n    \"template_id\": \"tpl_price_breakout\",\n    \"file\": \"price_breakout.json\",\n    \"validation\": {\n      \"ok\": true,\n      \"errors\": [],\n      \"warnings\": [\n        \"data coverage: 5 bars from 2024-01-02 to 2024-01-08\"\n      ],\n      \"return_code\": 0\n    }\n  },\n  {\n    \"template_id\": \"tpl_volume_breakout\",\n    \"file\": \"volume_breakout.json\",\n    \"validation\": {\n      \"ok\": true,\n      \"errors\": [],\n      \"warnings\": [\n        \"data coverage: 5 bars from 2024-01-02 09:45:00 to 2024-01-02 10:45:00\"\n      ],\n      \"return_code\": 0\n    }\n  },\n  {\n    \"template_id\": \"tpl_return_momentum\",\n    \"file\": \"return_momentum.json\",\n    \"validation\": {\n      \"ok\": true,\n      \"errors\": [],\n      \"warnings\": [\n        \"data coverage: 5 bars from 2024-01-02 to 2024-01-08\"\n      ],\n      \"return_code\": 0\n    }\n  }\n]",
+      "stderr": ""
+    },
+    {
+      "name": "security compliance",
+      "ok": true,
+      "return_code": 0,
+      "stdout": "{\n  \"ok\": true,\n  \"output_dir\": \"release_module\\\\output\\\\security_check\",\n  \"summary\": {\n    \"policy_id\": \"aquant_security_policy_v1\",\n    \"environment\": \"mvp_sandbox\",\n    \"overall_status\": \"blocked_for_live_trading\",\n    \"pass_count\": 21,\n    \"fail_count\": 0,\n    \"production_blockers\": [\n      \"No real broker adapter has been reviewed.\",\n      \"No credential vault or key rotation is implemented.\",\n      \"No legal review has been completed.\",\n      \"No live-trading emergency stop has been implemented.\",\n      \"No A-share T+1, lot-size, price-limit, halt, stamp-duty rule set has been fully implemented.\"\n    ],\n    \"orders_checked\": 2,\n    \"fills_checked\": 1,\n    \"audit_events_checked\": 5\n  }\n}",
+      "stderr": ""
+    }
+  ],
+  "files": [
+    {
+      "name": "file exists: release_module/index.html",
+      "ok": true,
+      "path": "release_module/index.html",
+      "size": 6906
+    },
+    {
+      "name": "file exists: PROJECT_OVERVIEW.md",
+      "ok": true,
+      "path": "PROJECT_OVERVIEW.md",
+      "size": 1681
+    },
+    {
+      "name": "file exists: visualization_module/output/price_breakout_report.html",
+      "ok": true,
+      "path": "visualization_module/output/price_breakout_report.html",
+      "size": 9670
+    },
+    {
+      "name": "file exists: optimization_module/output/price_breakout_grid/ranking.html",
+      "ok": true,
+      "path": "optimization_module/output/price_breakout_grid/ranking.html",
+      "size": 7304
+    },
+    {
+      "name": "file exists: simulation_module/output/price_breakout_paper/paper_trading_report.html",
+      "ok": true,
+      "path": "simulation_module/output/price_breakout_paper/paper_trading_report.html",
+      "size": 3714
+    },
+    {
+      "name": "file exists: security_compliance_module/output/security_compliance_report.html",
+      "ok": true,
+      "path": "security_compliance_module/output/security_compliance_report.html",
+      "size": 6181
+    }
+  ]
+}

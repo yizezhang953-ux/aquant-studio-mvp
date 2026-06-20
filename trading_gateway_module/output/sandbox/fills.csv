@@ -1,0 +1,2 @@
+fill_id,gateway_order_id,symbol,side,quantity,fill_price,amount,fee,filled_at
+FILL-GW-20260620T130054+0000,GW-20260620T130054+0000,600519.SH,buy,11,1684.182921,18526.012127,5.557804,2026-06-20T13:00:54+00:00

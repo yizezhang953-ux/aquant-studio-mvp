@@ -1,0 +1,19 @@
+{
+  "simulation_id": "sim_price_breakout_paper_001",
+  "name": "价格突破策略模拟盘",
+  "strategy_path": "optimization_module/output/price_breakout_grid/candidates/candidate_022/strategy.json",
+  "db_path": "data_module/market_data.sqlite",
+  "mode": "historical_replay",
+  "clock": {
+    "bar_interval_seconds": 0,
+    "start_paused": false
+  },
+  "account": {
+    "initial_cash": 100000,
+    "allow_short": false
+  },
+  "risk_controls": {
+    "halt_on_max_drawdown": true,
+    "reject_order_when_cash_insufficient": true
+  }
+}

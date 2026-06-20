@@ -1,0 +1,736 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AQuant Studio 原型</title>
+  <style>
+    :root {
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --line: #dfe4ea;
+      --text: #17202a;
+      --muted: #667085;
+      --brand: #146c5f;
+      --brand-weak: #e5f3ef;
+      --accent: #b7791f;
+      --danger: #c2410c;
+      --success: #15803d;
+      --shadow: 0 8px 24px rgba(16, 24, 40, 0.08);
+      font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    button, input, select {
+      font: inherit;
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 232px 1fr;
+    }
+
+    .sidebar {
+      background: #111827;
+      color: #f9fafb;
+      padding: 20px 16px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+    }
+
+    .brand {
+      font-weight: 700;
+      font-size: 20px;
+      margin-bottom: 24px;
+    }
+
+    .nav {
+      display: grid;
+      gap: 8px;
+    }
+
+    .nav a {
+      color: #d1d5db;
+      text-decoration: none;
+      padding: 10px 12px;
+      border-radius: 6px;
+      display: block;
+    }
+
+    .nav a.active,
+    .nav a:hover {
+      background: #263244;
+      color: #ffffff;
+    }
+
+    .market-note {
+      margin-top: 28px;
+      padding: 12px;
+      border: 1px solid #374151;
+      border-radius: 6px;
+      color: #cbd5e1;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .main {
+      min-width: 0;
+    }
+
+    .topbar {
+      height: 64px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .topbar h1 {
+      font-size: 18px;
+      margin: 0;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .btn {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--text);
+      padding: 9px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .btn.primary {
+      background: var(--brand);
+      border-color: var(--brand);
+      color: #ffffff;
+    }
+
+    .btn:hover {
+      filter: brightness(0.98);
+    }
+
+    .content {
+      padding: 24px;
+      display: grid;
+      gap: 24px;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(160px, 1fr));
+      gap: 16px;
+    }
+
+    .metric {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    .metric span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 24px;
+      margin-top: 8px;
+    }
+
+    .grid-two {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
+      gap: 24px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .panel-header h2 {
+      font-size: 16px;
+      margin: 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    th, td {
+      padding: 13px 16px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    th {
+      color: var(--muted);
+      font-weight: 600;
+      background: #fafafa;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      background: var(--brand-weak);
+      color: var(--brand);
+    }
+
+    .tag.warn {
+      background: #fff4dc;
+      color: var(--accent);
+    }
+
+    .tag.danger {
+      background: #ffedd5;
+      color: var(--danger);
+    }
+
+    .editor {
+      display: grid;
+      grid-template-columns: 168px minmax(0, 1fr) 300px;
+      gap: 0;
+      min-height: 560px;
+    }
+
+    .steps {
+      border-right: 1px solid var(--line);
+      background: #fbfcfd;
+      padding: 16px;
+    }
+
+    .step {
+      padding: 11px 12px;
+      border-radius: 6px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .step.active {
+      background: var(--brand-weak);
+      color: var(--brand);
+      font-weight: 700;
+    }
+
+    .editor-main {
+      padding: 18px;
+      display: grid;
+      gap: 18px;
+      align-content: start;
+    }
+
+    .field-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .field label {
+      display: block;
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 6px;
+    }
+
+    .field input,
+    .field select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 10px 11px;
+      background: #ffffff;
+    }
+
+    .rule-block {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .rule-row {
+      display: grid;
+      grid-template-columns: 1fr 90px 1fr 88px;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .rule-row select,
+    .rule-row input {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px;
+    }
+
+    .aside {
+      border-left: 1px solid var(--line);
+      background: #fbfcfd;
+      padding: 18px;
+      display: grid;
+      gap: 16px;
+      align-content: start;
+    }
+
+    .checklist {
+      display: grid;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .checklist div::before {
+      content: "✓";
+      color: var(--success);
+      margin-right: 8px;
+      font-weight: 700;
+    }
+
+    .chart {
+      height: 260px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background:
+        linear-gradient(180deg, rgba(20, 108, 95, 0.13), rgba(20, 108, 95, 0.02)),
+        repeating-linear-gradient(to right, transparent 0, transparent 64px, rgba(0,0,0,0.05) 65px),
+        repeating-linear-gradient(to bottom, transparent 0, transparent 51px, rgba(0,0,0,0.05) 52px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .chart svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 6px;
+      border-bottom: 1px solid var(--line);
+      padding: 0 18px;
+      background: #fafafa;
+    }
+
+    .tab {
+      padding: 12px 10px;
+      color: var(--muted);
+      border-bottom: 2px solid transparent;
+      font-size: 14px;
+    }
+
+    .tab.active {
+      color: var(--brand);
+      border-bottom-color: var(--brand);
+      font-weight: 700;
+    }
+
+    .section-title {
+      font-size: 18px;
+      margin: 0;
+    }
+
+    .template-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(180px, 1fr));
+      gap: 14px;
+      padding: 18px;
+    }
+
+    .template {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .template h3 {
+      margin: 0;
+      font-size: 15px;
+    }
+
+    .template p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 1100px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        position: static;
+        height: auto;
+      }
+
+      .summary,
+      .grid-two,
+      .editor,
+      .template-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .aside,
+      .steps {
+        border: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">AQuant Studio</div>
+      <nav class="nav">
+        <a class="active" href="#dashboard">工作台</a>
+        <a href="#editor">策略编辑器</a>
+        <a href="#templates">模板库</a>
+        <a href="#report">回测报告</a>
+        <a href="#data">数据中心</a>
+      </nav>
+      <div class="market-note">
+        初版市场边界：仅支持中国 A 股单标的历史回测，暂不支持实盘交易。
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <h1>策略工作台</h1>
+        <div class="actions">
+          <button class="btn">从模板创建</button>
+          <button class="btn primary">新建策略</button>
+        </div>
+      </header>
+
+      <section class="content" id="dashboard">
+        <div class="summary">
+          <div class="metric"><span>我的策略</span><strong>8</strong></div>
+          <div class="metric"><span>最近回测收益</span><strong>12.4%</strong></div>
+          <div class="metric"><span>最大回撤提醒</span><strong>9.8%</strong></div>
+          <div class="metric"><span>可用 A 股数据</span><strong>日线 / 15m</strong></div>
+        </div>
+
+        <div class="grid-two">
+          <section class="panel">
+            <div class="panel-header">
+              <h2>我的策略</h2>
+              <button class="btn">筛选</button>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>策略名称</th>
+                  <th>标的</th>
+                  <th>频率</th>
+                  <th>最近收益</th>
+                  <th>状态</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>双均线趋势策略</td>
+                  <td>600519.SH</td>
+                  <td>日线</td>
+                  <td>12.4%</td>
+                  <td><span class="tag">已回测</span></td>
+                  <td>打开</td>
+                </tr>
+                <tr>
+                  <td>RSI 波段反转</td>
+                  <td>000001.SZ</td>
+                  <td>60 分钟</td>
+                  <td>-2.1%</td>
+                  <td><span class="tag warn">需优化</span></td>
+                  <td>打开</td>
+                </tr>
+                <tr>
+                  <td>成交量突破</td>
+                  <td>300750.SZ</td>
+                  <td>30 分钟</td>
+                  <td>6.7%</td>
+                  <td><span class="tag">已回测</span></td>
+                  <td>打开</td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <h2>最近回测</h2>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>策略</th>
+                  <th>收益</th>
+                  <th>回撤</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>双均线趋势</td><td>12.4%</td><td>8.6%</td></tr>
+                <tr><td>MACD 趋势</td><td>5.2%</td><td>11.1%</td></tr>
+                <tr><td>RSI 反转</td><td>-2.1%</td><td>13.8%</td></tr>
+              </tbody>
+            </table>
+          </section>
+        </div>
+
+        <section class="panel" id="editor">
+          <div class="panel-header">
+            <h2>策略编辑器：双均线趋势策略</h2>
+            <div class="actions">
+              <span class="tag">已保存</span>
+              <button class="btn">保存</button>
+              <button class="btn primary">运行回测</button>
+            </div>
+          </div>
+          <div class="editor">
+            <aside class="steps">
+              <div class="step">基础信息</div>
+              <div class="step">数据设置</div>
+              <div class="step active">买入规则</div>
+              <div class="step">卖出规则</div>
+              <div class="step">仓位风控</div>
+            </aside>
+
+            <div class="editor-main">
+              <h2 class="section-title">买入规则</h2>
+              <div class="field-grid">
+                <div class="field">
+                  <label>股票代码</label>
+                  <input value="600519.SH">
+                </div>
+                <div class="field">
+                  <label>数据频率</label>
+                  <select>
+                    <option>日线</option>
+                    <option>60 分钟</option>
+                    <option>30 分钟</option>
+                    <option>15 分钟</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>复权方式</label>
+                  <select>
+                    <option>前复权</option>
+                    <option>后复权</option>
+                    <option>不复权</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>交易价格</label>
+                  <select>
+                    <option>下一根 K 线开盘价</option>
+                    <option>当前 K 线收盘价</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="rule-block">
+                <strong>条件组：全部满足</strong>
+                <div class="rule-row">
+                  <select><option>MA(5)</option><option>EMA(12)</option><option>RSI(14)</option></select>
+                  <select><option>上穿</option><option>大于</option><option>小于</option></select>
+                  <select><option>MA(20)</option><option>收盘价</option><option>RSI(70)</option></select>
+                  <button class="btn">删除</button>
+                </div>
+                <div class="rule-row">
+                  <select><option>成交量</option><option>收盘价</option><option>MACD</option></select>
+                  <select><option>大于</option><option>小于</option><option>等于</option></select>
+                  <input value="20 日均量 * 1.5">
+                  <button class="btn">删除</button>
+                </div>
+                <button class="btn">添加条件</button>
+              </div>
+
+              <div class="field-grid">
+                <div class="field">
+                  <label>单次买入仓位</label>
+                  <input value="30%">
+                </div>
+                <div class="field">
+                  <label>最大持仓比例</label>
+                  <input value="80%">
+                </div>
+              </div>
+            </div>
+
+            <aside class="aside">
+              <h2 class="section-title">策略摘要</h2>
+              <div class="checklist">
+                <div>市场已限定为 A 股</div>
+                <div>股票代码已填写</div>
+                <div>买入条件已配置</div>
+                <div>卖出条件已配置</div>
+                <div>仓位规则有效</div>
+              </div>
+              <div>
+                <span class="tag">JSON 预览</span>
+                <pre>{
+  "market": "a_share",
+  "symbol": "600519.SH",
+  "frequency": "1d"
+}</pre>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <section class="panel" id="templates">
+          <div class="panel-header">
+            <h2>策略模板库</h2>
+          </div>
+          <div class="template-grid">
+            <div class="template">
+              <h3>双均线趋势策略</h3>
+              <p>MA5 上穿 MA20 买入，下穿卖出，适合趋势跟随。</p>
+              <span class="tag">日线</span>
+            </div>
+            <div class="template">
+              <h3>RSI 超买超卖策略</h3>
+              <p>RSI 低位买入，高位卖出，适合波段反转。</p>
+              <span class="tag warn">波段</span>
+            </div>
+            <div class="template">
+              <h3>成交量突破策略</h3>
+              <p>价格与成交量同步突破时入场，适合短线观察。</p>
+              <span class="tag">60 分钟</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel" id="report">
+          <div class="panel-header">
+            <h2>回测报告：600519.SH / 双均线趋势策略</h2>
+            <div class="actions">
+              <button class="btn">复制为新策略</button>
+              <button class="btn">导出报告</button>
+            </div>
+          </div>
+          <div class="tabs">
+            <div class="tab active">总览</div>
+            <div class="tab">交易明细</div>
+            <div class="tab">规则快照</div>
+          </div>
+          <div class="content">
+            <div class="summary">
+              <div class="metric"><span>总收益率</span><strong>12.4%</strong></div>
+              <div class="metric"><span>年化收益</span><strong>8.9%</strong></div>
+              <div class="metric"><span>最大回撤</span><strong>8.6%</strong></div>
+              <div class="metric"><span>夏普比率</span><strong>1.18</strong></div>
+            </div>
+            <div class="chart" aria-label="权益曲线示意图">
+              <svg viewBox="0 0 900 260" preserveAspectRatio="none">
+                <polyline points="0,210 80,190 160,200 240,164 320,154 400,121 480,132 560,88 640,102 720,68 800,76 900,42" fill="none" stroke="#146c5f" stroke-width="4"/>
+                <polyline points="0,220 80,218 160,224 240,214 320,204 400,190 480,202 560,181 640,188 720,169 800,176 900,158" fill="none" stroke="#c2410c" stroke-width="2" stroke-dasharray="8 8"/>
+              </svg>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>买入日期</th>
+                  <th>卖出日期</th>
+                  <th>买入价</th>
+                  <th>卖出价</th>
+                  <th>收益率</th>
+                  <th>手续费</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>2024-03-12</td><td>2024-05-08</td><td>1688.20</td><td>1792.40</td><td>6.17%</td><td>128.64</td></tr>
+                <tr><td>2024-07-01</td><td>2024-08-16</td><td>1420.50</td><td>1388.10</td><td>-2.28%</td><td>114.02</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel" id="data">
+          <div class="panel-header">
+            <h2>数据中心</h2>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>市场</th>
+                <th>标的范围</th>
+                <th>频率</th>
+                <th>复权</th>
+                <th>状态</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>A 股</td>
+                <td>沪深单只股票</td>
+                <td>日线 / 60m / 30m / 15m</td>
+                <td>前复权 / 后复权 / 不复权</td>
+                <td><span class="tag">MVP 支持</span></td>
+              </tr>
+              <tr>
+                <td>加密货币</td>
+                <td>暂不支持</td>
+                <td>-</td>
+                <td>-</td>
+                <td><span class="tag danger">不在初版范围</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

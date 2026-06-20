@@ -1,0 +1,10 @@
+trade_time,event_type,message,payload
+2024-01-02,simulation_started,paper trading simulation started,{'strategy_id': 'template_price_breakout_entry_threshold_1680_exit_threshold_1670_order_size_0_2'}
+2024-01-02,bar,received market bar,"{'open': 1685.0, 'high': 1698.8, 'low': 1668.1, 'close': 1682.5, 'volume': 3021450.0}"
+2024-01-02,order_filled,buy order filled,"{'fill_id': 'FIL-0001', 'order_id': 'ORD-0001', 'trade_time': '2024-01-02', 'symbol': '600519.SH', 'side': 'buy', 'quantity': 11, 'price': 1683.34125, 'fee': 5.555026, 'amount': 18516.75375}"
+2024-01-03,bar,received market bar,"{'open': 1682.5, 'high': 1705.2, 'low': 1679.0, 'close': 1699.4, 'volume': 2854300.0}"
+2024-01-04,bar,received market bar,"{'open': 1699.4, 'high': 1702.0, 'low': 1660.3, 'close': 1668.8, 'volume': 3312200.0}"
+2024-01-04,order_filled,sell order filled,"{'fill_id': 'FIL-0002', 'order_id': 'ORD-0002', 'trade_time': '2024-01-04', 'symbol': '600519.SH', 'side': 'sell', 'quantity': 11, 'price': 1667.9656, 'fee': 5.504286, 'amount': 18347.6216}"
+2024-01-05,bar,received market bar,"{'open': 1668.8, 'high': 1684.9, 'low': 1655.0, 'close': 1679.2, 'volume': 2987600.0}"
+2024-01-08,bar,received market bar,"{'open': 1679.2, 'high': 1690.0, 'low': 1648.2, 'close': 1659.7, 'volume': 3478900.0}"
+2024-01-08,simulation_finished,paper trading simulation finished,{'final_equity': 99819.808538}

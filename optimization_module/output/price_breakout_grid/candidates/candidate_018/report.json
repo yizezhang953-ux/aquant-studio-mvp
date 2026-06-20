@@ -1,0 +1,95 @@
+{
+  "strategy_id": "template_price_breakout_entry_threshold_1670_exit_threshold_1680_order_size_0_4",
+  "strategy_name": "价格突破策略",
+  "symbol": "600519.SH",
+  "frequency": "1d",
+  "start_date": "2024-01-02",
+  "end_date": "2024-01-08",
+  "metrics": {
+    "initial_cash": 100000.0,
+    "final_equity": 99113.300205,
+    "total_return": -0.008867,
+    "annualized_return": -0.361664,
+    "max_drawdown": 0.0124,
+    "win_rate": 0.0,
+    "profit_factor": 0.0,
+    "trade_count": 2,
+    "average_holding_bars": 2.5,
+    "total_fees": 46.162495,
+    "sharpe": -6.849513
+  },
+  "trades": [
+    {
+      "symbol": "600519.SH",
+      "entry_time": "2024-01-02",
+      "exit_time": "2024-01-04",
+      "entry_price": 1683.34125,
+      "exit_price": 1667.9656,
+      "quantity": 23,
+      "gross_pnl": -353.63995,
+      "net_pnl": -376.763967,
+      "return_pct": -0.009728,
+      "entry_fee": 11.615055,
+      "exit_fee": 11.508963,
+      "exit_reason": "exit_rule",
+      "holding_bars": 3
+    },
+    {
+      "symbol": "600519.SH",
+      "entry_time": "2024-01-05",
+      "exit_time": "2024-01-08",
+      "entry_price": 1680.0396,
+      "exit_price": 1658.87015,
+      "quantity": 23,
+      "gross_pnl": -486.89735,
+      "net_pnl": -509.935827,
+      "return_pct": -0.013193,
+      "entry_fee": 11.592273,
+      "exit_fee": 11.446204,
+      "exit_reason": "exit_rule",
+      "holding_bars": 2
+    }
+  ],
+  "equity_curve": [
+    {
+      "trade_time": "2024-01-02",
+      "cash": 61271.536195,
+      "position_qty": 23,
+      "close": 1682.5,
+      "equity": 99969.036195,
+      "drawdown_pct": 0.00031
+    },
+    {
+      "trade_time": "2024-01-03",
+      "cash": 61271.536195,
+      "position_qty": 23,
+      "close": 1699.4,
+      "equity": 100357.736195,
+      "drawdown_pct": 0.0
+    },
+    {
+      "trade_time": "2024-01-04",
+      "cash": 99623.236033,
+      "position_qty": 0,
+      "close": 1668.8,
+      "equity": 99623.236033,
+      "drawdown_pct": 0.007319
+    },
+    {
+      "trade_time": "2024-01-05",
+      "cash": 60970.732959,
+      "position_qty": 23,
+      "close": 1679.2,
+      "equity": 99592.332959,
+      "drawdown_pct": 0.007627
+    },
+    {
+      "trade_time": "2024-01-08",
+      "cash": 99113.300205,
+      "position_qty": 0,
+      "close": 1659.7,
+      "equity": 99113.300205,
+      "drawdown_pct": 0.0124
+    }
+  ]
+}

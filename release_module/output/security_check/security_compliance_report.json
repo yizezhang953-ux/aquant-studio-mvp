@@ -1,0 +1,168 @@
+{
+  "summary": {
+    "policy_id": "aquant_security_policy_v1",
+    "environment": "mvp_sandbox",
+    "overall_status": "blocked_for_live_trading",
+    "pass_count": 21,
+    "fail_count": 0,
+    "production_blockers": [
+      "No real broker adapter has been reviewed.",
+      "No credential vault or key rotation is implemented.",
+      "No legal review has been completed.",
+      "No live-trading emergency stop has been implemented.",
+      "No A-share T+1, lot-size, price-limit, halt, stamp-duty rule set has been fully implemented."
+    ],
+    "orders_checked": 2,
+    "fills_checked": 1,
+    "audit_events_checked": 5
+  },
+  "checks": [
+    {
+      "check_id": "LIVE_TRADING_DISABLED",
+      "status": "pass",
+      "severity": "critical",
+      "message": "实盘交易开关必须关闭",
+      "evidence": "live_trading_enabled=False, live_trading_allowed=False"
+    },
+    {
+      "check_id": "SANDBOX_MODE",
+      "status": "pass",
+      "severity": "critical",
+      "message": "当前阶段必须运行在 sandbox 模式",
+      "evidence": "mode=sandbox"
+    },
+    {
+      "check_id": "AUDIT_ENABLED",
+      "status": "pass",
+      "severity": "high",
+      "message": "必须启用审计日志",
+      "evidence": "write_audit_log=True"
+    },
+    {
+      "check_id": "ACCOUNT_STATE_ENABLED",
+      "status": "pass",
+      "severity": "high",
+      "message": "必须写入账户状态",
+      "evidence": "write_account_state=True"
+    },
+    {
+      "check_id": "SHORT_SELL_REJECTED",
+      "status": "pass",
+      "severity": "high",
+      "message": "必须禁止裸卖空",
+      "evidence": "reject_short_sell=True"
+    },
+    {
+      "check_id": "MAX_ORDER_VALUE_SET",
+      "status": "pass",
+      "severity": "high",
+      "message": "必须设置单笔最大订单金额",
+      "evidence": "max_order_value=30000"
+    },
+    {
+      "check_id": "DAILY_ORDER_LIMIT_SET",
+      "status": "pass",
+      "severity": "medium",
+      "message": "必须设置每日订单数量限制",
+      "evidence": "daily_order_limit=20"
+    },
+    {
+      "check_id": "SYMBOL_WHITELIST_SET",
+      "status": "pass",
+      "severity": "medium",
+      "message": "必须设置可交易标的白名单",
+      "evidence": "allowed_symbols=['600519.SH', '000001.SZ', '300750.SZ']"
+    },
+    {
+      "check_id": "AUDIT_LOG_EXISTS",
+      "status": "pass",
+      "severity": "high",
+      "message": "审计日志文件必须存在且非空",
+      "evidence": "trading_gateway_module\\output\\sandbox\\audit_log.csv"
+    },
+    {
+      "check_id": "ACCOUNT_STATE_EXISTS",
+      "status": "pass",
+      "severity": "high",
+      "message": "账户状态文件必须存在且非空",
+      "evidence": "trading_gateway_module\\output\\sandbox\\account_state.json"
+    },
+    {
+      "check_id": "ORDER_LOG_EXISTS",
+      "status": "pass",
+      "severity": "medium",
+      "message": "订单记录必须存在",
+      "evidence": "trading_gateway_module\\output\\sandbox\\orders.csv"
+    },
+    {
+      "check_id": "FILL_LOG_EXISTS",
+      "status": "pass",
+      "severity": "medium",
+      "message": "成交记录必须存在",
+      "evidence": "trading_gateway_module\\output\\sandbox\\fills.csv"
+    },
+    {
+      "check_id": "AUDIT_EVENT_ORDER_RECEIVED",
+      "status": "pass",
+      "severity": "medium",
+      "message": "审计日志必须包含 order_received",
+      "evidence": "present_events=['order_filled', 'order_received', 'risk_check']"
+    },
+    {
+      "check_id": "AUDIT_EVENT_RISK_CHECK",
+      "status": "pass",
+      "severity": "medium",
+      "message": "审计日志必须包含 risk_check",
+      "evidence": "present_events=['order_filled', 'order_received', 'risk_check']"
+    },
+    {
+      "check_id": "REJECTION_AUDITED",
+      "status": "pass",
+      "severity": "medium",
+      "message": "必须至少验证并审计一条风控拒单",
+      "evidence": "rejected_orders=1"
+    },
+    {
+      "check_id": "DISCLOSURE_BACKTEST_NOT_FUTURE_PERFORMANCE",
+      "status": "pass",
+      "severity": "medium",
+      "message": "风险披露必须包含：历史表现不代表未来收益",
+      "evidence": "security_compliance_module\\disclosures\\risk_disclosure_zh.md"
+    },
+    {
+      "check_id": "DISCLOSURE_NOT_INVESTMENT_ADVICE",
+      "status": "pass",
+      "severity": "medium",
+      "message": "风险披露必须包含：不构成任何投资建议",
+      "evidence": "security_compliance_module\\disclosures\\risk_disclosure_zh.md"
+    },
+    {
+      "check_id": "DISCLOSURE_USER_BEARS_TRADING_RISK",
+      "status": "pass",
+      "severity": "medium",
+      "message": "风险披露必须包含：自行承担",
+      "evidence": "security_compliance_module\\disclosures\\risk_disclosure_zh.md"
+    },
+    {
+      "check_id": "DISCLOSURE_SANDBOX_NOT_REAL_TRADING",
+      "status": "pass",
+      "severity": "medium",
+      "message": "风险披露必须包含：不连接真实券商",
+      "evidence": "security_compliance_module\\disclosures\\risk_disclosure_zh.md"
+    },
+    {
+      "check_id": "DISCLOSURE_LIVE_TRADING_REQUIRES_SEPARATE_APPROVAL",
+      "status": "pass",
+      "severity": "medium",
+      "message": "风险披露必须包含：单独审批",
+      "evidence": "security_compliance_module\\disclosures\\risk_disclosure_zh.md"
+    },
+    {
+      "check_id": "LIVE_CHECKLIST_EXISTS",
+      "status": "pass",
+      "severity": "high",
+      "message": "必须存在实盘上线前检查清单并明确当前不得实盘",
+      "evidence": "security_compliance_module\\live-readiness-checklist.md"
+    }
+  ]
+}

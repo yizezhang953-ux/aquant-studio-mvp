@@ -1,0 +1,26 @@
+{
+  "gateway_id": "gateway_a_share_sandbox_001",
+  "mode": "sandbox",
+  "broker_adapter": "sandbox_a_share",
+  "live_trading_enabled": false,
+  "account": {
+    "account_id": "sandbox_account_001",
+    "initial_cash": 100000,
+    "fee_rate": 0.0003,
+    "slippage_rate": 0.0005,
+    "initial_positions": {}
+  },
+  "risk_limits": {
+    "allowed_symbols": ["600519.SH", "000001.SZ", "300750.SZ"],
+    "allowed_sides": ["buy", "sell"],
+    "max_order_value": 30000,
+    "max_quantity": 1000,
+    "reject_short_sell": true,
+    "require_a_share_lot_size": false,
+    "daily_order_limit": 20
+  },
+  "audit": {
+    "write_audit_log": true,
+    "write_account_state": true
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "strategy_id": "template_volume_breakout",
+  "strategy_name": "成交量突破策略",
+  "symbol": "000001.SZ",
+  "frequency": "15m",
+  "start_date": "2024-01-02 09:45:00",
+  "end_date": "2024-01-02 10:45:00",
+  "metrics": {
+    "initial_cash": 100000.0,
+    "final_equity": 99984.012243,
+    "total_return": -0.00016,
+    "annualized_return": -0.008026,
+    "max_drawdown": 0.00016,
+    "win_rate": 0,
+    "profit_factor": null,
+    "trade_count": 0,
+    "average_holding_bars": 0,
+    "total_fees": 0,
+    "sharpe": -7.937254
+  },
+  "trades": [],
+  "equity_curve": [
+    {
+      "trade_time": "2024-01-02 09:45:00",
+      "cash": 100000.0,
+      "position_qty": 0,
+      "close": 9.32,
+      "equity": 100000.0,
+      "drawdown_pct": 0.0
+    },
+    {
+      "trade_time": "2024-01-02 10:00:00",
+      "cash": 100000.0,
+      "position_qty": 0,
+      "close": 9.36,
+      "equity": 100000.0,
+      "drawdown_pct": 0.0
+    },
+    {
+      "trade_time": "2024-01-02 10:15:00",
+      "cash": 100000.0,
+      "position_qty": 0,
+      "close": 9.39,
+      "equity": 100000.0,
+      "drawdown_pct": 0.0
+    },
+    {
+      "trade_time": "2024-01-02 10:30:00",
+      "cash": 100000.0,
+      "position_qty": 0,
+      "close": 9.31,
+      "equity": 100000.0,
+      "drawdown_pct": 0.0
+    },
+    {
+      "trade_time": "2024-01-02 10:45:00",
+      "cash": 80003.062243,
+      "position_qty": 2137,
+      "close": 9.35,
+      "equity": 99984.012243,
+      "drawdown_pct": 0.00016
+    }
+  ]
+}

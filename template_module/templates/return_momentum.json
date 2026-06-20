@@ -1,0 +1,61 @@
+{
+  "schema_version": "1.0",
+  "strategy_id": "template_return_momentum",
+  "name": "收益率动量策略",
+  "description": "3 日收益率高于 1% 买入，3 日收益率低于 -1% 卖出。",
+  "market": "a_share",
+  "universe": {
+    "type": "single",
+    "symbols": ["300750.SZ"]
+  },
+  "data": {
+    "frequency": "1d",
+    "adjustment": "forward",
+    "start_date": "2024-01-02",
+    "end_date": "2024-01-08"
+  },
+  "entry": {
+    "logic": "all",
+    "conditions": [
+      {
+        "left": { "type": "indicator", "name": "RETURN", "params": { "period": 3, "field": "close" } },
+        "operator": "gt",
+        "right": { "type": "constant", "value": 0.01 }
+      }
+    ]
+  },
+  "exit": {
+    "logic": "any",
+    "conditions": [
+      {
+        "left": { "type": "indicator", "name": "RETURN", "params": { "period": 3, "field": "close" } },
+        "operator": "lt",
+        "right": { "type": "constant", "value": -0.01 }
+      }
+    ]
+  },
+  "position": {
+    "initial_cash": 100000,
+    "order_size_type": "cash_pct",
+    "order_size_value": 0.25,
+    "max_position_pct": 0.7
+  },
+  "execution": {
+    "entry_price": "current_close",
+    "exit_price": "current_close",
+    "fee_rate": 0.0003,
+    "slippage_rate": 0.0005
+  },
+  "risk": {
+    "stop_loss_pct": 0.07,
+    "take_profit_pct": 0.16,
+    "max_drawdown_pct": 0.12,
+    "max_holding_bars": 10
+  },
+  "metadata": {
+    "template_id": "tpl_return_momentum",
+    "created_by": "template_library",
+    "created_at": "2026-06-20T00:00:00Z",
+    "updated_at": "2026-06-20T00:00:00Z"
+  }
+}

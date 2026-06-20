@@ -1,0 +1,231 @@
+{
+  "simulation_id": "sim_price_breakout_paper_001",
+  "name": "价格突破策略模拟盘",
+  "mode": "historical_replay",
+  "strategy_id": "template_price_breakout_entry_threshold_1680_exit_threshold_1670_order_size_0_2",
+  "symbol": "600519.SH",
+  "frequency": "1d",
+  "start_date": "2024-01-02",
+  "end_date": "2024-01-08",
+  "summary": {
+    "initial_cash": 100000.0,
+    "final_cash": 99819.808538,
+    "final_equity": 99819.808538,
+    "total_return": -0.001802,
+    "max_drawdown": 0.003507,
+    "order_count": 2,
+    "fill_count": 2,
+    "final_position_qty": 0,
+    "state": "running"
+  },
+  "orders": [
+    {
+      "order_id": "ORD-0001",
+      "trade_time": "2024-01-02",
+      "symbol": "600519.SH",
+      "side": "buy",
+      "order_type": "market_simulated",
+      "quantity": 11,
+      "price": 1683.34125,
+      "status": "accepted",
+      "reason": "entry_rule"
+    },
+    {
+      "order_id": "ORD-0002",
+      "trade_time": "2024-01-04",
+      "symbol": "600519.SH",
+      "side": "sell",
+      "order_type": "market_simulated",
+      "quantity": 11,
+      "price": 1667.9656,
+      "status": "accepted",
+      "reason": "exit_rule"
+    }
+  ],
+  "fills": [
+    {
+      "fill_id": "FIL-0001",
+      "order_id": "ORD-0001",
+      "trade_time": "2024-01-02",
+      "symbol": "600519.SH",
+      "side": "buy",
+      "quantity": 11,
+      "price": 1683.34125,
+      "fee": 5.555026,
+      "amount": 18516.75375
+    },
+    {
+      "fill_id": "FIL-0002",
+      "order_id": "ORD-0002",
+      "trade_time": "2024-01-04",
+      "symbol": "600519.SH",
+      "side": "sell",
+      "quantity": 11,
+      "price": 1667.9656,
+      "fee": 5.504286,
+      "amount": 18347.6216
+    }
+  ],
+  "snapshots": [
+    {
+      "trade_time": "2024-01-02",
+      "cash": 81477.691224,
+      "position_qty": 11,
+      "close": 1682.5,
+      "market_value": 18507.5,
+      "equity": 99985.191224,
+      "drawdown_pct": 0.000148,
+      "state": "running"
+    },
+    {
+      "trade_time": "2024-01-03",
+      "cash": 81477.691224,
+      "position_qty": 11,
+      "close": 1699.4,
+      "market_value": 18693.4,
+      "equity": 100171.091224,
+      "drawdown_pct": 0.0,
+      "state": "running"
+    },
+    {
+      "trade_time": "2024-01-04",
+      "cash": 99819.808538,
+      "position_qty": 0,
+      "close": 1668.8,
+      "market_value": 0.0,
+      "equity": 99819.808538,
+      "drawdown_pct": 0.003507,
+      "state": "running"
+    },
+    {
+      "trade_time": "2024-01-05",
+      "cash": 99819.808538,
+      "position_qty": 0,
+      "close": 1679.2,
+      "market_value": 0.0,
+      "equity": 99819.808538,
+      "drawdown_pct": 0.003507,
+      "state": "running"
+    },
+    {
+      "trade_time": "2024-01-08",
+      "cash": 99819.808538,
+      "position_qty": 0,
+      "close": 1659.7,
+      "market_value": 0.0,
+      "equity": 99819.808538,
+      "drawdown_pct": 0.003507,
+      "state": "running"
+    }
+  ],
+  "events": [
+    {
+      "trade_time": "2024-01-02",
+      "event_type": "simulation_started",
+      "message": "paper trading simulation started",
+      "payload": {
+        "strategy_id": "template_price_breakout_entry_threshold_1680_exit_threshold_1670_order_size_0_2"
+      }
+    },
+    {
+      "trade_time": "2024-01-02",
+      "event_type": "bar",
+      "message": "received market bar",
+      "payload": {
+        "open": 1685.0,
+        "high": 1698.8,
+        "low": 1668.1,
+        "close": 1682.5,
+        "volume": 3021450.0
+      }
+    },
+    {
+      "trade_time": "2024-01-02",
+      "event_type": "order_filled",
+      "message": "buy order filled",
+      "payload": {
+        "fill_id": "FIL-0001",
+        "order_id": "ORD-0001",
+        "trade_time": "2024-01-02",
+        "symbol": "600519.SH",
+        "side": "buy",
+        "quantity": 11,
+        "price": 1683.34125,
+        "fee": 5.555026,
+        "amount": 18516.75375
+      }
+    },
+    {
+      "trade_time": "2024-01-03",
+      "event_type": "bar",
+      "message": "received market bar",
+      "payload": {
+        "open": 1682.5,
+        "high": 1705.2,
+        "low": 1679.0,
+        "close": 1699.4,
+        "volume": 2854300.0
+      }
+    },
+    {
+      "trade_time": "2024-01-04",
+      "event_type": "bar",
+      "message": "received market bar",
+      "payload": {
+        "open": 1699.4,
+        "high": 1702.0,
+        "low": 1660.3,
+        "close": 1668.8,
+        "volume": 3312200.0
+      }
+    },
+    {
+      "trade_time": "2024-01-04",
+      "event_type": "order_filled",
+      "message": "sell order filled",
+      "payload": {
+        "fill_id": "FIL-0002",
+        "order_id": "ORD-0002",
+        "trade_time": "2024-01-04",
+        "symbol": "600519.SH",
+        "side": "sell",
+        "quantity": 11,
+        "price": 1667.9656,
+        "fee": 5.504286,
+        "amount": 18347.6216
+      }
+    },
+    {
+      "trade_time": "2024-01-05",
+      "event_type": "bar",
+      "message": "received market bar",
+      "payload": {
+        "open": 1668.8,
+        "high": 1684.9,
+        "low": 1655.0,
+        "close": 1679.2,
+        "volume": 2987600.0
+      }
+    },
+    {
+      "trade_time": "2024-01-08",
+      "event_type": "bar",
+      "message": "received market bar",
+      "payload": {
+        "open": 1679.2,
+        "high": 1690.0,
+        "low": 1648.2,
+        "close": 1659.7,
+        "volume": 3478900.0
+      }
+    },
+    {
+      "trade_time": "2024-01-08",
+      "event_type": "simulation_finished",
+      "message": "paper trading simulation finished",
+      "payload": {
+        "final_equity": 99819.808538
+      }
+    }
+  ]
+}

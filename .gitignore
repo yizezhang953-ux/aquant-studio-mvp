@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
+.env
+.venv/
+venv/
+node_modules/
+
+# Keep generated MVP artifacts, but ignore accidental large exports.
+*.zip
+*.7z
+*.rar
+
+# Local editor files
+.vscode/
+.idea/

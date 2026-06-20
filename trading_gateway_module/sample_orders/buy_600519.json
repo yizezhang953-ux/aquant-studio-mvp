@@ -1,0 +1,11 @@
+{
+  "client_order_id": "CLIENT-ORDER-0001",
+  "strategy_id": "template_price_breakout_entry_threshold_1680_exit_threshold_1670_order_size_0_2",
+  "symbol": "600519.SH",
+  "side": "buy",
+  "order_type": "market",
+  "quantity": 11,
+  "estimated_price": 1683.34125,
+  "reason": "entry_rule",
+  "source": "paper_trading_promotion"
+}
