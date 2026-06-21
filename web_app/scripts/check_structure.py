@@ -9,6 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 REQUIRED_PATHS = [
     "backend/app/main.py",
     "backend/app/api/v1/router.py",
+    "backend/app/api/v1/routes/auth.py",
     "backend/app/api/v1/routes/system.py",
     "backend/app/api/v1/routes/security.py",
     "backend/app/api/v1/routes/templates.py",
@@ -23,15 +24,19 @@ REQUIRED_PATHS = [
     "backend/app/models/market.py",
     "backend/app/models/strategy.py",
     "backend/app/models/template.py",
+    "backend/app/models/user.py",
+    "backend/app/schemas/auth.py",
     "backend/app/schemas/backtest.py",
     "backend/app/schemas/security.py",
     "backend/app/schemas/strategy.py",
     "backend/app/schemas/system.py",
     "backend/app/services/backtest_service.py",
+    "backend/app/services/auth_service.py",
     "backend/app/services/database_service.py",
     "backend/app/services/json_utils.py",
     "backend/app/services/legacy_paths.py",
     "backend/app/services/strategy_service.py",
+    "backend/app/services/strategy_repository.py",
     "backend/app/services/template_service.py",
     "backend/pyproject.toml",
     "backend/.env.example",
@@ -43,6 +48,7 @@ REQUIRED_PATHS = [
     "docs/stage-1-web-app-structure.md",
     "docs/stage-2-backend-api-mvp.md",
     "docs/stage-3-database-design-migration.md",
+    "docs/stage-4-user-account-strategy-persistence.md",
 ]
 
 

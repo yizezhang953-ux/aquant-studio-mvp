@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     live_trading_enabled: bool = False
     database_url: str = "sqlite:///./aquant_web_app.db"
     redis_url: str = "redis://localhost:6379/0"
+    auth_token_ttl_hours: int = 24
     allowed_origins: list[str] = ["http://localhost:5173", "http://localhost:3000"]
 
     model_config = SettingsConfigDict(

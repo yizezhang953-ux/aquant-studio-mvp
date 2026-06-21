@@ -4,7 +4,7 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import func, inspect, select, text
 from sqlalchemy.orm import Session
 
 from app.db.session import Base, engine
@@ -15,7 +15,10 @@ from app.models import (
     BacktestTrade,
     MarketBar,
     MarketInstrument,
+    StrategyVersion,
     StrategyTemplate,
+    User,
+    UserSession,
     UserStrategy,
 )
 from app.services.json_utils import read_json
@@ -23,8 +26,11 @@ from app.services.legacy_paths import BACKTEST_MODULE, DATA_MODULE, TEMPLATE_MOD
 
 
 TABLE_MODELS = {
+    "users": User,
+    "user_sessions": UserSession,
     "strategy_templates": StrategyTemplate,
     "user_strategies": UserStrategy,
+    "strategy_versions": StrategyVersion,
     "market_instruments": MarketInstrument,
     "market_bars": MarketBar,
     "backtest_runs": BacktestRun,
@@ -36,6 +42,7 @@ TABLE_MODELS = {
 
 def create_database() -> None:
     Base.metadata.create_all(bind=engine)
+    _upgrade_sqlite_schema()
 
 
 def get_database_status(db: Session) -> dict[str, Any]:
@@ -57,6 +64,7 @@ def initialize_database(db: Session, seed: bool = True) -> dict[str, Any]:
     if seed:
         seeded["strategy_templates"] = seed_strategy_templates(db)
         seeded["user_strategies"] = seed_user_strategies(db)
+        seeded["strategy_versions"] = seed_strategy_versions(db)
         market_counts = seed_market_data(db)
         seeded.update(market_counts)
         backtest_counts = seed_backtest_demo(db)
@@ -114,10 +122,13 @@ def seed_user_strategies(db: Session) -> int:
         symbols = strategy_json.get("universe", {}).get("symbols") or [template.default_symbol]
         payload = {
             "strategy_id": strategy_id,
+            "owner_id": None,
             "name": strategy_json.get("name", template.name),
             "market": strategy_json.get("market", template.market),
             "symbol": symbols[0],
             "frequency": strategy_json.get("data", {}).get("frequency", template.default_frequency),
+            "source_template_id": template.template_id,
+            "status": "draft",
             "strategy_json": strategy_json,
         }
         if strategy is None:
@@ -188,6 +199,31 @@ def seed_market_data(db: Session) -> dict[str, int]:
     return {"market_instruments": inserted_instruments, "market_bars": inserted_bars}
 
 
+def seed_strategy_versions(db: Session) -> int:
+    changed = 0
+    strategies = db.scalars(select(UserStrategy)).all()
+    for strategy in strategies:
+        exists = db.scalar(
+            select(StrategyVersion).where(
+                StrategyVersion.strategy_id == strategy.strategy_id,
+                StrategyVersion.version == 1,
+            )
+        )
+        if exists is not None:
+            continue
+        db.add(
+            StrategyVersion(
+                strategy_id=strategy.strategy_id,
+                version=1,
+                change_note="Seed version",
+                strategy_json=strategy.strategy_json,
+            )
+        )
+        changed += 1
+    db.commit()
+    return changed
+
+
 def seed_backtest_demo(db: Session) -> dict[str, int]:
     report_path = BACKTEST_MODULE / "output" / "price_breakout_demo" / "report.json"
     if not report_path.exists():
@@ -256,3 +292,21 @@ def _legacy_connection(path: Path) -> sqlite3.Connection:
     conn = sqlite3.connect(path)
     conn.row_factory = sqlite3.Row
     return conn
+
+
+def _upgrade_sqlite_schema() -> None:
+    if engine.dialect.name != "sqlite":
+        return
+    inspector = inspect(engine)
+    if "user_strategies" not in inspector.get_table_names():
+        return
+    columns = {column["name"] for column in inspector.get_columns("user_strategies")}
+    additions = {
+        "owner_id": "ALTER TABLE user_strategies ADD COLUMN owner_id INTEGER",
+        "source_template_id": "ALTER TABLE user_strategies ADD COLUMN source_template_id VARCHAR(80)",
+        "status": "ALTER TABLE user_strategies ADD COLUMN status VARCHAR(40) DEFAULT 'draft'",
+    }
+    with engine.begin() as conn:
+        for column_name, statement in additions.items():
+            if column_name not in columns:
+                conn.execute(text(statement))
