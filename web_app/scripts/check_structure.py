@@ -11,10 +11,19 @@ REQUIRED_PATHS = [
     "backend/app/api/v1/router.py",
     "backend/app/api/v1/routes/system.py",
     "backend/app/api/v1/routes/security.py",
+    "backend/app/api/v1/routes/templates.py",
+    "backend/app/api/v1/routes/strategies.py",
+    "backend/app/api/v1/routes/backtests.py",
     "backend/app/core/config.py",
+    "backend/app/schemas/backtest.py",
     "backend/app/schemas/security.py",
+    "backend/app/schemas/strategy.py",
     "backend/app/schemas/system.py",
+    "backend/app/services/backtest_service.py",
+    "backend/app/services/json_utils.py",
     "backend/app/services/legacy_paths.py",
+    "backend/app/services/strategy_service.py",
+    "backend/app/services/template_service.py",
     "backend/pyproject.toml",
     "backend/.env.example",
     "frontend/package.json",
@@ -23,6 +32,7 @@ REQUIRED_PATHS = [
     "frontend/src/main.tsx",
     "frontend/src/styles.css",
     "docs/stage-1-web-app-structure.md",
+    "docs/stage-2-backend-api-mvp.md",
 ]
 
 

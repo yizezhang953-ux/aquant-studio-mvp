@@ -44,17 +44,15 @@ The first backend endpoints are:
 GET /
 GET /health
 GET /api/v1/security/status
+GET /api/v1/templates
+GET /api/v1/templates/{template_id}
+POST /api/v1/strategies/validate
+POST /api/v1/backtests
+GET /api/v1/backtests/{backtest_id}
 ```
 
 The frontend currently renders a static shell that points to the future product areas.
 
 ## Next Stage
 
-Stage 2 will wrap the existing MVP modules as FastAPI endpoints:
-
-```text
-GET  /api/v1/templates
-POST /api/v1/strategies/validate
-POST /api/v1/backtests
-GET  /api/v1/backtests/{id}
-```
+Stage 2 wraps the existing MVP modules as synchronous FastAPI endpoints. Stage 3 will introduce the database layer.

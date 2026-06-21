@@ -15,3 +15,8 @@ node_modules/
 # Local editor files
 .vscode/
 .idea/
+
+# Web app runtime outputs
+web_app/backend/runtime/
+web_app/backend/*.log
+web_app/backend/*.egg-info/
