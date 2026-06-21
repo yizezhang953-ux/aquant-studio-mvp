@@ -69,6 +69,12 @@ h2 {
   letter-spacing: 0;
 }
 
+h3 {
+  margin: 0;
+  font-size: 15px;
+  letter-spacing: 0;
+}
+
 .system-state {
   display: flex;
   align-items: center;
@@ -307,6 +313,14 @@ textarea:focus {
   gap: 12px;
 }
 
+.form-grid.three {
+  grid-template-columns: repeat(3, minmax(140px, 1fr));
+}
+
+.form-grid.compact {
+  grid-template-columns: minmax(88px, 0.7fr) minmax(150px, 1.2fr) minmax(92px, 0.8fr);
+}
+
 .meta-strip {
   display: flex;
   gap: 8px;
@@ -331,6 +345,43 @@ textarea:focus {
   font-family: Consolas, "Courier New", monospace;
   font-size: 13px;
   line-height: 1.55;
+}
+
+.editor-switch {
+  justify-self: start;
+}
+
+.structured-editor {
+  display: grid;
+  gap: 14px;
+}
+
+.editor-section {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid #e2ebe7;
+  border-radius: 8px;
+  background: #fbfdfc;
+}
+
+.rule-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.rule-box {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #d6e0dc;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.sync-button {
+  justify-self: start;
 }
 
 .empty-state {
@@ -394,7 +445,10 @@ textarea:focus {
 
   .auth-layout,
   .workspace,
-  .form-grid {
+  .form-grid,
+  .form-grid.three,
+  .form-grid.compact,
+  .rule-grid {
     grid-template-columns: 1fr;
   }
 

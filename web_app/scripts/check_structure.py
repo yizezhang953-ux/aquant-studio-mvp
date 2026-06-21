@@ -50,6 +50,7 @@ REQUIRED_PATHS = [
     "docs/stage-3-database-design-migration.md",
     "docs/stage-4-user-account-strategy-persistence.md",
     "docs/stage-5-frontend-connected-workbench.md",
+    "docs/stage-6-structured-strategy-editor.md",
 ]
 
 
