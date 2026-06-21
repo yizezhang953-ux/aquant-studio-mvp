@@ -53,6 +53,16 @@ It does not connect to a real broker, does not place real orders, and does not p
 | Paper trading report | `simulation_module/output/price_breakout_paper/paper_trading_report.html` |
 | Security report | `security_compliance_module/output/security_compliance_report.html` |
 
+## V2 Web App Structure
+
+The online backend application work starts in:
+
+```text
+web_app/
+```
+
+It contains a FastAPI backend skeleton and a React/Vite frontend skeleton.
+
 ## Run Demo Check
 
 ```powershell

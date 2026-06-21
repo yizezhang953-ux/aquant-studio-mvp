@@ -1,0 +1,48 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+
+REQUIRED_PATHS = [
+    "backend/app/main.py",
+    "backend/app/api/v1/router.py",
+    "backend/app/api/v1/routes/system.py",
+    "backend/app/api/v1/routes/security.py",
+    "backend/app/core/config.py",
+    "backend/app/schemas/security.py",
+    "backend/app/schemas/system.py",
+    "backend/app/services/legacy_paths.py",
+    "backend/pyproject.toml",
+    "backend/.env.example",
+    "frontend/package.json",
+    "frontend/index.html",
+    "frontend/src/App.tsx",
+    "frontend/src/main.tsx",
+    "frontend/src/styles.css",
+    "docs/stage-1-web-app-structure.md",
+]
+
+
+def main() -> None:
+    checks = []
+    for relative_path in REQUIRED_PATHS:
+        path = ROOT / relative_path
+        checks.append(
+            {
+                "path": relative_path,
+                "exists": path.exists(),
+                "size": path.stat().st_size if path.exists() else None,
+            }
+        )
+    ok = all(item["exists"] for item in checks)
+    output = {"ok": ok, "checks": checks}
+    print(json.dumps(output, ensure_ascii=False, indent=2))
+    if not ok:
+        raise SystemExit(1)
+
+
+if __name__ == "__main__":
+    main()
