@@ -6,6 +6,8 @@ Thumbs.db
 .venv/
 venv/
 node_modules/
+web_app/frontend/dist/
+web_app/frontend/pnpm-workspace.yaml
 
 # Keep generated MVP artifacts, but ignore accidental large exports.
 *.zip

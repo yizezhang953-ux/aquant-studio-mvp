@@ -49,6 +49,7 @@ REQUIRED_PATHS = [
     "docs/stage-2-backend-api-mvp.md",
     "docs/stage-3-database-design-migration.md",
     "docs/stage-4-user-account-strategy-persistence.md",
+    "docs/stage-5-frontend-connected-workbench.md",
 ]
 
 
