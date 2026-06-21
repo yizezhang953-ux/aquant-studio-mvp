@@ -20,3 +20,6 @@ node_modules/
 web_app/backend/runtime/
 web_app/backend/*.log
 web_app/backend/*.egg-info/
+web_app/backend/*.db
+web_app/backend/*.sqlite
+web_app/backend/*.sqlite3

@@ -40,3 +40,19 @@ def test_backtest_run() -> None:
     payload = response.json()
     assert payload["status"] == "completed"
     assert payload["metrics"]["trade_count"] >= 0
+
+
+def test_database_init_and_status() -> None:
+    init_response = client.post("/api/v1/database/init")
+    assert init_response.status_code == 200
+    init_payload = init_response.json()
+    assert init_payload["database"] == "ready"
+    assert init_payload["tables"]["strategy_templates"] >= 1
+    assert init_payload["tables"]["market_instruments"] >= 1
+    assert init_payload["tables"]["backtest_runs"] >= 1
+
+    status_response = client.get("/api/v1/database/status")
+    assert status_response.status_code == 200
+    status_payload = status_response.json()
+    assert status_payload["table_count"] >= 7
+    assert status_payload["tables"]["market_bars"] >= 1
