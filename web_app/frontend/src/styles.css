@@ -508,6 +508,19 @@ textarea:focus {
   justify-self: start;
 }
 
+.csv-import {
+  border-color: #c9d9ee;
+}
+
+.csv-editor {
+  min-height: 116px;
+  resize: vertical;
+  padding: 10px;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 .history-list {
   display: grid;
   gap: 8px;

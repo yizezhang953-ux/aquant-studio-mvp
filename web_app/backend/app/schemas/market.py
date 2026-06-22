@@ -92,6 +92,26 @@ class MarketImportResponse(BaseModel):
     message: str
 
 
+class MarketCsvImportRequest(BaseModel):
+    symbol: str
+    name: str
+    exchange: str
+    frequency: str = "1d"
+    csv_text: str
+    source: str = "csv"
+
+
+class MarketCsvImportResponse(BaseModel):
+    symbol: str
+    parsed_rows: int
+    inserted_bars: int
+    updated_bars: int
+    total_bars: int
+    skipped_rows: int
+    errors: list[str]
+    message: str
+
+
 class MarketQualityIssue(BaseModel):
     symbol: str
     frequency: str

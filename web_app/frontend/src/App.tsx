@@ -180,12 +180,26 @@ type MarketImportDraft = {
   close: string;
 };
 
+type MarketCsvImportDraft = {
+  symbol: string;
+  name: string;
+  exchange: string;
+  frequency: string;
+  csvText: string;
+};
+
 type MarketImportResponse = {
   symbol: string;
   inserted_bars: number;
   updated_bars: number;
   total_bars: number;
   message: string;
+};
+
+type MarketCsvImportResponse = MarketImportResponse & {
+  parsed_rows: number;
+  skipped_rows: number;
+  errors: string[];
 };
 
 type StrategyJson = {
@@ -693,6 +707,45 @@ export default function App() {
     }
   }
 
+  async function importMarketCsv(draft: MarketCsvImportDraft) {
+    if (!token) return;
+    if (!draft.symbol.trim() || !draft.name.trim() || !draft.csvText.trim()) {
+      setMessage({ kind: "error", text: "请填写股票代码、名称和 CSV 内容。" });
+      return;
+    }
+    setLoading(true);
+    try {
+      const symbol = draft.symbol.trim().toUpperCase();
+      const result = await request<MarketCsvImportResponse>(
+        "/market/import/csv",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            symbol,
+            name: draft.name.trim(),
+            exchange: draft.exchange,
+            frequency: draft.frequency,
+            csv_text: draft.csvText,
+            source: "csv",
+          }),
+        },
+        token,
+      );
+      await loadMarketOverview();
+      setSelectedMarketSymbol(result.symbol);
+      setMarketFrequency(draft.frequency);
+      await loadMarketBars(result.symbol, draft.frequency);
+      setMessage({
+        kind: "success",
+        text: `CSV 已导入：解析 ${result.parsed_rows} 行，新增 ${result.inserted_bars} 条，更新 ${result.updated_bars} 条。`,
+      });
+    } catch (error) {
+      setMessage({ kind: "error", text: `CSV 导入失败：${getErrorMessage(error)}` });
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function restoreSession(accessToken: string) {
     try {
       const me = await request<User>("/auth/me", {}, accessToken);
@@ -1120,6 +1173,7 @@ export default function App() {
               onSymbolChange={setSelectedMarketSymbol}
               onFrequencyChange={setMarketFrequency}
               onImportBar={importMarketBar}
+              onImportCsv={importMarketCsv}
             />
 
             <div className="backtest-panel">
@@ -1277,6 +1331,7 @@ function MarketDataPanel({
   onSymbolChange,
   onFrequencyChange,
   onImportBar,
+  onImportCsv,
 }: {
   instruments: MarketInstrument[];
   selectedSymbol: string;
@@ -1289,6 +1344,7 @@ function MarketDataPanel({
   onSymbolChange: (value: string) => void;
   onFrequencyChange: (value: string) => void;
   onImportBar: (draft: MarketImportDraft) => Promise<void>;
+  onImportCsv: (draft: MarketCsvImportDraft) => Promise<void>;
 }) {
   const [importDraft, setImportDraft] = useState<MarketImportDraft>({
     symbol: selectedSymbol || "600519.SH",
@@ -1296,6 +1352,13 @@ function MarketDataPanel({
     exchange: selectedInstrument?.exchange || "SH",
     tradeTime: "",
     close: selectedInstrument?.latest_close ? String(selectedInstrument.latest_close) : "",
+  });
+  const [csvDraft, setCsvDraft] = useState<MarketCsvImportDraft>({
+    symbol: selectedSymbol || "600519.SH",
+    name: selectedInstrument?.name || "贵州茅台",
+    exchange: selectedInstrument?.exchange || "SH",
+    frequency,
+    csvText: "trade_time,open,high,low,close,volume,amount\n2024-02-01,1660,1680,1650,1672,1000,1672000",
   });
   const closes = bars.map((bar) => bar.close);
   const minClose = Math.min(...closes);
@@ -1313,15 +1376,34 @@ function MarketDataPanel({
       exchange: selectedInstrument.exchange,
       close: selectedInstrument.latest_close ? String(selectedInstrument.latest_close) : current.close,
     }));
+    setCsvDraft((current) => ({
+      ...current,
+      symbol: selectedInstrument.symbol,
+      name: selectedInstrument.name,
+      exchange: selectedInstrument.exchange,
+    }));
   }, [selectedInstrument]);
+
+  useEffect(() => {
+    setCsvDraft((current) => ({ ...current, frequency }));
+  }, [frequency]);
 
   function updateDraft<K extends keyof MarketImportDraft>(key: K, value: MarketImportDraft[K]) {
     setImportDraft((current) => ({ ...current, [key]: value }));
   }
 
+  function updateCsvDraft<K extends keyof MarketCsvImportDraft>(key: K, value: MarketCsvImportDraft[K]) {
+    setCsvDraft((current) => ({ ...current, [key]: value }));
+  }
+
   async function handleImport(event: FormEvent) {
     event.preventDefault();
     await onImportBar(importDraft);
+  }
+
+  async function handleCsvImport(event: FormEvent) {
+    event.preventDefault();
+    await onImportCsv(csvDraft);
   }
 
   return (
@@ -1437,6 +1519,42 @@ function MarketDataPanel({
             </div>
             <button className="ghost-button" type="submit" disabled={loading}>
               导入/更新
+            </button>
+          </form>
+          <form className="market-import csv-import" onSubmit={handleCsvImport}>
+            <div className="section-heading">
+              <h3>CSV 批量导入</h3>
+            </div>
+            <div className="form-grid compact">
+              <label>
+                代码
+                <input value={csvDraft.symbol} onChange={(event) => updateCsvDraft("symbol", event.target.value)} />
+              </label>
+              <label>
+                名称
+                <input value={csvDraft.name} onChange={(event) => updateCsvDraft("name", event.target.value)} />
+              </label>
+              <label>
+                频率
+                <select value={csvDraft.frequency} onChange={(event) => updateCsvDraft("frequency", event.target.value)}>
+                  <option value="1d">1d</option>
+                  <option value="15m">15m</option>
+                  <option value="30m">30m</option>
+                  <option value="60m">60m</option>
+                </select>
+              </label>
+            </div>
+            <label>
+              CSV
+              <textarea
+                className="csv-editor"
+                value={csvDraft.csvText}
+                onChange={(event) => updateCsvDraft("csvText", event.target.value)}
+                spellCheck={false}
+              />
+            </label>
+            <button className="ghost-button" type="submit" disabled={loading}>
+              批量导入
             </button>
           </form>
         </>

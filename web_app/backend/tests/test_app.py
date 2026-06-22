@@ -138,6 +138,58 @@ def test_authenticated_market_data_import_flow() -> None:
     assert quality_response.json()["issue_count"] == 0
 
 
+def test_authenticated_market_csv_import_flow() -> None:
+    email = f"csv-{uuid4().hex[:8]}@example.com"
+    register_response = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": email,
+            "password": "strong-password-123",
+            "display_name": "CSV Manager",
+        },
+    )
+    assert register_response.status_code == 200
+    headers = {"Authorization": f"Bearer {register_response.json()['access_token']}"}
+    symbol = f"CSV{uuid4().hex[:4].upper()}.SZ"
+
+    import_response = client.post(
+        "/api/v1/market/import/csv",
+        headers=headers,
+        json={
+            "symbol": symbol,
+            "name": "CSV导入股票",
+            "exchange": "SZ",
+            "frequency": "1d",
+            "csv_text": (
+                "trade_time,open,high,low,close,volume,amount\n"
+                "2024-03-01,20,21,19.5,20.8,1000,20800\n"
+                "2024-03-04,20.8,22,20.2,21.5,1200,25800\n"
+            ),
+        },
+    )
+    assert import_response.status_code == 200
+    payload = import_response.json()
+    assert payload["parsed_rows"] == 2
+    assert payload["inserted_bars"] == 2
+    assert payload["skipped_rows"] == 0
+
+    bars_response = client.get(f"/api/v1/market/bars?symbol={symbol}&frequency=1d&limit=5")
+    assert bars_response.status_code == 200
+    assert len(bars_response.json()["bars"]) == 2
+
+    invalid_response = client.post(
+        "/api/v1/market/import/csv",
+        headers=headers,
+        json={
+            "symbol": symbol,
+            "name": "CSV导入股票",
+            "exchange": "SZ",
+            "csv_text": "trade_time,close\n2024-03-05,22.1\n",
+        },
+    )
+    assert invalid_response.status_code == 400
+
+
 def test_user_account_and_strategy_persistence_flow() -> None:
     strategy = read_json(TEMPLATE_MODULE / "templates" / "price_breakout.json")
     email = f"tester-{uuid4().hex[:8]}@example.com"

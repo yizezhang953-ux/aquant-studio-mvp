@@ -6,6 +6,8 @@ from app.schemas.market import (
     MarketBarListResponse,
     MarketBarResponse,
     MarketCoverageResponse,
+    MarketCsvImportRequest,
+    MarketCsvImportResponse,
     MarketImportRequest,
     MarketImportResponse,
     MarketInstrumentListResponse,
@@ -18,6 +20,7 @@ from app.services.market_service import (
     get_market_coverage,
     get_market_instrument,
     get_market_quality,
+    import_market_csv,
     import_market_data,
     list_market_bars,
     list_market_instruments,
@@ -95,3 +98,16 @@ def import_data(
     if any(bar.symbol != request.instrument.symbol for bar in request.bars):
         raise HTTPException(status_code=400, detail="all bars must use the imported instrument symbol")
     return MarketImportResponse(**import_market_data(db, request))
+
+
+@router.post("/import/csv", response_model=MarketCsvImportResponse)
+def import_csv_data(
+    request: MarketCsvImportRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> MarketCsvImportResponse:
+    _ = current_user
+    result = import_market_csv(db, request)
+    if result["parsed_rows"] == 0:
+        raise HTTPException(status_code=400, detail={"message": result["message"], "errors": result["errors"]})
+    return MarketCsvImportResponse(**result)

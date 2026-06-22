@@ -1,8 +1,11 @@
+import csv
+from io import StringIO
+
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models import MarketBar, MarketInstrument
-from app.schemas.market import MarketImportRequest
+from app.schemas.market import MarketBarImport, MarketCsvImportRequest, MarketImportRequest
 
 
 def list_market_instruments(db: Session) -> list[dict]:
@@ -94,6 +97,70 @@ def import_market_data(db: Session, request: MarketImportRequest) -> dict:
     }
 
 
+def import_market_csv(db: Session, request: MarketCsvImportRequest) -> dict:
+    reader = csv.DictReader(StringIO(request.csv_text.strip()))
+    required = {"trade_time", "open", "high", "low", "close"}
+    if reader.fieldnames is None:
+        return _empty_csv_result(request.symbol, ["CSV header is required"])
+    missing = required - set(reader.fieldnames)
+    if missing:
+        return _empty_csv_result(request.symbol, [f"missing columns: {', '.join(sorted(missing))}"])
+
+    bars = []
+    errors = []
+    skipped = 0
+    for row_number, row in enumerate(reader, start=2):
+        try:
+            bars.append(
+                MarketBarImport(
+                    symbol=request.symbol,
+                    frequency=request.frequency,
+                    trade_time=str(row["trade_time"]).strip(),
+                    open=float(row["open"]),
+                    high=float(row["high"]),
+                    low=float(row["low"]),
+                    close=float(row["close"]),
+                    volume=_float_or_zero(row.get("volume")),
+                    amount=_float_or_zero(row.get("amount")),
+                    adj_factor=_float_or_one(row.get("adj_factor")),
+                    source=request.source,
+                )
+            )
+        except (TypeError, ValueError) as exc:
+            skipped += 1
+            errors.append(f"row {row_number}: {exc}")
+
+    if not bars:
+        result = _empty_csv_result(request.symbol, errors or ["no valid rows"])
+        result["skipped_rows"] = skipped
+        return result
+
+    result = import_market_data(
+        db,
+        MarketImportRequest(
+            instrument={
+                "symbol": request.symbol,
+                "name": request.name,
+                "market": "a_share",
+                "exchange": request.exchange,
+                "asset_type": "stock",
+                "status": "active",
+            },
+            bars=bars,
+        ),
+    )
+    return {
+        "symbol": request.symbol,
+        "parsed_rows": len(bars),
+        "inserted_bars": result["inserted_bars"],
+        "updated_bars": result["updated_bars"],
+        "total_bars": result["total_bars"],
+        "skipped_rows": skipped,
+        "errors": errors,
+        "message": "CSV market data imported",
+    }
+
+
 def get_market_quality(db: Session, symbol: str | None = None, limit: int = 200) -> dict:
     statement = select(MarketBar).order_by(MarketBar.symbol, MarketBar.frequency, MarketBar.trade_time.desc())
     if symbol:
@@ -122,6 +189,31 @@ def get_market_quality(db: Session, symbol: str | None = None, limit: int = 200)
                 }
             )
     return {"checked_bar_count": len(bars), "issue_count": len(issues), "issues": issues}
+
+
+def _float_or_zero(value: str | None) -> float:
+    if value is None or value == "":
+        return 0
+    return float(value)
+
+
+def _float_or_one(value: str | None) -> float:
+    if value is None or value == "":
+        return 1.0
+    return float(value)
+
+
+def _empty_csv_result(symbol: str, errors: list[str]) -> dict:
+    return {
+        "symbol": symbol,
+        "parsed_rows": 0,
+        "inserted_bars": 0,
+        "updated_bars": 0,
+        "total_bars": 0,
+        "skipped_rows": 0,
+        "errors": errors,
+        "message": "CSV market data import failed",
+    }
 
 
 def _instrument_summary(db: Session, instrument: MarketInstrument) -> dict:
