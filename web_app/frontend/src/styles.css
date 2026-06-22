@@ -521,6 +521,30 @@ textarea:focus {
   line-height: 1.45;
 }
 
+.import-history {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid #d6e0dc;
+  border-radius: 8px;
+  background: #fbfdfc;
+}
+
+.import-row {
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid #e3ebe7;
+  border-radius: 8px;
+  background: #ffffff;
+  font-size: 12px;
+}
+
+.import-row span,
+.import-row small {
+  color: #657a72;
+}
+
 .history-list {
   display: grid;
   gap: 8px;

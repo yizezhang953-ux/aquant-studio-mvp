@@ -62,6 +62,7 @@ REQUIRED_PATHS = [
     "docs/stage-12-market-data-browser.md",
     "docs/stage-13-market-data-import-quality.md",
     "docs/stage-14-market-csv-import.md",
+    "docs/stage-15-market-import-history.md",
 ]
 
 

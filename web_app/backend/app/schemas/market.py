@@ -112,6 +112,23 @@ class MarketCsvImportResponse(BaseModel):
     message: str
 
 
+class MarketImportBatch(BaseModel):
+    id: int
+    import_type: str
+    symbol: str
+    frequency: str | None = None
+    inserted_bars: int = 0
+    updated_bars: int = 0
+    skipped_rows: int = 0
+    issue_count: int = 0
+    status: str
+    created_at: str
+
+
+class MarketImportBatchListResponse(BaseModel):
+    imports: list[MarketImportBatch]
+
+
 class MarketQualityIssue(BaseModel):
     symbol: str
     frequency: str

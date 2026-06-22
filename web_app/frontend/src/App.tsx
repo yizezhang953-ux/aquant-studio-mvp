@@ -202,6 +202,19 @@ type MarketCsvImportResponse = MarketImportResponse & {
   errors: string[];
 };
 
+type MarketImportBatch = {
+  id: number;
+  import_type: string;
+  symbol: string;
+  frequency: string | null;
+  inserted_bars: number;
+  updated_bars: number;
+  skipped_rows: number;
+  issue_count: number;
+  status: string;
+  created_at: string;
+};
+
 type StrategyJson = {
   schema_version?: string;
   strategy_id?: string;
@@ -542,6 +555,7 @@ export default function App() {
   const [marketBars, setMarketBars] = useState<MarketBar[]>([]);
   const [marketCoverage, setMarketCoverage] = useState<MarketCoverage | null>(null);
   const [marketQuality, setMarketQuality] = useState<MarketQuality | null>(null);
+  const [marketImports, setMarketImports] = useState<MarketImportBatch[]>([]);
   const [message, setMessage] = useState<{ kind: MessageKind; text: string }>({
     kind: "info",
     text: "登录后可以复制模板，用结构化表单编辑策略并保存版本。",
@@ -650,6 +664,16 @@ export default function App() {
     }
   }
 
+  async function loadMarketImports(accessToken = token) {
+    if (!accessToken) return;
+    try {
+      const payload = await request<{ imports: MarketImportBatch[] }>("/market/imports", {}, accessToken);
+      setMarketImports(payload.imports);
+    } catch (error) {
+      setMessage({ kind: "error", text: `导入历史加载失败：${getErrorMessage(error)}` });
+    }
+  }
+
   async function importMarketBar(draft: MarketImportDraft) {
     if (!token) return;
     const close = toNumber(draft.close, 0);
@@ -696,6 +720,7 @@ export default function App() {
       setSelectedMarketSymbol(result.symbol);
       setMarketFrequency("1d");
       await loadMarketBars(result.symbol, "1d");
+      await loadMarketImports();
       setMessage({
         kind: "success",
         text: `行情已导入：新增 ${result.inserted_bars} 条，更新 ${result.updated_bars} 条。`,
@@ -735,6 +760,7 @@ export default function App() {
       setSelectedMarketSymbol(result.symbol);
       setMarketFrequency(draft.frequency);
       await loadMarketBars(result.symbol, draft.frequency);
+      await loadMarketImports();
       setMessage({
         kind: "success",
         text: `CSV 已导入：解析 ${result.parsed_rows} 行，新增 ${result.inserted_bars} 条，更新 ${result.updated_bars} 条。`,
@@ -752,6 +778,7 @@ export default function App() {
       setUser(me);
       await loadStrategies(accessToken);
       await loadBacktestHistory(accessToken);
+      await loadMarketImports(accessToken);
       setMessage({ kind: "success", text: `已登录：${me.display_name}` });
     } catch {
       window.localStorage.removeItem("aquant_token");
@@ -832,6 +859,7 @@ export default function App() {
     setStrategies([]);
     setBacktestHistory([]);
     setComparisonIds([]);
+    setMarketImports([]);
     setSelectedStrategyId("");
     setMessage({ kind: "info", text: "已退出登录。" });
   }
@@ -1169,6 +1197,7 @@ export default function App() {
               bars={marketBars}
               coverage={marketCoverage}
               quality={marketQuality}
+              imports={marketImports}
               loading={loading}
               onSymbolChange={setSelectedMarketSymbol}
               onFrequencyChange={setMarketFrequency}
@@ -1327,6 +1356,7 @@ function MarketDataPanel({
   bars,
   coverage,
   quality,
+  imports,
   loading,
   onSymbolChange,
   onFrequencyChange,
@@ -1340,6 +1370,7 @@ function MarketDataPanel({
   bars: MarketBar[];
   coverage: MarketCoverage | null;
   quality: MarketQuality | null;
+  imports: MarketImportBatch[];
   loading: boolean;
   onSymbolChange: (value: string) => void;
   onFrequencyChange: (value: string) => void;
@@ -1557,6 +1588,27 @@ function MarketDataPanel({
               批量导入
             </button>
           </form>
+          <div className="import-history">
+            <div className="section-heading">
+              <h3>导入批次</h3>
+              <span>{imports.length}</span>
+            </div>
+            {imports.length === 0 ? (
+              <p className="muted">暂无导入批次。</p>
+            ) : (
+              imports.slice(0, 5).map((item) => (
+                <div className="import-row" key={item.id}>
+                  <strong>
+                    {item.symbol} · {item.import_type}
+                  </strong>
+                  <span>
+                    +{item.inserted_bars} / 更新 {item.updated_bars} / 跳过 {item.skipped_rows}
+                  </span>
+                  <small>{item.frequency || "-"} · {item.created_at}</small>
+                </div>
+              ))
+            )}
+          </div>
         </>
       ) : (
         <p className="muted">暂无可浏览的行情标的。</p>

@@ -8,6 +8,7 @@ from app.schemas.market import (
     MarketCoverageResponse,
     MarketCsvImportRequest,
     MarketCsvImportResponse,
+    MarketImportBatchListResponse,
     MarketImportRequest,
     MarketImportResponse,
     MarketInstrumentListResponse,
@@ -22,8 +23,10 @@ from app.services.market_service import (
     get_market_quality,
     import_market_csv,
     import_market_data,
+    list_market_import_batches,
     list_market_bars,
     list_market_instruments,
+    record_market_import_batch,
 )
 
 
@@ -94,10 +97,18 @@ def import_data(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> MarketImportResponse:
-    _ = current_user
     if any(bar.symbol != request.instrument.symbol for bar in request.bars):
         raise HTTPException(status_code=400, detail="all bars must use the imported instrument symbol")
-    return MarketImportResponse(**import_market_data(db, request))
+    result = import_market_data(db, request)
+    frequency = request.bars[0].frequency if request.bars else None
+    record_market_import_batch(
+        db,
+        owner_id=current_user.id,
+        import_type="manual",
+        result=result,
+        frequency=frequency,
+    )
+    return MarketImportResponse(**result)
 
 
 @router.post("/import/csv", response_model=MarketCsvImportResponse)
@@ -106,8 +117,23 @@ def import_csv_data(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> MarketCsvImportResponse:
-    _ = current_user
     result = import_market_csv(db, request)
     if result["parsed_rows"] == 0:
         raise HTTPException(status_code=400, detail={"message": result["message"], "errors": result["errors"]})
+    record_market_import_batch(
+        db,
+        owner_id=current_user.id,
+        import_type="csv",
+        result=result,
+        frequency=request.frequency,
+    )
     return MarketCsvImportResponse(**result)
+
+
+@router.get("/imports", response_model=MarketImportBatchListResponse)
+def get_imports(
+    limit: int = Query(default=20, ge=1, le=100),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> MarketImportBatchListResponse:
+    return MarketImportBatchListResponse(imports=list_market_import_batches(db, current_user.id, limit=limit))

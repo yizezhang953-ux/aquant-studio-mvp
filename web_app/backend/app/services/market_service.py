@@ -4,7 +4,7 @@ from io import StringIO
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import MarketBar, MarketInstrument
+from app.models import AuditLog, MarketBar, MarketInstrument
 from app.schemas.market import MarketBarImport, MarketCsvImportRequest, MarketImportRequest
 
 
@@ -189,6 +189,64 @@ def get_market_quality(db: Session, symbol: str | None = None, limit: int = 200)
                 }
             )
     return {"checked_bar_count": len(bars), "issue_count": len(issues), "issues": issues}
+
+
+def record_market_import_batch(
+    db: Session,
+    *,
+    owner_id: int,
+    import_type: str,
+    result: dict,
+    frequency: str | None = None,
+) -> None:
+    db.add(
+        AuditLog(
+            event_type="market_import",
+            status="completed",
+            message=f"{import_type} import for {result['symbol']}",
+            payload_json={
+                "owner_id": owner_id,
+                "import_type": import_type,
+                "symbol": result["symbol"],
+                "frequency": frequency,
+                "inserted_bars": result.get("inserted_bars", 0),
+                "updated_bars": result.get("updated_bars", 0),
+                "skipped_rows": result.get("skipped_rows", 0),
+                "issue_count": len(result.get("errors", [])),
+            },
+        )
+    )
+    db.commit()
+
+
+def list_market_import_batches(db: Session, owner_id: int, limit: int = 20) -> list[dict]:
+    statement = (
+        select(AuditLog)
+        .where(AuditLog.event_type == "market_import")
+        .order_by(AuditLog.created_at.desc(), AuditLog.id.desc())
+        .limit(limit)
+    )
+    rows = db.scalars(statement).all()
+    batches = []
+    for row in rows:
+        payload = row.payload_json or {}
+        if payload.get("owner_id") != owner_id:
+            continue
+        batches.append(
+            {
+                "id": row.id,
+                "import_type": payload.get("import_type", "unknown"),
+                "symbol": payload.get("symbol", "-"),
+                "frequency": payload.get("frequency"),
+                "inserted_bars": payload.get("inserted_bars", 0),
+                "updated_bars": payload.get("updated_bars", 0),
+                "skipped_rows": payload.get("skipped_rows", 0),
+                "issue_count": payload.get("issue_count", 0),
+                "status": row.status,
+                "created_at": row.created_at.isoformat() if row.created_at else "",
+            }
+        )
+    return batches
 
 
 def _float_or_zero(value: str | None) -> float:

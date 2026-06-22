@@ -137,6 +137,11 @@ def test_authenticated_market_data_import_flow() -> None:
     assert quality_response.status_code == 200
     assert quality_response.json()["issue_count"] == 0
 
+    imports_response = client.get("/api/v1/market/imports", headers=headers)
+    assert imports_response.status_code == 200
+    imports = imports_response.json()["imports"]
+    assert any(item["symbol"] == symbol and item["import_type"] == "manual" for item in imports)
+
 
 def test_authenticated_market_csv_import_flow() -> None:
     email = f"csv-{uuid4().hex[:8]}@example.com"
@@ -176,6 +181,13 @@ def test_authenticated_market_csv_import_flow() -> None:
     bars_response = client.get(f"/api/v1/market/bars?symbol={symbol}&frequency=1d&limit=5")
     assert bars_response.status_code == 200
     assert len(bars_response.json()["bars"]) == 2
+
+    imports_response = client.get("/api/v1/market/imports", headers=headers)
+    assert imports_response.status_code == 200
+    imports = imports_response.json()["imports"]
+    imported = next(item for item in imports if item["symbol"] == symbol)
+    assert imported["import_type"] == "csv"
+    assert imported["inserted_bars"] == 2
 
     invalid_response = client.post(
         "/api/v1/market/import/csv",
