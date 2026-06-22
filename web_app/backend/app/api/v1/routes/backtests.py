@@ -86,9 +86,11 @@ def _summary(run: BacktestRun) -> BacktestSummary:
         backtest_id=run.backtest_id,
         strategy_id=run.strategy_id,
         source_strategy_id=run.source_strategy_id,
+        strategy_version=run.strategy_version,
         strategy_name=run.strategy_name,
         symbol=run.symbol,
         frequency=run.frequency,
         status=run.status,
         metrics=run.metrics_json,
+        parameter_snapshot=run.parameter_snapshot,
     )

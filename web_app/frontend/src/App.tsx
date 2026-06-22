@@ -57,11 +57,29 @@ type BacktestHistoryItem = {
   backtest_id: string;
   strategy_id: string;
   source_strategy_id: string | null;
+  strategy_version: number | null;
   strategy_name: string;
   symbol: string;
   frequency: string;
   status: string;
   metrics: Record<string, number>;
+  parameter_snapshot: ParameterSnapshot | null;
+};
+
+type ParameterSnapshot = {
+  symbol?: string;
+  frequency?: string;
+  start_date?: string;
+  end_date?: string;
+  entry_operator?: string;
+  entry_value?: number;
+  exit_operator?: string;
+  exit_value?: number;
+  order_size_value?: number;
+  max_position_pct?: number;
+  stop_loss_pct?: number;
+  take_profit_pct?: number;
+  max_drawdown_pct?: number;
 };
 
 type BacktestTrade = {
@@ -237,6 +255,18 @@ function formatNumber(value: number | undefined, digits = 2) {
 function formatPercent(value: number | undefined) {
   if (typeof value !== "number" || !Number.isFinite(value)) return "-";
   return `${(value * 100).toFixed(2)}%`;
+}
+
+function formatVersion(value: number | null | undefined) {
+  return value ? `v${value}` : "v-";
+}
+
+function summarizeParams(snapshot: ParameterSnapshot | null) {
+  if (!snapshot) return "参数摘要暂无";
+  const entry = `${snapshot.entry_operator || "?"} ${snapshot.entry_value ?? "-"}`;
+  const exit = `${snapshot.exit_operator || "?"} ${snapshot.exit_value ?? "-"}`;
+  const size = snapshot.order_size_value != null ? `${(snapshot.order_size_value * 100).toFixed(0)}%仓位` : "仓位-";
+  return `入场 ${entry} / 出场 ${exit} / ${size}`;
 }
 
 function toNumber(value: string, fallback: number) {
@@ -870,10 +900,13 @@ export default function App() {
                   {backtestHistory.slice(0, 8).map((item) => (
                     <div className="history-row" key={item.backtest_id}>
                       <button onClick={() => openHistoricalBacktest(item.backtest_id)}>
-                        <strong>{item.symbol} · {item.frequency}</strong>
+                        <strong>
+                          {item.symbol} · {item.frequency} · {formatVersion(item.strategy_version)}
+                        </strong>
                         <span>
                           {formatPercent(item.metrics.total_return)} / {formatPercent(item.metrics.max_drawdown)}
                         </span>
+                        <small>{summarizeParams(item.parameter_snapshot)}</small>
                       </button>
                       <label className="compare-toggle">
                         <input
@@ -1016,6 +1049,7 @@ function BacktestComparison({
       <div className="comparison-table">
         <div className="comparison-row header">
           <span>标的</span>
+          <span>版本</span>
           <span>收益</span>
           <span>回撤</span>
           <span>胜率</span>
@@ -1027,10 +1061,12 @@ function BacktestComparison({
               {item.symbol}
               <small>{item.frequency}</small>
             </span>
+            <span>{formatVersion(item.strategy_version)}</span>
             <strong>{formatPercent(item.metrics.total_return)}</strong>
             <span>{formatPercent(item.metrics.max_drawdown)}</span>
             <span>{formatPercent(item.metrics.win_rate)}</span>
             <span>{formatNumber(item.metrics.trade_count, 0)}</span>
+            <small className="comparison-params">{summarizeParams(item.parameter_snapshot)}</small>
           </div>
         ))}
       </div>

@@ -54,6 +54,7 @@ REQUIRED_PATHS = [
     "docs/stage-7-backtest-frontend-loop.md",
     "docs/stage-8-backtest-persistence-history.md",
     "docs/stage-9-backtest-comparison.md",
+    "docs/stage-10-strategy-version-backtest-binding.md",
 ]
 
 

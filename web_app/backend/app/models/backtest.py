@@ -13,6 +13,7 @@ class BacktestRun(Base):
     owner_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
     strategy_id: Mapped[str] = mapped_column(String(120), index=True)
     source_strategy_id: Mapped[str | None] = mapped_column(String(120), nullable=True, index=True)
+    strategy_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
     strategy_name: Mapped[str] = mapped_column(String(200))
     symbol: Mapped[str] = mapped_column(String(40), index=True)
     frequency: Mapped[str] = mapped_column(String(20))
@@ -21,6 +22,7 @@ class BacktestRun(Base):
     end_date: Mapped[str | None] = mapped_column(String(20), nullable=True)
     metrics_json: Mapped[dict] = mapped_column(JSON)
     report_json: Mapped[dict] = mapped_column(JSON)
+    parameter_snapshot: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     trades: Mapped[list["BacktestTrade"]] = relationship(

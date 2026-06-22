@@ -130,10 +130,15 @@ def test_user_account_and_strategy_persistence_flow() -> None:
     assert backtests_response.status_code == 200
     backtests = backtests_response.json()["backtests"]
     assert any(item["backtest_id"] == backtest_id for item in backtests)
+    stored_backtest = next(item for item in backtests if item["backtest_id"] == backtest_id)
+    assert stored_backtest["source_strategy_id"] == created["strategy_id"]
+    assert stored_backtest["strategy_version"] == 2
+    assert stored_backtest["parameter_snapshot"]["symbol"] == "600519.SH"
 
     my_report_response = client.get(f"/api/v1/backtests/mine/{backtest_id}", headers=headers)
     assert my_report_response.status_code == 200
     assert my_report_response.json()["metrics"]["trade_count"] >= 0
+    assert my_report_response.json()["strategy"]["strategy_id"] == strategy["strategy_id"]
 
     delete_response = client.delete(f"/api/v1/strategies/{created['strategy_id']}", headers=headers)
     assert delete_response.status_code == 204

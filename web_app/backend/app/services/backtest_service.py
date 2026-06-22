@@ -4,10 +4,10 @@ import sys
 from typing import Any
 from uuid import uuid4
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import BacktestEquityPoint, BacktestRun, BacktestTrade
+from app.models import BacktestEquityPoint, BacktestRun, BacktestTrade, StrategyVersion
 from app.services.json_utils import read_json, write_json
 from app.services.legacy_paths import BACKTEST_MODULE, DATA_MODULE, REPO_ROOT
 
@@ -27,6 +27,7 @@ def run_backtest_payload(strategy: dict[str, Any]) -> dict[str, Any]:
     bars = load_bars(DEFAULT_DB_PATH, strategy)
     report = run_backtest(strategy, bars)
     report["backtest_id"] = backtest_id
+    report["strategy"] = strategy
     write_report(report, output_dir)
     write_json(output_dir / "strategy.json", strategy)
     return {
@@ -52,11 +53,14 @@ def persist_backtest_report(
     source_strategy_id: str | None = None,
 ) -> BacktestRun:
     run = db.get(BacktestRun, backtest_id)
+    strategy_version = get_latest_strategy_version(db, source_strategy_id)
+    parameter_snapshot = build_parameter_snapshot(report)
     payload = {
         "backtest_id": backtest_id,
         "owner_id": owner_id,
         "strategy_id": report["strategy_id"],
         "source_strategy_id": source_strategy_id,
+        "strategy_version": strategy_version,
         "strategy_name": report["strategy_name"],
         "symbol": report["symbol"],
         "frequency": report["frequency"],
@@ -65,6 +69,7 @@ def persist_backtest_report(
         "end_date": report.get("end_date"),
         "metrics_json": report.get("metrics", {}),
         "report_json": report,
+        "parameter_snapshot": parameter_snapshot,
     }
     if run is None:
         run = BacktestRun(**payload)
@@ -105,6 +110,42 @@ def persist_backtest_report(
     db.commit()
     db.refresh(run)
     return run
+
+
+def get_latest_strategy_version(db: Session, source_strategy_id: str | None) -> int | None:
+    if source_strategy_id is None:
+        return None
+    return db.scalar(
+        select(func.max(StrategyVersion.version)).where(
+            StrategyVersion.strategy_id == source_strategy_id
+        )
+    )
+
+
+def build_parameter_snapshot(report: dict[str, Any]) -> dict[str, Any]:
+    strategy = report.get("strategy") or {}
+    # Older reports may not embed strategy; fall back to report-level fields.
+    data = strategy.get("data", {})
+    universe = strategy.get("universe", {})
+    entry = (strategy.get("entry", {}).get("conditions") or [{}])[0]
+    exit_rule = (strategy.get("exit", {}).get("conditions") or [{}])[0]
+    position = strategy.get("position", {})
+    risk = strategy.get("risk", {})
+    return {
+        "symbol": (universe.get("symbols") or [report.get("symbol")])[0],
+        "frequency": data.get("frequency", report.get("frequency")),
+        "start_date": data.get("start_date", report.get("start_date")),
+        "end_date": data.get("end_date", report.get("end_date")),
+        "entry_operator": entry.get("operator"),
+        "entry_value": entry.get("right", {}).get("value"),
+        "exit_operator": exit_rule.get("operator"),
+        "exit_value": exit_rule.get("right", {}).get("value"),
+        "order_size_value": position.get("order_size_value"),
+        "max_position_pct": position.get("max_position_pct"),
+        "stop_loss_pct": risk.get("stop_loss_pct"),
+        "take_profit_pct": risk.get("take_profit_pct"),
+        "max_drawdown_pct": risk.get("max_drawdown_pct"),
+    }
 
 
 def list_user_backtests(db: Session, owner_id: int) -> list[BacktestRun]:

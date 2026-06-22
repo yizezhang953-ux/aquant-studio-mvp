@@ -418,6 +418,11 @@ textarea:focus {
   font-size: 13px;
 }
 
+.history-list small {
+  color: #7c8f88;
+  font-size: 12px;
+}
+
 .backtest-panel,
 .backtest-history,
 .comparison-panel {
@@ -470,10 +475,10 @@ textarea:focus {
 
 .comparison-row {
   display: grid;
-  grid-template-columns: 1.2fr repeat(4, minmax(52px, 1fr));
+  grid-template-columns: 1.2fr minmax(42px, 0.6fr) repeat(4, minmax(52px, 1fr));
   gap: 6px;
   align-items: center;
-  min-width: 360px;
+  min-width: 430px;
   padding: 8px;
   border: 1px solid #d6e0dc;
   border-radius: 8px;
@@ -491,6 +496,12 @@ textarea:focus {
   display: block;
   margin-top: 2px;
   color: #71847d;
+}
+
+.comparison-params {
+  grid-column: 1 / -1;
+  padding-top: 4px;
+  border-top: 1px solid #e3ebe7;
 }
 
 .backtest-content {

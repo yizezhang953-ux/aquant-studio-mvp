@@ -237,6 +237,7 @@ def seed_backtest_demo(db: Session) -> dict[str, int]:
         "owner_id": None,
         "strategy_id": report["strategy_id"],
         "source_strategy_id": None,
+        "strategy_version": None,
         "strategy_name": report["strategy_name"],
         "symbol": report["symbol"],
         "frequency": report["frequency"],
@@ -245,6 +246,7 @@ def seed_backtest_demo(db: Session) -> dict[str, int]:
         "end_date": report.get("end_date"),
         "metrics_json": report.get("metrics", {}),
         "report_json": report,
+        "parameter_snapshot": None,
     }
     if run is None:
         run = BacktestRun(**payload)
@@ -318,6 +320,8 @@ def _upgrade_sqlite_schema() -> None:
             {
                 "owner_id": "ALTER TABLE backtest_runs ADD COLUMN owner_id INTEGER",
                 "source_strategy_id": "ALTER TABLE backtest_runs ADD COLUMN source_strategy_id VARCHAR(120)",
+                "strategy_version": "ALTER TABLE backtest_runs ADD COLUMN strategy_version INTEGER",
+                "parameter_snapshot": "ALTER TABLE backtest_runs ADD COLUMN parameter_snapshot JSON",
             },
         )
 
