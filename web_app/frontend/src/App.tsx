@@ -160,6 +160,34 @@ type MarketCoverage = {
   coverage: MarketCoverageItem[];
 };
 
+type MarketQuality = {
+  checked_bar_count: number;
+  issue_count: number;
+  issues: {
+    symbol: string;
+    frequency: string;
+    trade_time: string;
+    issue_type: string;
+    message: string;
+  }[];
+};
+
+type MarketImportDraft = {
+  symbol: string;
+  name: string;
+  exchange: string;
+  tradeTime: string;
+  close: string;
+};
+
+type MarketImportResponse = {
+  symbol: string;
+  inserted_bars: number;
+  updated_bars: number;
+  total_bars: number;
+  message: string;
+};
+
 type StrategyJson = {
   schema_version?: string;
   strategy_id?: string;
@@ -499,6 +527,7 @@ export default function App() {
   const [marketFrequency, setMarketFrequency] = useState("1d");
   const [marketBars, setMarketBars] = useState<MarketBar[]>([]);
   const [marketCoverage, setMarketCoverage] = useState<MarketCoverage | null>(null);
+  const [marketQuality, setMarketQuality] = useState<MarketQuality | null>(null);
   const [message, setMessage] = useState<{ kind: MessageKind; text: string }>({
     kind: "info",
     text: "登录后可以复制模板，用结构化表单编辑策略并保存版本。",
@@ -588,9 +617,79 @@ export default function App() {
         `/market/bars?symbol=${encodeURIComponent(symbol)}&frequency=${encodeURIComponent(frequency)}&limit=80`,
       );
       setMarketBars(payload.bars);
+      await loadMarketQuality(symbol);
     } catch (error) {
       setMarketBars([]);
       setMessage({ kind: "error", text: `K线数据加载失败：${getErrorMessage(error)}` });
+    }
+  }
+
+  async function loadMarketQuality(symbol: string) {
+    try {
+      const payload = await request<MarketQuality>(
+        `/market/quality?symbol=${encodeURIComponent(symbol)}&limit=200`,
+      );
+      setMarketQuality(payload);
+    } catch (error) {
+      setMarketQuality(null);
+      setMessage({ kind: "error", text: `数据质量检查失败：${getErrorMessage(error)}` });
+    }
+  }
+
+  async function importMarketBar(draft: MarketImportDraft) {
+    if (!token) return;
+    const close = toNumber(draft.close, 0);
+    if (!draft.symbol.trim() || !draft.name.trim() || !draft.tradeTime.trim() || close <= 0) {
+      setMessage({ kind: "error", text: "请填写股票代码、名称、日期和大于 0 的收盘价。" });
+      return;
+    }
+    setLoading(true);
+    try {
+      const symbol = draft.symbol.trim().toUpperCase();
+      const result = await request<MarketImportResponse>(
+        "/market/import",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            instrument: {
+              symbol,
+              name: draft.name.trim(),
+              market: "a_share",
+              exchange: draft.exchange,
+              asset_type: "stock",
+              status: "active",
+            },
+            bars: [
+              {
+                symbol,
+                frequency: "1d",
+                trade_time: draft.tradeTime.trim(),
+                open: close,
+                high: close,
+                low: close,
+                close,
+                volume: 0,
+                amount: 0,
+                adj_factor: 1,
+                source: "manual",
+              },
+            ],
+          }),
+        },
+        token,
+      );
+      await loadMarketOverview();
+      setSelectedMarketSymbol(result.symbol);
+      setMarketFrequency("1d");
+      await loadMarketBars(result.symbol, "1d");
+      setMessage({
+        kind: "success",
+        text: `行情已导入：新增 ${result.inserted_bars} 条，更新 ${result.updated_bars} 条。`,
+      });
+    } catch (error) {
+      setMessage({ kind: "error", text: `行情导入失败：${getErrorMessage(error)}` });
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -1016,8 +1115,11 @@ export default function App() {
               frequency={marketFrequency}
               bars={marketBars}
               coverage={marketCoverage}
+              quality={marketQuality}
+              loading={loading}
               onSymbolChange={setSelectedMarketSymbol}
               onFrequencyChange={setMarketFrequency}
+              onImportBar={importMarketBar}
             />
 
             <div className="backtest-panel">
@@ -1170,8 +1272,11 @@ function MarketDataPanel({
   frequency,
   bars,
   coverage,
+  quality,
+  loading,
   onSymbolChange,
   onFrequencyChange,
+  onImportBar,
 }: {
   instruments: MarketInstrument[];
   selectedSymbol: string;
@@ -1179,15 +1284,45 @@ function MarketDataPanel({
   frequency: string;
   bars: MarketBar[];
   coverage: MarketCoverage | null;
+  quality: MarketQuality | null;
+  loading: boolean;
   onSymbolChange: (value: string) => void;
   onFrequencyChange: (value: string) => void;
+  onImportBar: (draft: MarketImportDraft) => Promise<void>;
 }) {
+  const [importDraft, setImportDraft] = useState<MarketImportDraft>({
+    symbol: selectedSymbol || "600519.SH",
+    name: selectedInstrument?.name || "贵州茅台",
+    exchange: selectedInstrument?.exchange || "SH",
+    tradeTime: "",
+    close: selectedInstrument?.latest_close ? String(selectedInstrument.latest_close) : "",
+  });
   const closes = bars.map((bar) => bar.close);
   const minClose = Math.min(...closes);
   const maxClose = Math.max(...closes);
   const closeRange = maxClose - minClose || 1;
   const coverageItem = coverage?.coverage.find((item) => item.symbol === selectedSymbol);
   const frequencies = selectedInstrument?.frequencies.length ? selectedInstrument.frequencies : ["1d"];
+
+  useEffect(() => {
+    if (!selectedInstrument) return;
+    setImportDraft((current) => ({
+      ...current,
+      symbol: selectedInstrument.symbol,
+      name: selectedInstrument.name,
+      exchange: selectedInstrument.exchange,
+      close: selectedInstrument.latest_close ? String(selectedInstrument.latest_close) : current.close,
+    }));
+  }, [selectedInstrument]);
+
+  function updateDraft<K extends keyof MarketImportDraft>(key: K, value: MarketImportDraft[K]) {
+    setImportDraft((current) => ({ ...current, [key]: value }));
+  }
+
+  async function handleImport(event: FormEvent) {
+    event.preventDefault();
+    await onImportBar(importDraft);
+  }
 
   return (
     <div className="market-panel">
@@ -1231,6 +1366,7 @@ function MarketDataPanel({
             <span>{selectedInstrument.exchange}</span>
             <span>{coverageItem?.quality_status || "ready"}</span>
             <span>{coverage?.total_bar_count || selectedInstrument.bar_count} bars</span>
+            <span>{quality ? `${quality.issue_count} issues` : "quality -"}</span>
           </div>
           <div className="market-chart">
             <div className="section-heading">
@@ -1251,6 +1387,58 @@ function MarketDataPanel({
               <p className="muted">当前频率暂无K线数据。</p>
             )}
           </div>
+          <div className="quality-box">
+            <div className="section-heading">
+              <h3>质量检查</h3>
+              <span>{quality?.checked_bar_count || 0}</span>
+            </div>
+            {quality && quality.issue_count > 0 ? (
+              quality.issues.slice(0, 3).map((issue) => (
+                <p key={`${issue.symbol}-${issue.trade_time}-${issue.issue_type}`} className="quality-issue">
+                  {issue.trade_time} {issue.issue_type}
+                </p>
+              ))
+            ) : (
+              <p className="muted">最近数据未发现 OHLC 或成交量异常。</p>
+            )}
+          </div>
+          <form className="market-import" onSubmit={handleImport}>
+            <div className="section-heading">
+              <h3>手动导入日线</h3>
+            </div>
+            <div className="form-grid compact">
+              <label>
+                代码
+                <input value={importDraft.symbol} onChange={(event) => updateDraft("symbol", event.target.value)} />
+              </label>
+              <label>
+                名称
+                <input value={importDraft.name} onChange={(event) => updateDraft("name", event.target.value)} />
+              </label>
+              <label>
+                交易所
+                <select value={importDraft.exchange} onChange={(event) => updateDraft("exchange", event.target.value)}>
+                  <option value="SH">SH</option>
+                  <option value="SZ">SZ</option>
+                </select>
+              </label>
+              <label>
+                日期
+                <input
+                  placeholder="2024-02-01"
+                  value={importDraft.tradeTime}
+                  onChange={(event) => updateDraft("tradeTime", event.target.value)}
+                />
+              </label>
+              <label>
+                收盘价
+                <input value={importDraft.close} onChange={(event) => updateDraft("close", event.target.value)} />
+              </label>
+            </div>
+            <button className="ghost-button" type="submit" disabled={loading}>
+              导入/更新
+            </button>
+          </form>
         </>
       ) : (
         <p className="muted">暂无可浏览的行情标的。</p>

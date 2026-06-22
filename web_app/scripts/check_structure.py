@@ -60,6 +60,7 @@ REQUIRED_PATHS = [
     "docs/stage-10-strategy-version-backtest-binding.md",
     "docs/stage-11-backtest-parameter-diff.md",
     "docs/stage-12-market-data-browser.md",
+    "docs/stage-13-market-data-import-quality.md",
 ]
 
 

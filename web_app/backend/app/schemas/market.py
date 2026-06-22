@@ -53,3 +53,54 @@ class MarketCoverageResponse(BaseModel):
     instrument_count: int
     total_bar_count: int
     coverage: list[MarketCoverageItem]
+
+
+class MarketInstrumentImport(BaseModel):
+    symbol: str
+    name: str
+    market: str = "a_share"
+    exchange: str
+    asset_type: str = "stock"
+    listed_date: str | None = None
+    status: str = "active"
+
+
+class MarketBarImport(BaseModel):
+    symbol: str
+    frequency: str = "1d"
+    trade_time: str
+    open: float
+    high: float
+    low: float
+    close: float
+    volume: float = 0
+    amount: float = 0
+    adj_factor: float = 1.0
+    source: str = "manual"
+
+
+class MarketImportRequest(BaseModel):
+    instrument: MarketInstrumentImport
+    bars: list[MarketBarImport]
+
+
+class MarketImportResponse(BaseModel):
+    symbol: str
+    inserted_bars: int
+    updated_bars: int
+    total_bars: int
+    message: str
+
+
+class MarketQualityIssue(BaseModel):
+    symbol: str
+    frequency: str
+    trade_time: str
+    issue_type: str
+    message: str
+
+
+class MarketQualityResponse(BaseModel):
+    checked_bar_count: int
+    issue_count: int
+    issues: list[MarketQualityIssue]

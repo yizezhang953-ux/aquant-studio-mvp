@@ -486,6 +486,28 @@ textarea:focus {
   background: #2d6cdf;
 }
 
+.quality-box,
+.market-import {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid #d6e0dc;
+  border-radius: 8px;
+  background: #fbfdfc;
+}
+
+.quality-issue {
+  padding: 8px;
+  border-radius: 8px;
+  background: #fff1f0;
+  color: #a13e14;
+  font-size: 12px;
+}
+
+.market-import .ghost-button {
+  justify-self: start;
+}
+
 .history-list {
   display: grid;
   gap: 8px;

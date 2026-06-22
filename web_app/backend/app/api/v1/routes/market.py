@@ -6,12 +6,19 @@ from app.schemas.market import (
     MarketBarListResponse,
     MarketBarResponse,
     MarketCoverageResponse,
+    MarketImportRequest,
+    MarketImportResponse,
     MarketInstrumentListResponse,
     MarketInstrumentSummary,
+    MarketQualityResponse,
 )
+from app.models import User
+from app.services.auth_service import get_current_user
 from app.services.market_service import (
     get_market_coverage,
     get_market_instrument,
+    get_market_quality,
+    import_market_data,
     list_market_bars,
     list_market_instruments,
 )
@@ -67,3 +74,24 @@ def get_bars(
 @router.get("/coverage", response_model=MarketCoverageResponse)
 def get_coverage(db: Session = Depends(get_db)) -> MarketCoverageResponse:
     return MarketCoverageResponse(**get_market_coverage(db))
+
+
+@router.get("/quality", response_model=MarketQualityResponse)
+def get_quality(
+    symbol: str | None = None,
+    limit: int = Query(default=200, ge=1, le=2000),
+    db: Session = Depends(get_db),
+) -> MarketQualityResponse:
+    return MarketQualityResponse(**get_market_quality(db, symbol=symbol, limit=limit))
+
+
+@router.post("/import", response_model=MarketImportResponse)
+def import_data(
+    request: MarketImportRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> MarketImportResponse:
+    _ = current_user
+    if any(bar.symbol != request.instrument.symbol for bar in request.bars):
+        raise HTTPException(status_code=400, detail="all bars must use the imported instrument symbol")
+    return MarketImportResponse(**import_market_data(db, request))

@@ -86,6 +86,58 @@ def test_market_data_browser_endpoints() -> None:
     assert coverage_payload["total_bar_count"] >= 1
 
 
+def test_authenticated_market_data_import_flow() -> None:
+    email = f"market-{uuid4().hex[:8]}@example.com"
+    register_response = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": email,
+            "password": "strong-password-123",
+            "display_name": "Market Manager",
+        },
+    )
+    assert register_response.status_code == 200
+    headers = {"Authorization": f"Bearer {register_response.json()['access_token']}"}
+    symbol = f"TEST{uuid4().hex[:4].upper()}.SH"
+    payload = {
+        "instrument": {
+            "symbol": symbol,
+            "name": "测试导入股票",
+            "exchange": "SH",
+        },
+        "bars": [
+            {
+                "symbol": symbol,
+                "frequency": "1d",
+                "trade_time": "2024-02-01",
+                "open": 10.0,
+                "high": 10.8,
+                "low": 9.8,
+                "close": 10.5,
+                "volume": 1000,
+                "amount": 10500,
+            }
+        ],
+    }
+
+    import_response = client.post("/api/v1/market/import", headers=headers, json=payload)
+    assert import_response.status_code == 200
+    assert import_response.json()["inserted_bars"] == 1
+
+    payload["bars"][0]["close"] = 10.6
+    update_response = client.post("/api/v1/market/import", headers=headers, json=payload)
+    assert update_response.status_code == 200
+    assert update_response.json()["updated_bars"] == 1
+
+    bars_response = client.get(f"/api/v1/market/bars?symbol={symbol}&frequency=1d&limit=1")
+    assert bars_response.status_code == 200
+    assert bars_response.json()["bars"][0]["close"] == 10.6
+
+    quality_response = client.get(f"/api/v1/market/quality?symbol={symbol}")
+    assert quality_response.status_code == 200
+    assert quality_response.json()["issue_count"] == 0
+
+
 def test_user_account_and_strategy_persistence_flow() -> None:
     strategy = read_json(TEMPLATE_MODULE / "templates" / "price_breakout.json")
     email = f"tester-{uuid4().hex[:8]}@example.com"

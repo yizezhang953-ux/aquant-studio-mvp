@@ -2,6 +2,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models import MarketBar, MarketInstrument
+from app.schemas.market import MarketImportRequest
 
 
 def list_market_instruments(db: Session) -> list[dict]:
@@ -51,6 +52,76 @@ def get_market_coverage(db: Session) -> dict:
         "total_bar_count": total_bar_count,
         "coverage": coverage,
     }
+
+
+def import_market_data(db: Session, request: MarketImportRequest) -> dict:
+    instrument_payload = request.instrument.model_dump()
+    instrument = db.get(MarketInstrument, request.instrument.symbol)
+    if instrument is None:
+        instrument = MarketInstrument(**instrument_payload)
+        db.add(instrument)
+    else:
+        for key, value in instrument_payload.items():
+            setattr(instrument, key, value)
+    db.flush()
+
+    inserted = 0
+    updated = 0
+    for bar_payload in request.bars:
+        payload = bar_payload.model_dump()
+        existing = db.scalar(
+            select(MarketBar).where(
+                MarketBar.symbol == payload["symbol"],
+                MarketBar.frequency == payload["frequency"],
+                MarketBar.trade_time == payload["trade_time"],
+            )
+        )
+        if existing is None:
+            db.add(MarketBar(**payload))
+            inserted += 1
+        else:
+            for key, value in payload.items():
+                setattr(existing, key, value)
+            updated += 1
+    db.commit()
+    total_bars = db.scalar(select(func.count()).select_from(MarketBar).where(MarketBar.symbol == request.instrument.symbol)) or 0
+    return {
+        "symbol": request.instrument.symbol,
+        "inserted_bars": inserted,
+        "updated_bars": updated,
+        "total_bars": total_bars,
+        "message": "market data imported",
+    }
+
+
+def get_market_quality(db: Session, symbol: str | None = None, limit: int = 200) -> dict:
+    statement = select(MarketBar).order_by(MarketBar.symbol, MarketBar.frequency, MarketBar.trade_time.desc())
+    if symbol:
+        statement = statement.where(MarketBar.symbol == symbol)
+    bars = db.scalars(statement.limit(limit)).all()
+    issues = []
+    for bar in bars:
+        if bar.high < max(bar.open, bar.close) or bar.low > min(bar.open, bar.close):
+            issues.append(
+                {
+                    "symbol": bar.symbol,
+                    "frequency": bar.frequency,
+                    "trade_time": bar.trade_time,
+                    "issue_type": "invalid_ohlc",
+                    "message": "high/low does not contain open and close",
+                }
+            )
+        if bar.volume < 0 or bar.amount < 0:
+            issues.append(
+                {
+                    "symbol": bar.symbol,
+                    "frequency": bar.frequency,
+                    "trade_time": bar.trade_time,
+                    "issue_type": "negative_liquidity",
+                    "message": "volume or amount is negative",
+                }
+            )
+    return {"checked_bar_count": len(bars), "issue_count": len(issues), "issues": issues}
 
 
 def _instrument_summary(db: Session, instrument: MarketInstrument) -> dict:
