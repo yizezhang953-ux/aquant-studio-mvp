@@ -1,0 +1,69 @@
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
+
+from app.db.session import get_db
+from app.schemas.market import (
+    MarketBarListResponse,
+    MarketBarResponse,
+    MarketCoverageResponse,
+    MarketInstrumentListResponse,
+    MarketInstrumentSummary,
+)
+from app.services.market_service import (
+    get_market_coverage,
+    get_market_instrument,
+    list_market_bars,
+    list_market_instruments,
+)
+
+
+router = APIRouter()
+
+
+@router.get("/instruments", response_model=MarketInstrumentListResponse)
+def get_instruments(db: Session = Depends(get_db)) -> MarketInstrumentListResponse:
+    instruments = [MarketInstrumentSummary(**item) for item in list_market_instruments(db)]
+    return MarketInstrumentListResponse(instruments=instruments)
+
+
+@router.get("/instruments/{symbol}", response_model=MarketInstrumentSummary)
+def get_instrument(symbol: str, db: Session = Depends(get_db)) -> MarketInstrumentSummary:
+    instrument = get_market_instrument(db, symbol)
+    if instrument is None:
+        raise HTTPException(status_code=404, detail="instrument not found")
+    return MarketInstrumentSummary(**instrument)
+
+
+@router.get("/bars", response_model=MarketBarListResponse)
+def get_bars(
+    symbol: str,
+    frequency: str = "1d",
+    limit: int = Query(default=120, ge=1, le=1000),
+    db: Session = Depends(get_db),
+) -> MarketBarListResponse:
+    if get_market_instrument(db, symbol) is None:
+        raise HTTPException(status_code=404, detail="instrument not found")
+    bars = list_market_bars(db, symbol=symbol, frequency=frequency, limit=limit)
+    return MarketBarListResponse(
+        symbol=symbol,
+        frequency=frequency,
+        bars=[
+            MarketBarResponse(
+                trade_time=bar.trade_time,
+                open=bar.open,
+                high=bar.high,
+                low=bar.low,
+                close=bar.close,
+                volume=bar.volume,
+                amount=bar.amount,
+                adj_factor=bar.adj_factor,
+                source=bar.source,
+            )
+            for bar in bars
+        ],
+    )
+
+
+@router.get("/coverage", response_model=MarketCoverageResponse)
+def get_coverage(db: Session = Depends(get_db)) -> MarketCoverageResponse:
+    return MarketCoverageResponse(**get_market_coverage(db))

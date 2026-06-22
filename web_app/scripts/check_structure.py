@@ -15,6 +15,7 @@ REQUIRED_PATHS = [
     "backend/app/api/v1/routes/templates.py",
     "backend/app/api/v1/routes/strategies.py",
     "backend/app/api/v1/routes/backtests.py",
+    "backend/app/api/v1/routes/market.py",
     "backend/app/api/v1/routes/database.py",
     "backend/app/core/config.py",
     "backend/app/db/init_db.py",
@@ -27,12 +28,14 @@ REQUIRED_PATHS = [
     "backend/app/models/user.py",
     "backend/app/schemas/auth.py",
     "backend/app/schemas/backtest.py",
+    "backend/app/schemas/market.py",
     "backend/app/schemas/security.py",
     "backend/app/schemas/strategy.py",
     "backend/app/schemas/system.py",
     "backend/app/services/backtest_service.py",
     "backend/app/services/auth_service.py",
     "backend/app/services/database_service.py",
+    "backend/app/services/market_service.py",
     "backend/app/services/json_utils.py",
     "backend/app/services/legacy_paths.py",
     "backend/app/services/strategy_service.py",
@@ -56,6 +59,7 @@ REQUIRED_PATHS = [
     "docs/stage-9-backtest-comparison.md",
     "docs/stage-10-strategy-version-backtest-binding.md",
     "docs/stage-11-backtest-parameter-diff.md",
+    "docs/stage-12-market-data-browser.md",
 ]
 
 

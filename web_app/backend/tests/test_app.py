@@ -59,6 +59,33 @@ def test_database_init_and_status() -> None:
     assert status_payload["tables"]["market_bars"] >= 1
 
 
+def test_market_data_browser_endpoints() -> None:
+    client.post("/api/v1/database/init")
+
+    instruments_response = client.get("/api/v1/market/instruments")
+    assert instruments_response.status_code == 200
+    instruments = instruments_response.json()["instruments"]
+    assert len(instruments) >= 1
+    symbol = instruments[0]["symbol"]
+    assert instruments[0]["bar_count"] >= 1
+
+    detail_response = client.get(f"/api/v1/market/instruments/{symbol}")
+    assert detail_response.status_code == 200
+    assert detail_response.json()["symbol"] == symbol
+
+    bars_response = client.get(f"/api/v1/market/bars?symbol={symbol}&frequency=1d&limit=5")
+    assert bars_response.status_code == 200
+    bars_payload = bars_response.json()
+    assert bars_payload["symbol"] == symbol
+    assert len(bars_payload["bars"]) >= 1
+
+    coverage_response = client.get("/api/v1/market/coverage")
+    assert coverage_response.status_code == 200
+    coverage_payload = coverage_response.json()
+    assert coverage_payload["instrument_count"] >= 1
+    assert coverage_payload["total_bar_count"] >= 1
+
+
 def test_user_account_and_strategy_persistence_flow() -> None:
     strategy = read_json(TEMPLATE_MODULE / "templates" / "price_breakout.json")
     email = f"tester-{uuid4().hex[:8]}@example.com"

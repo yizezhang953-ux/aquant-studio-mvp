@@ -116,6 +116,50 @@ type BacktestReport = {
   equity_curve: EquityPoint[];
 };
 
+type MarketInstrument = {
+  symbol: string;
+  name: string;
+  market: string;
+  exchange: string;
+  asset_type: string;
+  listed_date: string | null;
+  status: string;
+  bar_count: number;
+  first_trade_time: string | null;
+  last_trade_time: string | null;
+  latest_close: number | null;
+  frequencies: string[];
+};
+
+type MarketBar = {
+  trade_time: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+  amount: number;
+  adj_factor: number;
+  source: string;
+};
+
+type MarketCoverageItem = {
+  symbol: string;
+  name: string;
+  frequencies: string[];
+  bar_count: number;
+  first_trade_time: string | null;
+  last_trade_time: string | null;
+  quality_status: string;
+};
+
+type MarketCoverage = {
+  market: string;
+  instrument_count: number;
+  total_bar_count: number;
+  coverage: MarketCoverageItem[];
+};
+
 type StrategyJson = {
   schema_version?: string;
   strategy_id?: string;
@@ -450,6 +494,11 @@ export default function App() {
   const [backtestReport, setBacktestReport] = useState<BacktestReport | null>(null);
   const [backtestHistory, setBacktestHistory] = useState<BacktestHistoryItem[]>([]);
   const [comparisonIds, setComparisonIds] = useState<string[]>([]);
+  const [marketInstruments, setMarketInstruments] = useState<MarketInstrument[]>([]);
+  const [selectedMarketSymbol, setSelectedMarketSymbol] = useState("");
+  const [marketFrequency, setMarketFrequency] = useState("1d");
+  const [marketBars, setMarketBars] = useState<MarketBar[]>([]);
+  const [marketCoverage, setMarketCoverage] = useState<MarketCoverage | null>(null);
   const [message, setMessage] = useState<{ kind: MessageKind; text: string }>({
     kind: "info",
     text: "登录后可以复制模板，用结构化表单编辑策略并保存版本。",
@@ -460,10 +509,28 @@ export default function App() {
     () => strategies.find((item) => item.strategy_id === selectedStrategyId) || null,
     [selectedStrategyId, strategies],
   );
+  const selectedMarketInstrument = useMemo(
+    () => marketInstruments.find((item) => item.symbol === selectedMarketSymbol) || null,
+    [marketInstruments, selectedMarketSymbol],
+  );
 
   useEffect(() => {
     loadTemplates();
+    loadMarketOverview();
   }, []);
+
+  useEffect(() => {
+    if (selectedMarketSymbol) {
+      loadMarketBars(selectedMarketSymbol, marketFrequency);
+    }
+  }, [selectedMarketSymbol, marketFrequency]);
+
+  useEffect(() => {
+    if (!selectedMarketInstrument) return;
+    if (selectedMarketInstrument.frequencies.length > 0 && !selectedMarketInstrument.frequencies.includes(marketFrequency)) {
+      setMarketFrequency(selectedMarketInstrument.frequencies[0]);
+    }
+  }, [selectedMarketInstrument, marketFrequency]);
 
   useEffect(() => {
     if (!token) return;
@@ -496,6 +563,34 @@ export default function App() {
       if (payload.templates.length > 0) setSelectedTemplateId(payload.templates[0].template_id);
     } catch (error) {
       setMessage({ kind: "error", text: `模板加载失败：${getErrorMessage(error)}` });
+    }
+  }
+
+  async function loadMarketOverview() {
+    try {
+      const [instrumentPayload, coveragePayload] = await Promise.all([
+        request<{ instruments: MarketInstrument[] }>("/market/instruments"),
+        request<MarketCoverage>("/market/coverage"),
+      ]);
+      setMarketInstruments(instrumentPayload.instruments);
+      setMarketCoverage(coveragePayload);
+      if (!selectedMarketSymbol && instrumentPayload.instruments.length > 0) {
+        setSelectedMarketSymbol(instrumentPayload.instruments[0].symbol);
+      }
+    } catch (error) {
+      setMessage({ kind: "error", text: `行情数据加载失败：${getErrorMessage(error)}` });
+    }
+  }
+
+  async function loadMarketBars(symbol: string, frequency: string) {
+    try {
+      const payload = await request<{ bars: MarketBar[] }>(
+        `/market/bars?symbol=${encodeURIComponent(symbol)}&frequency=${encodeURIComponent(frequency)}&limit=80`,
+      );
+      setMarketBars(payload.bars);
+    } catch (error) {
+      setMarketBars([]);
+      setMessage({ kind: "error", text: `K线数据加载失败：${getErrorMessage(error)}` });
     }
   }
 
@@ -914,6 +1009,17 @@ export default function App() {
           </section>
 
           <aside className="panel versions-panel">
+            <MarketDataPanel
+              instruments={marketInstruments}
+              selectedSymbol={selectedMarketSymbol}
+              selectedInstrument={selectedMarketInstrument}
+              frequency={marketFrequency}
+              bars={marketBars}
+              coverage={marketCoverage}
+              onSymbolChange={setSelectedMarketSymbol}
+              onFrequencyChange={setMarketFrequency}
+            />
+
             <div className="backtest-panel">
               <div className="panel-title">
                 <h2>回测结果</h2>
@@ -1053,6 +1159,102 @@ function Metric({ label, value }: { label: string; value: string }) {
     <div className="metric">
       <span>{label}</span>
       <strong>{value}</strong>
+    </div>
+  );
+}
+
+function MarketDataPanel({
+  instruments,
+  selectedSymbol,
+  selectedInstrument,
+  frequency,
+  bars,
+  coverage,
+  onSymbolChange,
+  onFrequencyChange,
+}: {
+  instruments: MarketInstrument[];
+  selectedSymbol: string;
+  selectedInstrument: MarketInstrument | null;
+  frequency: string;
+  bars: MarketBar[];
+  coverage: MarketCoverage | null;
+  onSymbolChange: (value: string) => void;
+  onFrequencyChange: (value: string) => void;
+}) {
+  const closes = bars.map((bar) => bar.close);
+  const minClose = Math.min(...closes);
+  const maxClose = Math.max(...closes);
+  const closeRange = maxClose - minClose || 1;
+  const coverageItem = coverage?.coverage.find((item) => item.symbol === selectedSymbol);
+  const frequencies = selectedInstrument?.frequencies.length ? selectedInstrument.frequencies : ["1d"];
+
+  return (
+    <div className="market-panel">
+      <div className="panel-title">
+        <h2>行情数据</h2>
+        <span className="count-pill">{coverage?.instrument_count || instruments.length}</span>
+      </div>
+
+      <div className="market-controls">
+        <label>
+          标的
+          <select value={selectedSymbol} onChange={(event) => onSymbolChange(event.target.value)}>
+            {instruments.map((instrument) => (
+              <option key={instrument.symbol} value={instrument.symbol}>
+                {instrument.symbol} {instrument.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          频率
+          <select value={frequency} onChange={(event) => onFrequencyChange(event.target.value)}>
+            {frequencies.map((item) => (
+              <option key={item} value={item}>
+                {item}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      {selectedInstrument ? (
+        <>
+          <div className="market-stats">
+            <Metric label="最新收盘" value={formatNumber(selectedInstrument.latest_close || undefined)} />
+            <Metric label="K线数量" value={formatNumber(coverageItem?.bar_count || selectedInstrument.bar_count, 0)} />
+            <Metric label="起始日期" value={selectedInstrument.first_trade_time || "-"} />
+            <Metric label="结束日期" value={selectedInstrument.last_trade_time || "-"} />
+          </div>
+          <div className="market-quality">
+            <span>{selectedInstrument.exchange}</span>
+            <span>{coverageItem?.quality_status || "ready"}</span>
+            <span>{coverage?.total_bar_count || selectedInstrument.bar_count} bars</span>
+          </div>
+          <div className="market-chart">
+            <div className="section-heading">
+              <h3>收盘价走势</h3>
+              <span>{bars.length}</span>
+            </div>
+            {bars.length > 0 ? (
+              <div className="price-bars">
+                {bars.map((bar) => (
+                  <span
+                    key={bar.trade_time}
+                    title={`${bar.trade_time}: ${formatNumber(bar.close)}`}
+                    style={{ height: `${24 + ((bar.close - minClose) / closeRange) * 76}%` }}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="muted">当前频率暂无K线数据。</p>
+            )}
+          </div>
+        </>
+      ) : (
+        <p className="muted">暂无可浏览的行情标的。</p>
+      )}
     </div>
   );
 }
