@@ -188,6 +188,14 @@ type MarketCsvImportDraft = {
   csvText: string;
 };
 
+type MarketFileImportDraft = {
+  symbol: string;
+  name: string;
+  exchange: string;
+  frequency: string;
+  file: File | null;
+};
+
 type MarketImportResponse = {
   symbol: string;
   inserted_bars: number;
@@ -528,6 +536,26 @@ async function request<T>(path: string, options: RequestInit = {}, token = ""): 
   return response.json() as Promise<T>;
 }
 
+async function requestFormData<T>(path: string, formData: FormData, token = ""): Promise<T> {
+  const response = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: formData,
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    const detail = body?.detail;
+    const message =
+      typeof detail === "string"
+        ? detail
+        : detail?.message || `HTTP ${response.status}: ${response.statusText}`;
+    throw new Error(message);
+  }
+  return response.json() as Promise<T>;
+}
+
 export default function App() {
   const [authMode, setAuthMode] = useState<AuthMode>("login");
   const [editorMode, setEditorMode] = useState<EditorMode>("form");
@@ -767,6 +795,38 @@ export default function App() {
       });
     } catch (error) {
       setMessage({ kind: "error", text: `CSV 导入失败：${getErrorMessage(error)}` });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function importMarketFile(draft: MarketFileImportDraft) {
+    if (!token) return;
+    if (!draft.symbol.trim() || !draft.name.trim() || !draft.file) {
+      setMessage({ kind: "error", text: "请选择 CSV 文件，并填写股票代码和名称。" });
+      return;
+    }
+    setLoading(true);
+    try {
+      const symbol = draft.symbol.trim().toUpperCase();
+      const formData = new FormData();
+      formData.append("symbol", symbol);
+      formData.append("name", draft.name.trim());
+      formData.append("exchange", draft.exchange);
+      formData.append("frequency", draft.frequency);
+      formData.append("file", draft.file);
+      const result = await requestFormData<MarketCsvImportResponse>("/market/import/file", formData, token);
+      await loadMarketOverview();
+      setSelectedMarketSymbol(result.symbol);
+      setMarketFrequency(draft.frequency);
+      await loadMarketBars(result.symbol, draft.frequency);
+      await loadMarketImports();
+      setMessage({
+        kind: "success",
+        text: `文件已导入：解析 ${result.parsed_rows} 行，新增 ${result.inserted_bars} 条，更新 ${result.updated_bars} 条。`,
+      });
+    } catch (error) {
+      setMessage({ kind: "error", text: `文件导入失败：${getErrorMessage(error)}` });
     } finally {
       setLoading(false);
     }
@@ -1203,6 +1263,7 @@ export default function App() {
               onFrequencyChange={setMarketFrequency}
               onImportBar={importMarketBar}
               onImportCsv={importMarketCsv}
+              onImportFile={importMarketFile}
             />
 
             <div className="backtest-panel">
@@ -1362,6 +1423,7 @@ function MarketDataPanel({
   onFrequencyChange,
   onImportBar,
   onImportCsv,
+  onImportFile,
 }: {
   instruments: MarketInstrument[];
   selectedSymbol: string;
@@ -1376,6 +1438,7 @@ function MarketDataPanel({
   onFrequencyChange: (value: string) => void;
   onImportBar: (draft: MarketImportDraft) => Promise<void>;
   onImportCsv: (draft: MarketCsvImportDraft) => Promise<void>;
+  onImportFile: (draft: MarketFileImportDraft) => Promise<void>;
 }) {
   const [importDraft, setImportDraft] = useState<MarketImportDraft>({
     symbol: selectedSymbol || "600519.SH",
@@ -1390,6 +1453,13 @@ function MarketDataPanel({
     exchange: selectedInstrument?.exchange || "SH",
     frequency,
     csvText: "trade_time,open,high,low,close,volume,amount\n2024-02-01,1660,1680,1650,1672,1000,1672000",
+  });
+  const [fileDraft, setFileDraft] = useState<MarketFileImportDraft>({
+    symbol: selectedSymbol || "600519.SH",
+    name: selectedInstrument?.name || "贵州茅台",
+    exchange: selectedInstrument?.exchange || "SH",
+    frequency,
+    file: null,
   });
   const closes = bars.map((bar) => bar.close);
   const minClose = Math.min(...closes);
@@ -1413,10 +1483,17 @@ function MarketDataPanel({
       name: selectedInstrument.name,
       exchange: selectedInstrument.exchange,
     }));
+    setFileDraft((current) => ({
+      ...current,
+      symbol: selectedInstrument.symbol,
+      name: selectedInstrument.name,
+      exchange: selectedInstrument.exchange,
+    }));
   }, [selectedInstrument]);
 
   useEffect(() => {
     setCsvDraft((current) => ({ ...current, frequency }));
+    setFileDraft((current) => ({ ...current, frequency }));
   }, [frequency]);
 
   function updateDraft<K extends keyof MarketImportDraft>(key: K, value: MarketImportDraft[K]) {
@@ -1427,6 +1504,10 @@ function MarketDataPanel({
     setCsvDraft((current) => ({ ...current, [key]: value }));
   }
 
+  function updateFileDraft<K extends keyof MarketFileImportDraft>(key: K, value: MarketFileImportDraft[K]) {
+    setFileDraft((current) => ({ ...current, [key]: value }));
+  }
+
   async function handleImport(event: FormEvent) {
     event.preventDefault();
     await onImportBar(importDraft);
@@ -1435,6 +1516,11 @@ function MarketDataPanel({
   async function handleCsvImport(event: FormEvent) {
     event.preventDefault();
     await onImportCsv(csvDraft);
+  }
+
+  async function handleFileImport(event: FormEvent) {
+    event.preventDefault();
+    await onImportFile(fileDraft);
   }
 
   return (
@@ -1586,6 +1672,41 @@ function MarketDataPanel({
             </label>
             <button className="ghost-button" type="submit" disabled={loading}>
               批量导入
+            </button>
+          </form>
+          <form className="market-import file-import" onSubmit={handleFileImport}>
+            <div className="section-heading">
+              <h3>CSV 文件上传</h3>
+            </div>
+            <div className="form-grid compact">
+              <label>
+                代码
+                <input value={fileDraft.symbol} onChange={(event) => updateFileDraft("symbol", event.target.value)} />
+              </label>
+              <label>
+                名称
+                <input value={fileDraft.name} onChange={(event) => updateFileDraft("name", event.target.value)} />
+              </label>
+              <label>
+                频率
+                <select value={fileDraft.frequency} onChange={(event) => updateFileDraft("frequency", event.target.value)}>
+                  <option value="1d">1d</option>
+                  <option value="15m">15m</option>
+                  <option value="30m">30m</option>
+                  <option value="60m">60m</option>
+                </select>
+              </label>
+            </div>
+            <label>
+              文件
+              <input
+                type="file"
+                accept=".csv,text/csv"
+                onChange={(event) => updateFileDraft("file", event.target.files?.[0] || null)}
+              />
+            </label>
+            <button className="ghost-button" type="submit" disabled={loading}>
+              上传导入
             </button>
           </form>
           <div className="import-history">

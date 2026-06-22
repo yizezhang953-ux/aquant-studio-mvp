@@ -202,6 +202,57 @@ def test_authenticated_market_csv_import_flow() -> None:
     assert invalid_response.status_code == 400
 
 
+def test_authenticated_market_csv_file_upload_flow() -> None:
+    email = f"file-{uuid4().hex[:8]}@example.com"
+    register_response = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": email,
+            "password": "strong-password-123",
+            "display_name": "File Manager",
+        },
+    )
+    assert register_response.status_code == 200
+    headers = {"Authorization": f"Bearer {register_response.json()['access_token']}"}
+    symbol = f"FIL{uuid4().hex[:4].upper()}.SH"
+    csv_content = (
+        "trade_time,open,high,low,close,volume,amount\n"
+        "2024-04-01,30,31,29.5,30.8,1000,30800\n"
+    )
+
+    upload_response = client.post(
+        "/api/v1/market/import/file",
+        headers=headers,
+        data={
+            "symbol": symbol,
+            "name": "文件导入股票",
+            "exchange": "SH",
+            "frequency": "1d",
+        },
+        files={"file": ("bars.csv", csv_content, "text/csv")},
+    )
+    assert upload_response.status_code == 200
+    assert upload_response.json()["parsed_rows"] == 1
+    assert upload_response.json()["inserted_bars"] == 1
+
+    imports_response = client.get("/api/v1/market/imports", headers=headers)
+    assert imports_response.status_code == 200
+    imported = next(item for item in imports_response.json()["imports"] if item["symbol"] == symbol)
+    assert imported["import_type"] == "csv_file"
+
+    wrong_file_response = client.post(
+        "/api/v1/market/import/file",
+        headers=headers,
+        data={
+            "symbol": symbol,
+            "name": "文件导入股票",
+            "exchange": "SH",
+        },
+        files={"file": ("bars.txt", csv_content, "text/plain")},
+    )
+    assert wrong_file_response.status_code == 400
+
+
 def test_user_account_and_strategy_persistence_flow() -> None:
     strategy = read_json(TEMPLATE_MODULE / "templates" / "price_breakout.json")
     email = f"tester-{uuid4().hex[:8]}@example.com"

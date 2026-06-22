@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -126,6 +126,46 @@ def import_csv_data(
         import_type="csv",
         result=result,
         frequency=request.frequency,
+    )
+    return MarketCsvImportResponse(**result)
+
+
+@router.post("/import/file", response_model=MarketCsvImportResponse)
+async def import_csv_file(
+    symbol: str = Form(...),
+    name: str = Form(...),
+    exchange: str = Form(...),
+    frequency: str = Form("1d"),
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> MarketCsvImportResponse:
+    if not file.filename or not file.filename.lower().endswith(".csv"):
+        raise HTTPException(status_code=400, detail="only .csv files are supported")
+    raw = await file.read()
+    try:
+        csv_text = raw.decode("utf-8-sig")
+    except UnicodeDecodeError as exc:
+        raise HTTPException(status_code=400, detail="CSV file must be UTF-8 encoded") from exc
+    result = import_market_csv(
+        db,
+        MarketCsvImportRequest(
+            symbol=symbol,
+            name=name,
+            exchange=exchange,
+            frequency=frequency,
+            csv_text=csv_text,
+            source=f"file:{file.filename}",
+        ),
+    )
+    if result["parsed_rows"] == 0:
+        raise HTTPException(status_code=400, detail={"message": result["message"], "errors": result["errors"]})
+    record_market_import_batch(
+        db,
+        owner_id=current_user.id,
+        import_type="csv_file",
+        result=result,
+        frequency=frequency,
     )
     return MarketCsvImportResponse(**result)
 

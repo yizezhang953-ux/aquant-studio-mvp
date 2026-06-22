@@ -512,6 +512,16 @@ textarea:focus {
   border-color: #c9d9ee;
 }
 
+.file-import {
+  border-color: #cfd8a9;
+}
+
+.file-import input[type="file"] {
+  height: auto;
+  padding: 9px;
+  background: #ffffff;
+}
+
 .csv-editor {
   min-height: 116px;
   resize: vertical;
