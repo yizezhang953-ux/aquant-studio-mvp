@@ -52,6 +52,7 @@ REQUIRED_PATHS = [
     "docs/stage-5-frontend-connected-workbench.md",
     "docs/stage-6-structured-strategy-editor.md",
     "docs/stage-7-backtest-frontend-loop.md",
+    "docs/stage-8-backtest-persistence-history.md",
 ]
 
 

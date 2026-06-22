@@ -118,5 +118,22 @@ def test_user_account_and_strategy_persistence_flow() -> None:
     assert versions_response.status_code == 200
     assert len(versions_response.json()["versions"]) == 2
 
+    backtest_response = client.post(
+        "/api/v1/backtests",
+        headers=headers,
+        json={"strategy": strategy, "source_strategy_id": created["strategy_id"]},
+    )
+    assert backtest_response.status_code == 200
+    backtest_id = backtest_response.json()["backtest_id"]
+
+    backtests_response = client.get("/api/v1/backtests", headers=headers)
+    assert backtests_response.status_code == 200
+    backtests = backtests_response.json()["backtests"]
+    assert any(item["backtest_id"] == backtest_id for item in backtests)
+
+    my_report_response = client.get(f"/api/v1/backtests/mine/{backtest_id}", headers=headers)
+    assert my_report_response.status_code == 200
+    assert my_report_response.json()["metrics"]["trade_count"] >= 0
+
     delete_response = client.delete(f"/api/v1/strategies/{created['strategy_id']}", headers=headers)
     assert delete_response.status_code == 204

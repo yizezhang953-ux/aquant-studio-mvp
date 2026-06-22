@@ -53,6 +53,17 @@ type BacktestRunResponse = {
   report_path: string;
 };
 
+type BacktestHistoryItem = {
+  backtest_id: string;
+  strategy_id: string;
+  source_strategy_id: string | null;
+  strategy_name: string;
+  symbol: string;
+  frequency: string;
+  status: string;
+  metrics: Record<string, number>;
+};
+
 type BacktestTrade = {
   symbol: string;
   entry_time: string;
@@ -369,6 +380,7 @@ export default function App() {
   const [versions, setVersions] = useState<StrategyVersion[]>([]);
   const [backtestRun, setBacktestRun] = useState<BacktestRunResponse | null>(null);
   const [backtestReport, setBacktestReport] = useState<BacktestReport | null>(null);
+  const [backtestHistory, setBacktestHistory] = useState<BacktestHistoryItem[]>([]);
   const [message, setMessage] = useState<{ kind: MessageKind; text: string }>({
     kind: "info",
     text: "登录后可以复制模板，用结构化表单编辑策略并保存版本。",
@@ -423,6 +435,7 @@ export default function App() {
       const me = await request<User>("/auth/me", {}, accessToken);
       setUser(me);
       await loadStrategies(accessToken);
+      await loadBacktestHistory(accessToken);
       setMessage({ kind: "success", text: `已登录：${me.display_name}` });
     } catch {
       window.localStorage.removeItem("aquant_token");
@@ -461,6 +474,16 @@ export default function App() {
     }
   }
 
+  async function loadBacktestHistory(accessToken = token) {
+    if (!accessToken) return;
+    try {
+      const payload = await request<{ backtests: BacktestHistoryItem[] }>("/backtests", {}, accessToken);
+      setBacktestHistory(payload.backtests);
+    } catch (error) {
+      setMessage({ kind: "error", text: `回测历史加载失败：${getErrorMessage(error)}` });
+    }
+  }
+
   async function handleAuth(event: FormEvent) {
     event.preventDefault();
     setLoading(true);
@@ -488,6 +511,7 @@ export default function App() {
     setToken("");
     setUser(null);
     setStrategies([]);
+    setBacktestHistory([]);
     setSelectedStrategyId("");
     setMessage({ kind: "info", text: "已退出登录。" });
   }
@@ -568,14 +592,35 @@ export default function App() {
       if (!strategy) return;
       const run = await request<BacktestRunResponse>("/backtests", {
         method: "POST",
-        body: JSON.stringify({ strategy }),
-      });
-      const report = await request<BacktestReport>(`/backtests/${run.backtest_id}/report`);
+        body: JSON.stringify({ strategy, source_strategy_id: selectedStrategy.strategy_id }),
+      }, token);
+      const report = await request<BacktestReport>(`/backtests/mine/${run.backtest_id}`, {}, token);
       setBacktestRun(run);
       setBacktestReport(report);
+      await loadBacktestHistory();
       setMessage({ kind: "success", text: "回测已完成，结果已更新。" });
     } catch (error) {
       setMessage({ kind: "error", text: `回测失败：${getErrorMessage(error)}` });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function openHistoricalBacktest(backtestId: string) {
+    if (!token) return;
+    setLoading(true);
+    try {
+      const report = await request<BacktestReport>(`/backtests/mine/${backtestId}`, {}, token);
+      setBacktestRun({
+        backtest_id: backtestId,
+        status: "completed",
+        metrics: report.metrics,
+        report_path: "",
+      });
+      setBacktestReport(report);
+      setMessage({ kind: "info", text: "已载入历史回测报告。" });
+    } catch (error) {
+      setMessage({ kind: "error", text: `载入历史回测失败：${getErrorMessage(error)}` });
     } finally {
       setLoading(false);
     }
@@ -792,6 +837,27 @@ export default function App() {
                 <BacktestSummary report={backtestReport} />
               ) : (
                 <p className="muted">点击“运行回测”后，这里会显示指标、权益曲线和交易明细。</p>
+              )}
+            </div>
+
+            <div className="backtest-history">
+              <div className="panel-title">
+                <h2>我的回测记录</h2>
+                <span className="count-pill">{backtestHistory.length}</span>
+              </div>
+              {backtestHistory.length === 0 ? (
+                <p className="muted">暂无历史回测。</p>
+              ) : (
+                <div className="history-list">
+                  {backtestHistory.slice(0, 8).map((item) => (
+                    <button key={item.backtest_id} onClick={() => openHistoricalBacktest(item.backtest_id)}>
+                      <strong>{item.symbol} · {item.frequency}</strong>
+                      <span>
+                        {formatPercent(item.metrics.total_return)} / {formatPercent(item.metrics.max_drawdown)}
+                      </span>
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
 

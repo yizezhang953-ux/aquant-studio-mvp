@@ -400,7 +400,8 @@ textarea:focus {
   overflow: auto;
 }
 
-.version-list button {
+.version-list button,
+.history-list button {
   display: grid;
   gap: 4px;
   text-align: left;
@@ -411,16 +412,25 @@ textarea:focus {
   color: #17202a;
 }
 
-.version-list span {
+.version-list span,
+.history-list span {
   color: #657a72;
   font-size: 13px;
 }
 
-.backtest-panel {
+.backtest-panel,
+.backtest-history {
   display: grid;
   gap: 12px;
   padding-bottom: 14px;
   border-bottom: 1px solid #e3ebe7;
+}
+
+.history-list {
+  display: grid;
+  gap: 8px;
+  max-height: 240px;
+  overflow: auto;
 }
 
 .backtest-content {

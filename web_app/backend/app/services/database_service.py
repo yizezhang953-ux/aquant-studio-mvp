@@ -234,7 +234,9 @@ def seed_backtest_demo(db: Session) -> dict[str, int]:
     run = db.get(BacktestRun, backtest_id)
     payload = {
         "backtest_id": backtest_id,
+        "owner_id": None,
         "strategy_id": report["strategy_id"],
+        "source_strategy_id": None,
         "strategy_name": report["strategy_name"],
         "symbol": report["symbol"],
         "frequency": report["frequency"],
@@ -298,14 +300,30 @@ def _upgrade_sqlite_schema() -> None:
     if engine.dialect.name != "sqlite":
         return
     inspector = inspect(engine)
-    if "user_strategies" not in inspector.get_table_names():
-        return
-    columns = {column["name"] for column in inspector.get_columns("user_strategies")}
-    additions = {
-        "owner_id": "ALTER TABLE user_strategies ADD COLUMN owner_id INTEGER",
-        "source_template_id": "ALTER TABLE user_strategies ADD COLUMN source_template_id VARCHAR(80)",
-        "status": "ALTER TABLE user_strategies ADD COLUMN status VARCHAR(40) DEFAULT 'draft'",
-    }
+    tables = inspector.get_table_names()
+    if "user_strategies" in tables:
+        _add_missing_columns(
+            inspector,
+            "user_strategies",
+            {
+                "owner_id": "ALTER TABLE user_strategies ADD COLUMN owner_id INTEGER",
+                "source_template_id": "ALTER TABLE user_strategies ADD COLUMN source_template_id VARCHAR(80)",
+                "status": "ALTER TABLE user_strategies ADD COLUMN status VARCHAR(40) DEFAULT 'draft'",
+            },
+        )
+    if "backtest_runs" in tables:
+        _add_missing_columns(
+            inspector,
+            "backtest_runs",
+            {
+                "owner_id": "ALTER TABLE backtest_runs ADD COLUMN owner_id INTEGER",
+                "source_strategy_id": "ALTER TABLE backtest_runs ADD COLUMN source_strategy_id VARCHAR(120)",
+            },
+        )
+
+
+def _add_missing_columns(inspector, table_name: str, additions: dict[str, str]) -> None:
+    columns = {column["name"] for column in inspector.get_columns(table_name)}
     with engine.begin() as conn:
         for column_name, statement in additions.items():
             if column_name not in columns:
