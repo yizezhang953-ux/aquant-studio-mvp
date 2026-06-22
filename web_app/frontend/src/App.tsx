@@ -46,6 +46,41 @@ type StrategyVersion = {
   strategy: StrategyJson;
 };
 
+type BacktestRunResponse = {
+  backtest_id: string;
+  status: string;
+  metrics: Record<string, number>;
+  report_path: string;
+};
+
+type BacktestTrade = {
+  symbol: string;
+  entry_time: string;
+  exit_time: string;
+  entry_price: number;
+  exit_price: number;
+  quantity: number;
+  net_pnl: number;
+  return_pct: number;
+  exit_reason: string;
+};
+
+type EquityPoint = {
+  trade_time: string;
+  equity: number;
+  drawdown_pct: number;
+};
+
+type BacktestReport = {
+  backtest_id?: string;
+  strategy_name: string;
+  symbol: string;
+  frequency: string;
+  metrics: Record<string, number>;
+  trades: BacktestTrade[];
+  equity_curve: EquityPoint[];
+};
+
 type StrategyJson = {
   schema_version?: string;
   strategy_id?: string;
@@ -181,6 +216,16 @@ function prettyJson(value: unknown) {
 
 function cleanTemplateName(template: TemplateSummary) {
   return templateNames[template.template_id] || template.name;
+}
+
+function formatNumber(value: number | undefined, digits = 2) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "-";
+  return value.toLocaleString("zh-CN", { maximumFractionDigits: digits });
+}
+
+function formatPercent(value: number | undefined) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "-";
+  return `${(value * 100).toFixed(2)}%`;
 }
 
 function toNumber(value: string, fallback: number) {
@@ -322,6 +367,8 @@ export default function App() {
   const [editorText, setEditorText] = useState("{}");
   const [strategyForm, setStrategyForm] = useState<StrategyForm>(defaultForm);
   const [versions, setVersions] = useState<StrategyVersion[]>([]);
+  const [backtestRun, setBacktestRun] = useState<BacktestRunResponse | null>(null);
+  const [backtestReport, setBacktestReport] = useState<BacktestReport | null>(null);
   const [message, setMessage] = useState<{ kind: MessageKind; text: string }>({
     kind: "info",
     text: "登录后可以复制模板，用结构化表单编辑策略并保存版本。",
@@ -352,6 +399,8 @@ export default function App() {
     setStrategyStatus(selectedStrategy.status);
     setEditorText(prettyJson(selectedStrategy.strategy));
     setStrategyForm(formFromStrategy(selectedStrategy.strategy));
+    setBacktestRun(null);
+    setBacktestReport(null);
     loadVersions(selectedStrategy.strategy_id);
   }, [selectedStrategy]);
 
@@ -505,6 +554,33 @@ export default function App() {
     }
   }
 
+  function getCurrentStrategyJson() {
+    if (!selectedStrategy) return null;
+    if (editorMode === "json") return JSON.parse(editorText) as StrategyJson;
+    return strategyFromForm(selectedStrategy.strategy, strategyName, strategyForm);
+  }
+
+  async function runCurrentBacktest() {
+    if (!selectedStrategy) return;
+    setLoading(true);
+    try {
+      const strategy = getCurrentStrategyJson();
+      if (!strategy) return;
+      const run = await request<BacktestRunResponse>("/backtests", {
+        method: "POST",
+        body: JSON.stringify({ strategy }),
+      });
+      const report = await request<BacktestReport>(`/backtests/${run.backtest_id}/report`);
+      setBacktestRun(run);
+      setBacktestReport(report);
+      setMessage({ kind: "success", text: "回测已完成，结果已更新。" });
+    } catch (error) {
+      setMessage({ kind: "error", text: `回测失败：${getErrorMessage(error)}` });
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function deleteStrategy() {
     if (!selectedStrategy || !token) return;
     setLoading(true);
@@ -650,6 +726,9 @@ export default function App() {
                 <button className="ghost-button danger" onClick={deleteStrategy} disabled={!selectedStrategy || loading}>
                   删除
                 </button>
+                <button className="ghost-button" onClick={runCurrentBacktest} disabled={!selectedStrategy || loading}>
+                  运行回测
+                </button>
                 <button className="primary-action" onClick={saveStrategy} disabled={!selectedStrategy || loading}>
                   保存策略
                 </button>
@@ -704,6 +783,18 @@ export default function App() {
           </section>
 
           <aside className="panel versions-panel">
+            <div className="backtest-panel">
+              <div className="panel-title">
+                <h2>回测结果</h2>
+                <span className="count-pill">{backtestRun?.status || "待运行"}</span>
+              </div>
+              {backtestReport ? (
+                <BacktestSummary report={backtestReport} />
+              ) : (
+                <p className="muted">点击“运行回测”后，这里会显示指标、权益曲线和交易明细。</p>
+              )}
+            </div>
+
             <div className="panel-title">
               <h2>版本历史</h2>
               <span className="count-pill">{versions.length}</span>
@@ -724,6 +815,75 @@ export default function App() {
         </section>
       )}
     </main>
+  );
+}
+
+function BacktestSummary({ report }: { report: BacktestReport }) {
+  const metrics = report.metrics || {};
+  const equity = report.equity_curve || [];
+  const values = equity.map((point) => point.equity);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+
+  return (
+    <div className="backtest-content">
+      <div className="metrics-grid">
+        <Metric label="总收益" value={formatPercent(metrics.total_return)} />
+        <Metric label="最大回撤" value={formatPercent(metrics.max_drawdown)} />
+        <Metric label="胜率" value={formatPercent(metrics.win_rate)} />
+        <Metric label="交易数" value={formatNumber(metrics.trade_count, 0)} />
+        <Metric label="最终权益" value={formatNumber(metrics.final_equity)} />
+        <Metric label="夏普" value={formatNumber(metrics.sharpe)} />
+      </div>
+
+      <div className="equity-card">
+        <div className="section-heading">
+          <h3>权益曲线</h3>
+          <span>{equity.length} 点</span>
+        </div>
+        {equity.length > 0 ? (
+          <div className="equity-bars">
+            {equity.map((point) => (
+              <span
+                key={point.trade_time}
+                title={`${point.trade_time}: ${formatNumber(point.equity)}`}
+                style={{ height: `${30 + ((point.equity - min) / range) * 70}%` }}
+              />
+            ))}
+          </div>
+        ) : (
+          <p className="muted">暂无权益曲线。</p>
+        )}
+      </div>
+
+      <div className="trades-table">
+        <div className="section-heading">
+          <h3>交易明细</h3>
+          <span>{report.trades.length}</span>
+        </div>
+        {report.trades.length === 0 ? (
+          <p className="muted">本次回测没有成交。</p>
+        ) : (
+          report.trades.slice(0, 6).map((trade, index) => (
+            <div className="trade-row" key={`${trade.entry_time}-${index}`}>
+              <strong>{trade.symbol}</strong>
+              <span>{trade.entry_time} → {trade.exit_time}</span>
+              <span>{formatNumber(trade.net_pnl)} / {formatPercent(trade.return_pct)}</span>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="metric">
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
   );
 }
 
