@@ -82,6 +82,12 @@ type ParameterSnapshot = {
   max_drawdown_pct?: number;
 };
 
+type DiffField = {
+  key: keyof ParameterSnapshot;
+  label: string;
+  format: (value: unknown) => string;
+};
+
 type BacktestTrade = {
   symbol: string;
   entry_time: string;
@@ -224,6 +230,22 @@ const operatorLabels: Record<string, string> = {
   lte: "<= 小于等于",
 };
 
+const diffFields: DiffField[] = [
+  { key: "symbol", label: "股票", format: String },
+  { key: "frequency", label: "周期", format: String },
+  { key: "start_date", label: "开始", format: String },
+  { key: "end_date", label: "结束", format: String },
+  { key: "entry_operator", label: "入场方向", format: String },
+  { key: "entry_value", label: "入场阈值", format: (value) => formatNumber(value as number) },
+  { key: "exit_operator", label: "出场方向", format: String },
+  { key: "exit_value", label: "出场阈值", format: (value) => formatNumber(value as number) },
+  { key: "order_size_value", label: "单笔仓位", format: (value) => formatPercent(value as number) },
+  { key: "max_position_pct", label: "最大仓位", format: (value) => formatPercent(value as number) },
+  { key: "stop_loss_pct", label: "止损", format: (value) => formatPercent(value as number) },
+  { key: "take_profit_pct", label: "止盈", format: (value) => formatPercent(value as number) },
+  { key: "max_drawdown_pct", label: "最大回撤约束", format: (value) => formatPercent(value as number) },
+];
+
 const emptyLogin = {
   email: "demo@example.com",
   password: "strong-password-123",
@@ -267,6 +289,22 @@ function summarizeParams(snapshot: ParameterSnapshot | null) {
   const exit = `${snapshot.exit_operator || "?"} ${snapshot.exit_value ?? "-"}`;
   const size = snapshot.order_size_value != null ? `${(snapshot.order_size_value * 100).toFixed(0)}%仓位` : "仓位-";
   return `入场 ${entry} / 出场 ${exit} / ${size}`;
+}
+
+function normalizeDiffValue(value: unknown) {
+  if (typeof value === "number") return Number(value.toFixed(8));
+  return value ?? "";
+}
+
+function fieldHasDifference(items: BacktestHistoryItem[], field: DiffField) {
+  const values = items.map((item) => normalizeDiffValue(item.parameter_snapshot?.[field.key]));
+  return new Set(values).size > 1;
+}
+
+function formatDiffValue(item: BacktestHistoryItem, field: DiffField) {
+  const value = item.parameter_snapshot?.[field.key];
+  if (value === undefined || value === null || value === "") return "-";
+  return field.format(value);
 }
 
 function toNumber(value: string, fallback: number) {
@@ -1067,6 +1105,41 @@ function BacktestComparison({
             <span>{formatPercent(item.metrics.win_rate)}</span>
             <span>{formatNumber(item.metrics.trade_count, 0)}</span>
             <small className="comparison-params">{summarizeParams(item.parameter_snapshot)}</small>
+          </div>
+        ))}
+      </div>
+      <ParameterDiff items={items} />
+    </div>
+  );
+}
+
+function ParameterDiff({ items }: { items: BacktestHistoryItem[] }) {
+  if (items.length < 2) {
+    return <p className="muted">至少选择 2 条回测后显示参数差异。</p>;
+  }
+  const changedFields = diffFields.filter((field) => fieldHasDifference(items, field));
+  if (changedFields.length === 0) {
+    return <p className="muted">所选回测的核心参数一致。</p>;
+  }
+  return (
+    <div className="diff-panel">
+      <div className="section-heading">
+        <h3>参数差异</h3>
+        <span>{changedFields.length}</span>
+      </div>
+      <div className="diff-table">
+        <div className="diff-row header">
+          <span>参数</span>
+          {items.map((item) => (
+            <span key={item.backtest_id}>{formatVersion(item.strategy_version)}</span>
+          ))}
+        </div>
+        {changedFields.map((field) => (
+          <div className="diff-row changed" key={field.key}>
+            <strong>{field.label}</strong>
+            {items.map((item) => (
+              <span key={item.backtest_id}>{formatDiffValue(item, field)}</span>
+            ))}
           </div>
         ))}
       </div>

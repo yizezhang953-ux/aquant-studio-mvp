@@ -55,6 +55,7 @@ REQUIRED_PATHS = [
     "docs/stage-8-backtest-persistence-history.md",
     "docs/stage-9-backtest-comparison.md",
     "docs/stage-10-strategy-version-backtest-binding.md",
+    "docs/stage-11-backtest-parameter-diff.md",
 ]
 
 
