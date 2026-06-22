@@ -223,6 +223,13 @@ type MarketImportBatch = {
   created_at: string;
 };
 
+type MarketImportBatchDetail = MarketImportBatch & {
+  message: string;
+  source: string | null;
+  errors: string[];
+  payload: Record<string, unknown>;
+};
+
 type StrategyJson = {
   schema_version?: string;
   strategy_id?: string;
@@ -584,6 +591,7 @@ export default function App() {
   const [marketCoverage, setMarketCoverage] = useState<MarketCoverage | null>(null);
   const [marketQuality, setMarketQuality] = useState<MarketQuality | null>(null);
   const [marketImports, setMarketImports] = useState<MarketImportBatch[]>([]);
+  const [selectedMarketImport, setSelectedMarketImport] = useState<MarketImportBatchDetail | null>(null);
   const [message, setMessage] = useState<{ kind: MessageKind; text: string }>({
     kind: "info",
     text: "登录后可以复制模板，用结构化表单编辑策略并保存版本。",
@@ -697,8 +705,19 @@ export default function App() {
     try {
       const payload = await request<{ imports: MarketImportBatch[] }>("/market/imports", {}, accessToken);
       setMarketImports(payload.imports);
+      if (payload.imports.length === 0) setSelectedMarketImport(null);
     } catch (error) {
       setMessage({ kind: "error", text: `导入历史加载失败：${getErrorMessage(error)}` });
+    }
+  }
+
+  async function openMarketImport(batchId: number) {
+    if (!token) return;
+    try {
+      const payload = await request<MarketImportBatchDetail>(`/market/imports/${batchId}`, {}, token);
+      setSelectedMarketImport(payload);
+    } catch (error) {
+      setMessage({ kind: "error", text: `导入详情加载失败：${getErrorMessage(error)}` });
     }
   }
 
@@ -920,6 +939,7 @@ export default function App() {
     setBacktestHistory([]);
     setComparisonIds([]);
     setMarketImports([]);
+    setSelectedMarketImport(null);
     setSelectedStrategyId("");
     setMessage({ kind: "info", text: "已退出登录。" });
   }
@@ -1258,12 +1278,14 @@ export default function App() {
               coverage={marketCoverage}
               quality={marketQuality}
               imports={marketImports}
+              selectedImport={selectedMarketImport}
               loading={loading}
               onSymbolChange={setSelectedMarketSymbol}
               onFrequencyChange={setMarketFrequency}
               onImportBar={importMarketBar}
               onImportCsv={importMarketCsv}
               onImportFile={importMarketFile}
+              onOpenImport={openMarketImport}
             />
 
             <div className="backtest-panel">
@@ -1418,12 +1440,14 @@ function MarketDataPanel({
   coverage,
   quality,
   imports,
+  selectedImport,
   loading,
   onSymbolChange,
   onFrequencyChange,
   onImportBar,
   onImportCsv,
   onImportFile,
+  onOpenImport,
 }: {
   instruments: MarketInstrument[];
   selectedSymbol: string;
@@ -1433,12 +1457,14 @@ function MarketDataPanel({
   coverage: MarketCoverage | null;
   quality: MarketQuality | null;
   imports: MarketImportBatch[];
+  selectedImport: MarketImportBatchDetail | null;
   loading: boolean;
   onSymbolChange: (value: string) => void;
   onFrequencyChange: (value: string) => void;
   onImportBar: (draft: MarketImportDraft) => Promise<void>;
   onImportCsv: (draft: MarketCsvImportDraft) => Promise<void>;
   onImportFile: (draft: MarketFileImportDraft) => Promise<void>;
+  onOpenImport: (batchId: number) => Promise<void>;
 }) {
   const [importDraft, setImportDraft] = useState<MarketImportDraft>({
     symbol: selectedSymbol || "600519.SH",
@@ -1718,16 +1744,40 @@ function MarketDataPanel({
               <p className="muted">暂无导入批次。</p>
             ) : (
               imports.slice(0, 5).map((item) => (
-                <div className="import-row" key={item.id}>
+                <button
+                  className={selectedImport?.id === item.id ? "import-row active" : "import-row"}
+                  key={item.id}
+                  type="button"
+                  onClick={() => onOpenImport(item.id)}
+                >
                   <strong>
                     {item.symbol} · {item.import_type}
                   </strong>
                   <span>
                     +{item.inserted_bars} / 更新 {item.updated_bars} / 跳过 {item.skipped_rows}
                   </span>
-                  <small>{item.frequency || "-"} · {item.created_at}</small>
-                </div>
+                  <small>{item.status} · {item.frequency || "-"} · {item.created_at}</small>
+                </button>
               ))
+            )}
+            {selectedImport && (
+              <div className="import-detail">
+                <div className="section-heading">
+                  <h3>批次详情</h3>
+                  <span>{selectedImport.status}</span>
+                </div>
+                <p>{selectedImport.message}</p>
+                <small>{selectedImport.source || "source -"}</small>
+                {selectedImport.errors.length > 0 ? (
+                  <div className="import-errors">
+                    {selectedImport.errors.slice(0, 4).map((error, index) => (
+                      <span key={`${selectedImport.id}-${index}`}>{error}</span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="muted">暂无错误行。</p>
+                )}
+              </div>
             )}
           </div>
         </>

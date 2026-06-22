@@ -543,16 +543,50 @@ textarea:focus {
 .import-row {
   display: grid;
   gap: 4px;
+  width: 100%;
   padding: 8px;
   border: 1px solid #e3ebe7;
   border-radius: 8px;
   background: #ffffff;
+  color: #17202a;
   font-size: 12px;
+  text-align: left;
+}
+
+.import-row.active {
+  border-color: #177245;
+  background: #eefbf3;
 }
 
 .import-row span,
 .import-row small {
   color: #657a72;
+}
+
+.import-detail {
+  display: grid;
+  gap: 6px;
+  padding: 9px;
+  border: 1px solid #cfdcd6;
+  border-radius: 8px;
+  background: #ffffff;
+  font-size: 12px;
+}
+
+.import-detail p {
+  color: #40544e;
+}
+
+.import-errors {
+  display: grid;
+  gap: 5px;
+}
+
+.import-errors span {
+  padding: 7px;
+  border-radius: 8px;
+  background: #fff1f0;
+  color: #a13e14;
 }
 
 .history-list {

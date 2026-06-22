@@ -189,6 +189,13 @@ def test_authenticated_market_csv_import_flow() -> None:
     assert imported["import_type"] == "csv"
     assert imported["inserted_bars"] == 2
 
+    detail_response = client.get(f"/api/v1/market/imports/{imported['id']}", headers=headers)
+    assert detail_response.status_code == 200
+    detail_payload = detail_response.json()
+    assert detail_payload["symbol"] == symbol
+    assert detail_payload["status"] == "completed"
+    assert detail_payload["payload"]["parsed_rows"] == 2
+
     invalid_response = client.post(
         "/api/v1/market/import/csv",
         headers=headers,
@@ -200,6 +207,17 @@ def test_authenticated_market_csv_import_flow() -> None:
         },
     )
     assert invalid_response.status_code == 400
+
+    failed_imports_response = client.get("/api/v1/market/imports", headers=headers)
+    assert failed_imports_response.status_code == 200
+    failed_import = next(
+        item
+        for item in failed_imports_response.json()["imports"]
+        if item["symbol"] == symbol and item["status"] == "failed"
+    )
+    failed_detail_response = client.get(f"/api/v1/market/imports/{failed_import['id']}", headers=headers)
+    assert failed_detail_response.status_code == 200
+    assert failed_detail_response.json()["errors"]
 
 
 def test_authenticated_market_csv_file_upload_flow() -> None:
@@ -239,6 +257,9 @@ def test_authenticated_market_csv_file_upload_flow() -> None:
     assert imports_response.status_code == 200
     imported = next(item for item in imports_response.json()["imports"] if item["symbol"] == symbol)
     assert imported["import_type"] == "csv_file"
+    detail_response = client.get(f"/api/v1/market/imports/{imported['id']}", headers=headers)
+    assert detail_response.status_code == 200
+    assert detail_response.json()["source"] == "bars.csv"
 
     wrong_file_response = client.post(
         "/api/v1/market/import/file",
@@ -251,6 +272,13 @@ def test_authenticated_market_csv_file_upload_flow() -> None:
         files={"file": ("bars.txt", csv_content, "text/plain")},
     )
     assert wrong_file_response.status_code == 400
+    failed_imports_response = client.get("/api/v1/market/imports", headers=headers)
+    failed_import = next(
+        item
+        for item in failed_imports_response.json()["imports"]
+        if item["symbol"] == symbol and item["status"] == "failed"
+    )
+    assert failed_import["import_type"] == "csv_file"
 
 
 def test_user_account_and_strategy_persistence_flow() -> None:

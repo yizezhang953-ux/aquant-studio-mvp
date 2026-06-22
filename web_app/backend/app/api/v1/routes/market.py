@@ -8,6 +8,7 @@ from app.schemas.market import (
     MarketCoverageResponse,
     MarketCsvImportRequest,
     MarketCsvImportResponse,
+    MarketImportBatchDetail,
     MarketImportBatchListResponse,
     MarketImportRequest,
     MarketImportResponse,
@@ -20,6 +21,7 @@ from app.services.auth_service import get_current_user
 from app.services.market_service import (
     get_market_coverage,
     get_market_instrument,
+    get_market_import_batch,
     get_market_quality,
     import_market_csv,
     import_market_data,
@@ -119,6 +121,15 @@ def import_csv_data(
 ) -> MarketCsvImportResponse:
     result = import_market_csv(db, request)
     if result["parsed_rows"] == 0:
+        record_market_import_batch(
+            db,
+            owner_id=current_user.id,
+            import_type="csv",
+            result=result,
+            frequency=request.frequency,
+            status="failed",
+            source="csv_text",
+        )
         raise HTTPException(status_code=400, detail={"message": result["message"], "errors": result["errors"]})
     record_market_import_batch(
         db,
@@ -126,6 +137,7 @@ def import_csv_data(
         import_type="csv",
         result=result,
         frequency=request.frequency,
+        source="csv_text",
     )
     return MarketCsvImportResponse(**result)
 
@@ -141,6 +153,19 @@ async def import_csv_file(
     db: Session = Depends(get_db),
 ) -> MarketCsvImportResponse:
     if not file.filename or not file.filename.lower().endswith(".csv"):
+        record_market_import_batch(
+            db,
+            owner_id=current_user.id,
+            import_type="csv_file",
+            result={
+                "symbol": symbol,
+                "message": "CSV file import failed",
+                "errors": ["only .csv files are supported"],
+            },
+            frequency=frequency,
+            status="failed",
+            source=file.filename,
+        )
         raise HTTPException(status_code=400, detail="only .csv files are supported")
     raw = await file.read()
     try:
@@ -159,6 +184,15 @@ async def import_csv_file(
         ),
     )
     if result["parsed_rows"] == 0:
+        record_market_import_batch(
+            db,
+            owner_id=current_user.id,
+            import_type="csv_file",
+            result=result,
+            frequency=frequency,
+            status="failed",
+            source=file.filename,
+        )
         raise HTTPException(status_code=400, detail={"message": result["message"], "errors": result["errors"]})
     record_market_import_batch(
         db,
@@ -166,6 +200,7 @@ async def import_csv_file(
         import_type="csv_file",
         result=result,
         frequency=frequency,
+        source=file.filename,
     )
     return MarketCsvImportResponse(**result)
 
@@ -177,3 +212,15 @@ def get_imports(
     db: Session = Depends(get_db),
 ) -> MarketImportBatchListResponse:
     return MarketImportBatchListResponse(imports=list_market_import_batches(db, current_user.id, limit=limit))
+
+
+@router.get("/imports/{batch_id}", response_model=MarketImportBatchDetail)
+def get_import_detail(
+    batch_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> MarketImportBatchDetail:
+    batch = get_market_import_batch(db, current_user.id, batch_id)
+    if batch is None:
+        raise HTTPException(status_code=404, detail="import batch not found")
+    return MarketImportBatchDetail(**batch)

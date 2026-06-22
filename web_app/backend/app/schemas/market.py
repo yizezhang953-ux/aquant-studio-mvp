@@ -125,6 +125,13 @@ class MarketImportBatch(BaseModel):
     created_at: str
 
 
+class MarketImportBatchDetail(MarketImportBatch):
+    message: str
+    source: str | None = None
+    errors: list[str] = []
+    payload: dict = {}
+
+
 class MarketImportBatchListResponse(BaseModel):
     imports: list[MarketImportBatch]
 

@@ -64,6 +64,7 @@ REQUIRED_PATHS = [
     "docs/stage-14-market-csv-import.md",
     "docs/stage-15-market-import-history.md",
     "docs/stage-16-market-file-upload.md",
+    "docs/stage-17-market-import-detail-failures.md",
 ]
 
 
