@@ -381,6 +381,7 @@ export default function App() {
   const [backtestRun, setBacktestRun] = useState<BacktestRunResponse | null>(null);
   const [backtestReport, setBacktestReport] = useState<BacktestReport | null>(null);
   const [backtestHistory, setBacktestHistory] = useState<BacktestHistoryItem[]>([]);
+  const [comparisonIds, setComparisonIds] = useState<string[]>([]);
   const [message, setMessage] = useState<{ kind: MessageKind; text: string }>({
     kind: "info",
     text: "登录后可以复制模板，用结构化表单编辑策略并保存版本。",
@@ -479,6 +480,9 @@ export default function App() {
     try {
       const payload = await request<{ backtests: BacktestHistoryItem[] }>("/backtests", {}, accessToken);
       setBacktestHistory(payload.backtests);
+      setComparisonIds((current) =>
+        current.filter((id) => payload.backtests.some((item) => item.backtest_id === id)),
+      );
     } catch (error) {
       setMessage({ kind: "error", text: `回测历史加载失败：${getErrorMessage(error)}` });
     }
@@ -512,6 +516,7 @@ export default function App() {
     setUser(null);
     setStrategies([]);
     setBacktestHistory([]);
+    setComparisonIds([]);
     setSelectedStrategyId("");
     setMessage({ kind: "info", text: "已退出登录。" });
   }
@@ -624,6 +629,19 @@ export default function App() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function toggleComparison(backtestId: string) {
+    setComparisonIds((current) => {
+      if (current.includes(backtestId)) {
+        return current.filter((id) => id !== backtestId);
+      }
+      return [...current, backtestId].slice(-4);
+    });
+  }
+
+  function clearComparison() {
+    setComparisonIds([]);
   }
 
   async function deleteStrategy() {
@@ -850,16 +868,31 @@ export default function App() {
               ) : (
                 <div className="history-list">
                   {backtestHistory.slice(0, 8).map((item) => (
-                    <button key={item.backtest_id} onClick={() => openHistoricalBacktest(item.backtest_id)}>
-                      <strong>{item.symbol} · {item.frequency}</strong>
-                      <span>
-                        {formatPercent(item.metrics.total_return)} / {formatPercent(item.metrics.max_drawdown)}
-                      </span>
-                    </button>
+                    <div className="history-row" key={item.backtest_id}>
+                      <button onClick={() => openHistoricalBacktest(item.backtest_id)}>
+                        <strong>{item.symbol} · {item.frequency}</strong>
+                        <span>
+                          {formatPercent(item.metrics.total_return)} / {formatPercent(item.metrics.max_drawdown)}
+                        </span>
+                      </button>
+                      <label className="compare-toggle">
+                        <input
+                          type="checkbox"
+                          checked={comparisonIds.includes(item.backtest_id)}
+                          onChange={() => toggleComparison(item.backtest_id)}
+                        />
+                        对比
+                      </label>
+                    </div>
                   ))}
                 </div>
               )}
             </div>
+
+            <BacktestComparison
+              items={backtestHistory.filter((item) => comparisonIds.includes(item.backtest_id))}
+              clearComparison={clearComparison}
+            />
 
             <div className="panel-title">
               <h2>版本历史</h2>
@@ -949,6 +982,58 @@ function Metric({ label, value }: { label: string; value: string }) {
     <div className="metric">
       <span>{label}</span>
       <strong>{value}</strong>
+    </div>
+  );
+}
+
+function BacktestComparison({
+  items,
+  clearComparison,
+}: {
+  items: BacktestHistoryItem[];
+  clearComparison: () => void;
+}) {
+  if (items.length === 0) {
+    return (
+      <div className="comparison-panel">
+        <div className="panel-title">
+          <h2>回测对比</h2>
+          <span className="count-pill">0</span>
+        </div>
+        <p className="muted">在回测记录里勾选“对比”，最多比较 4 条。</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="comparison-panel">
+      <div className="panel-title">
+        <h2>回测对比</h2>
+        <button className="ghost-button mini" type="button" onClick={clearComparison}>
+          清空
+        </button>
+      </div>
+      <div className="comparison-table">
+        <div className="comparison-row header">
+          <span>标的</span>
+          <span>收益</span>
+          <span>回撤</span>
+          <span>胜率</span>
+          <span>交易</span>
+        </div>
+        {items.map((item) => (
+          <div className="comparison-row" key={item.backtest_id}>
+            <span title={item.source_strategy_id || item.strategy_id}>
+              {item.symbol}
+              <small>{item.frequency}</small>
+            </span>
+            <strong>{formatPercent(item.metrics.total_return)}</strong>
+            <span>{formatPercent(item.metrics.max_drawdown)}</span>
+            <span>{formatPercent(item.metrics.win_rate)}</span>
+            <span>{formatNumber(item.metrics.trade_count, 0)}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

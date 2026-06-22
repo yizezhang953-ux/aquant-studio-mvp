@@ -419,7 +419,8 @@ textarea:focus {
 }
 
 .backtest-panel,
-.backtest-history {
+.backtest-history,
+.comparison-panel {
   display: grid;
   gap: 12px;
   padding-bottom: 14px;
@@ -431,6 +432,65 @@ textarea:focus {
   gap: 8px;
   max-height: 240px;
   overflow: auto;
+}
+
+.history-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.compare-toggle {
+  display: inline-flex;
+  align-items: center;
+  grid-template-columns: none;
+  gap: 5px;
+  color: #4b5f58;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.compare-toggle input {
+  width: 15px;
+  height: 15px;
+}
+
+.ghost-button.mini {
+  min-height: 30px;
+  padding: 0 9px;
+  font-size: 12px;
+}
+
+.comparison-table {
+  display: grid;
+  gap: 6px;
+  overflow-x: auto;
+}
+
+.comparison-row {
+  display: grid;
+  grid-template-columns: 1.2fr repeat(4, minmax(52px, 1fr));
+  gap: 6px;
+  align-items: center;
+  min-width: 360px;
+  padding: 8px;
+  border: 1px solid #d6e0dc;
+  border-radius: 8px;
+  background: #fbfdfc;
+  font-size: 12px;
+}
+
+.comparison-row.header {
+  background: #eef3f1;
+  color: #52665f;
+  font-weight: 800;
+}
+
+.comparison-row small {
+  display: block;
+  margin-top: 2px;
+  color: #71847d;
 }
 
 .backtest-content {
