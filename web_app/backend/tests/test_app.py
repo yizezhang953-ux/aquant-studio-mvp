@@ -4,6 +4,7 @@ from uuid import uuid4
 from app.main import app
 from app.core.config import Settings
 from app.db.session import connect_args_for, normalize_database_url
+from app.services.database_backup_service import create_database_backup, read_backup_metadata
 from app.services.json_utils import read_json
 from app.services.legacy_paths import TEMPLATE_MODULE
 
@@ -81,6 +82,24 @@ def test_database_url_supports_postgresql_driver_normalization() -> None:
 def test_settings_parse_comma_separated_allowed_origins() -> None:
     settings = Settings(allowed_origins="https://app.example.com, https://api.example.com")
     assert settings.allowed_origins == ["https://app.example.com", "https://api.example.com"]
+
+
+def test_database_backup_creates_gzipped_json_manifest(tmp_path) -> None:
+    client.post("/api/v1/database/init")
+    from app.db.session import SessionLocal
+
+    with SessionLocal() as db:
+        result = create_database_backup(db, output_dir=tmp_path)
+
+    assert result["table_count"] >= 7
+    assert result["total_rows"] >= 1
+    assert result["row_counts"]["strategy_templates"] >= 1
+    backup_path = tmp_path / result["backup_path"].split("\\")[-1]
+    assert backup_path.exists()
+
+    metadata = read_backup_metadata(backup_path)
+    assert metadata["metadata"]["format_version"] == "1.0"
+    assert metadata["row_counts"]["strategy_templates"] >= 1
 
 
 def test_market_data_browser_endpoints() -> None:

@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     allowed_origins: list[str] = ["http://localhost:5173", "http://localhost:3000"]
     market_data_provider: str = "demo_a_share"
     tushare_token: str = ""
+    backup_dir: str = "runtime/backups"
 
     @field_validator("allowed_origins", mode="before")
     @classmethod

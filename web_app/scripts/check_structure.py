@@ -34,6 +34,7 @@ REQUIRED_PATHS = [
     "backend/app/schemas/system.py",
     "backend/app/services/backtest_service.py",
     "backend/app/services/auth_service.py",
+    "backend/app/services/database_backup_service.py",
     "backend/app/services/database_service.py",
     "backend/app/services/market_service.py",
     "backend/app/services/market_data_source_service.py",
@@ -43,6 +44,7 @@ REQUIRED_PATHS = [
     "backend/app/services/strategy_service.py",
     "backend/app/services/strategy_repository.py",
     "backend/app/services/template_service.py",
+    "backend/app/tasks/database_maintenance.py",
     "backend/pyproject.toml",
     "backend/.env.example",
     "deploy/backend.Dockerfile",
@@ -82,6 +84,7 @@ REQUIRED_PATHS = [
     "docs/stage-20-real-market-data-sources.md",
     "docs/stage-21-postgresql-migration.md",
     "docs/stage-22-deployment-environments.md",
+    "docs/stage-23-online-database-init-backup.md",
 ]
 
 
