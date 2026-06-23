@@ -1,4 +1,5 @@
 import csv
+from datetime import date
 from io import StringIO
 
 from sqlalchemy import func, select
@@ -168,27 +169,116 @@ def get_market_quality(db: Session, symbol: str | None = None, limit: int = 200)
     bars = db.scalars(statement.limit(limit)).all()
     issues = []
     for bar in bars:
+        if min(bar.open, bar.high, bar.low, bar.close) <= 0:
+            issues.append(
+                _quality_issue(
+                    bar,
+                    "non_positive_price",
+                    "error",
+                    "open/high/low/close must all be positive",
+                )
+            )
+        if bar.high < bar.low:
+            issues.append(
+                _quality_issue(
+                    bar,
+                    "invalid_high_low",
+                    "error",
+                    "high must be greater than or equal to low",
+                )
+            )
         if bar.high < max(bar.open, bar.close) or bar.low > min(bar.open, bar.close):
             issues.append(
-                {
-                    "symbol": bar.symbol,
-                    "frequency": bar.frequency,
-                    "trade_time": bar.trade_time,
-                    "issue_type": "invalid_ohlc",
-                    "message": "high/low does not contain open and close",
-                }
+                _quality_issue(
+                    bar,
+                    "invalid_ohlc",
+                    "error",
+                    "high/low does not contain open and close",
+                )
             )
         if bar.volume < 0 or bar.amount < 0:
             issues.append(
-                {
-                    "symbol": bar.symbol,
-                    "frequency": bar.frequency,
-                    "trade_time": bar.trade_time,
-                    "issue_type": "negative_liquidity",
-                    "message": "volume or amount is negative",
-                }
+                _quality_issue(
+                    bar,
+                    "negative_liquidity",
+                    "error",
+                    "volume or amount is negative",
+                )
             )
-    return {"checked_bar_count": len(bars), "issue_count": len(issues), "issues": issues}
+        if bar.volume == 0:
+            issues.append(
+                _quality_issue(
+                    bar,
+                    "zero_volume",
+                    "warning",
+                    "volume is zero",
+                )
+            )
+    issues.extend(_daily_gap_issues(list(reversed(bars))))
+    summary: dict[str, int] = {}
+    for issue in issues:
+        summary[issue["issue_type"]] = summary.get(issue["issue_type"], 0) + 1
+    error_count = sum(1 for issue in issues if issue["severity"] == "error")
+    warning_count = sum(1 for issue in issues if issue["severity"] == "warning")
+    score = max(0, 100 - error_count * 20 - warning_count * 5)
+    return {
+        "checked_bar_count": len(bars),
+        "issue_count": len(issues),
+        "error_count": error_count,
+        "warning_count": warning_count,
+        "quality_score": score,
+        "issue_summary": summary,
+        "issues": issues,
+    }
+
+
+def _quality_issue(bar: MarketBar, issue_type: str, severity: str, message: str) -> dict:
+    return {
+        "symbol": bar.symbol,
+        "frequency": bar.frequency,
+        "trade_time": bar.trade_time,
+        "issue_type": issue_type,
+        "severity": severity,
+        "message": message,
+    }
+
+
+def _daily_gap_issues(bars: list[MarketBar]) -> list[dict]:
+    issues = []
+    grouped: dict[tuple[str, str], list[MarketBar]] = {}
+    for bar in bars:
+        if bar.frequency != "1d":
+            continue
+        grouped.setdefault((bar.symbol, bar.frequency), []).append(bar)
+    for group_bars in grouped.values():
+        ordered = sorted(group_bars, key=lambda item: item.trade_time)
+        previous: date | None = None
+        previous_time = ""
+        for bar in ordered:
+            try:
+                current = date.fromisoformat(bar.trade_time[:10])
+            except ValueError:
+                issues.append(
+                    _quality_issue(
+                        bar,
+                        "invalid_trade_date",
+                        "error",
+                        "trade_time must start with ISO date YYYY-MM-DD",
+                    )
+                )
+                continue
+            if previous is not None and (current - previous).days > 4:
+                issues.append(
+                    _quality_issue(
+                        bar,
+                        "daily_gap",
+                        "warning",
+                        f"daily data gap after {previous_time}",
+                    )
+                )
+            previous = current
+            previous_time = bar.trade_time
+    return issues
 
 
 def record_market_import_batch(

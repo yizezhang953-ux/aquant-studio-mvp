@@ -163,11 +163,16 @@ type MarketCoverage = {
 type MarketQuality = {
   checked_bar_count: number;
   issue_count: number;
+  error_count: number;
+  warning_count: number;
+  quality_score: number;
+  issue_summary: Record<string, number>;
   issues: {
     symbol: string;
     frequency: string;
     trade_time: string;
     issue_type: string;
+    severity: string;
     message: string;
   }[];
 };
@@ -1615,12 +1620,31 @@ function MarketDataPanel({
           <div className="quality-box">
             <div className="section-heading">
               <h3>质量检查</h3>
-              <span>{quality?.checked_bar_count || 0}</span>
+              <span>{quality ? `${quality.quality_score}/100` : "-"}</span>
             </div>
+            {quality && (
+              <>
+                <div className="quality-score">
+                  <strong>{quality.quality_score}</strong>
+                  <span>{quality.error_count} errors / {quality.warning_count} warnings</span>
+                  <small>{quality.checked_bar_count} bars checked</small>
+                </div>
+                {Object.keys(quality.issue_summary).length > 0 && (
+                  <div className="quality-summary">
+                    {Object.entries(quality.issue_summary).map(([key, value]) => (
+                      <span key={key}>{key}: {value}</span>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
             {quality && quality.issue_count > 0 ? (
-              quality.issues.slice(0, 3).map((issue) => (
-                <p key={`${issue.symbol}-${issue.trade_time}-${issue.issue_type}`} className="quality-issue">
-                  {issue.trade_time} {issue.issue_type}
+              quality.issues.slice(0, 4).map((issue) => (
+                <p
+                  key={`${issue.symbol}-${issue.trade_time}-${issue.issue_type}`}
+                  className={`quality-issue ${issue.severity}`}
+                >
+                  {issue.trade_time} {issue.issue_type} · {issue.severity}
                 </p>
               ))
             ) : (

@@ -141,10 +141,15 @@ class MarketQualityIssue(BaseModel):
     frequency: str
     trade_time: str
     issue_type: str
+    severity: str = "error"
     message: str
 
 
 class MarketQualityResponse(BaseModel):
     checked_bar_count: int
     issue_count: int
+    error_count: int = 0
+    warning_count: int = 0
+    quality_score: int = 100
+    issue_summary: dict[str, int] = {}
     issues: list[MarketQualityIssue]

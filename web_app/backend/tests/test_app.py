@@ -143,6 +143,55 @@ def test_authenticated_market_data_import_flow() -> None:
     assert any(item["symbol"] == symbol and item["import_type"] == "manual" for item in imports)
 
 
+def test_market_quality_detects_enhanced_issues() -> None:
+    email = f"quality-{uuid4().hex[:8]}@example.com"
+    register_response = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": email,
+            "password": "strong-password-123",
+            "display_name": "Quality Manager",
+        },
+    )
+    assert register_response.status_code == 200
+    headers = {"Authorization": f"Bearer {register_response.json()['access_token']}"}
+    symbol = f"QLT{uuid4().hex[:4].upper()}.SH"
+
+    import_response = client.post(
+        "/api/v1/market/import",
+        headers=headers,
+        json={
+            "instrument": {
+                "symbol": symbol,
+                "name": "质量测试股票",
+                "exchange": "SH",
+            },
+            "bars": [
+                {
+                    "symbol": symbol,
+                    "frequency": "1d",
+                    "trade_time": "2024-05-01",
+                    "open": 10,
+                    "high": 9,
+                    "low": 11,
+                    "close": -1,
+                    "volume": -10,
+                    "amount": 0,
+                }
+            ],
+        },
+    )
+    assert import_response.status_code == 200
+
+    quality_response = client.get(f"/api/v1/market/quality?symbol={symbol}")
+    assert quality_response.status_code == 200
+    quality = quality_response.json()
+    assert quality["quality_score"] < 100
+    assert quality["error_count"] >= 1
+    assert quality["issue_summary"]["non_positive_price"] == 1
+    assert quality["issue_summary"]["invalid_high_low"] == 1
+
+
 def test_authenticated_market_csv_import_flow() -> None:
     email = f"csv-{uuid4().hex[:8]}@example.com"
     register_response = client.post(

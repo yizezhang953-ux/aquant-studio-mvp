@@ -504,6 +504,47 @@ textarea:focus {
   font-size: 12px;
 }
 
+.quality-issue.warning {
+  background: #fff8ec;
+  color: #7a4b00;
+}
+
+.quality-score {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 8px;
+  align-items: center;
+}
+
+.quality-score strong {
+  grid-row: span 2;
+  font-size: 28px;
+  color: #17483d;
+}
+
+.quality-score span,
+.quality-score small {
+  color: #657a72;
+  font-size: 12px;
+}
+
+.quality-summary {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.quality-summary span {
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: #eef3f1;
+  color: #4b5f58;
+  font-size: 12px;
+}
+
 .market-import .ghost-button {
   justify-self: start;
 }

@@ -65,6 +65,7 @@ REQUIRED_PATHS = [
     "docs/stage-15-market-import-history.md",
     "docs/stage-16-market-file-upload.md",
     "docs/stage-17-market-import-detail-failures.md",
+    "docs/stage-18-market-quality-rules.md",
 ]
 
 
