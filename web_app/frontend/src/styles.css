@@ -534,6 +534,13 @@ textarea:focus {
   flex-wrap: wrap;
 }
 
+.calendar-strip,
+.missing-days {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
 .quality-summary span {
   min-height: 24px;
   display: inline-flex;
@@ -543,6 +550,23 @@ textarea:focus {
   background: #eef3f1;
   color: #4b5f58;
   font-size: 12px;
+}
+
+.calendar-strip span,
+.missing-days span {
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: #edf4ff;
+  color: #2d4d7f;
+  font-size: 12px;
+}
+
+.missing-days span {
+  background: #fff8ec;
+  color: #7a4b00;
 }
 
 .market-import .ghost-button {

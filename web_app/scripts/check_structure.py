@@ -36,6 +36,7 @@ REQUIRED_PATHS = [
     "backend/app/services/auth_service.py",
     "backend/app/services/database_service.py",
     "backend/app/services/market_service.py",
+    "backend/app/services/trading_calendar_service.py",
     "backend/app/services/json_utils.py",
     "backend/app/services/legacy_paths.py",
     "backend/app/services/strategy_service.py",
@@ -66,6 +67,7 @@ REQUIRED_PATHS = [
     "docs/stage-16-market-file-upload.md",
     "docs/stage-17-market-import-detail-failures.md",
     "docs/stage-18-market-quality-rules.md",
+    "docs/stage-19-a-share-trading-calendar.md",
 ]
 
 

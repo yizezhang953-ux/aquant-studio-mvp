@@ -151,5 +151,7 @@ class MarketQualityResponse(BaseModel):
     error_count: int = 0
     warning_count: int = 0
     quality_score: int = 100
+    calendar_name: str = ""
+    missing_trading_days: list[str] = []
     issue_summary: dict[str, int] = {}
     issues: list[MarketQualityIssue]

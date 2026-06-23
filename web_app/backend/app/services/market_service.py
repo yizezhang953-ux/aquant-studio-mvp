@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.models import AuditLog, MarketBar, MarketInstrument
 from app.schemas.market import MarketBarImport, MarketCsvImportRequest, MarketImportRequest
+from app.services.trading_calendar_service import CALENDAR_NAME, missing_a_share_trading_days
 
 
 def list_market_instruments(db: Session) -> list[dict]:
@@ -227,6 +228,10 @@ def get_market_quality(db: Session, symbol: str | None = None, limit: int = 200)
         "error_count": error_count,
         "warning_count": warning_count,
         "quality_score": score,
+        "calendar_name": CALENDAR_NAME,
+        "missing_trading_days": [
+            issue["trade_time"] for issue in issues if issue["issue_type"] == "missing_trading_day"
+        ],
         "issue_summary": summary,
         "issues": issues,
     }
@@ -267,15 +272,18 @@ def _daily_gap_issues(bars: list[MarketBar]) -> list[dict]:
                     )
                 )
                 continue
-            if previous is not None and (current - previous).days > 4:
-                issues.append(
-                    _quality_issue(
-                        bar,
-                        "daily_gap",
-                        "warning",
-                        f"daily data gap after {previous_time}",
+            if previous is not None:
+                for missing_day in missing_a_share_trading_days(previous, current):
+                    issues.append(
+                        {
+                            "symbol": bar.symbol,
+                            "frequency": bar.frequency,
+                            "trade_time": missing_day.isoformat(),
+                            "issue_type": "missing_trading_day",
+                            "severity": "warning",
+                            "message": f"missing trading day between {previous_time} and {bar.trade_time}",
+                        }
                     )
-                )
             previous = current
             previous_time = bar.trade_time
     return issues

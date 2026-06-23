@@ -192,6 +192,65 @@ def test_market_quality_detects_enhanced_issues() -> None:
     assert quality["issue_summary"]["invalid_high_low"] == 1
 
 
+def test_market_quality_uses_a_share_trading_calendar() -> None:
+    email = f"calendar-{uuid4().hex[:8]}@example.com"
+    register_response = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": email,
+            "password": "strong-password-123",
+            "display_name": "Calendar Manager",
+        },
+    )
+    assert register_response.status_code == 200
+    headers = {"Authorization": f"Bearer {register_response.json()['access_token']}"}
+    symbol = f"CAL{uuid4().hex[:4].upper()}.SH"
+
+    import_response = client.post(
+        "/api/v1/market/import",
+        headers=headers,
+        json={
+            "instrument": {
+                "symbol": symbol,
+                "name": "交易日历测试股票",
+                "exchange": "SH",
+            },
+            "bars": [
+                {
+                    "symbol": symbol,
+                    "frequency": "1d",
+                    "trade_time": "2024-03-01",
+                    "open": 10,
+                    "high": 11,
+                    "low": 9,
+                    "close": 10.5,
+                    "volume": 100,
+                    "amount": 1050,
+                },
+                {
+                    "symbol": symbol,
+                    "frequency": "1d",
+                    "trade_time": "2024-03-05",
+                    "open": 10.5,
+                    "high": 11,
+                    "low": 10,
+                    "close": 10.8,
+                    "volume": 100,
+                    "amount": 1080,
+                },
+            ],
+        },
+    )
+    assert import_response.status_code == 200
+
+    quality_response = client.get(f"/api/v1/market/quality?symbol={symbol}")
+    assert quality_response.status_code == 200
+    quality = quality_response.json()
+    assert quality["calendar_name"] == "a_share_builtin_2024"
+    assert "2024-03-04" in quality["missing_trading_days"]
+    assert quality["issue_summary"]["missing_trading_day"] == 1
+
+
 def test_authenticated_market_csv_import_flow() -> None:
     email = f"csv-{uuid4().hex[:8]}@example.com"
     register_response = client.post(

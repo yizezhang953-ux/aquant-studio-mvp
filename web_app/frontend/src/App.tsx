@@ -166,6 +166,8 @@ type MarketQuality = {
   error_count: number;
   warning_count: number;
   quality_score: number;
+  calendar_name: string;
+  missing_trading_days: string[];
   issue_summary: Record<string, number>;
   issues: {
     symbol: string;
@@ -1629,10 +1631,21 @@ function MarketDataPanel({
                   <span>{quality.error_count} errors / {quality.warning_count} warnings</span>
                   <small>{quality.checked_bar_count} bars checked</small>
                 </div>
+                <div className="calendar-strip">
+                  <span>{quality.calendar_name || "calendar -"}</span>
+                  <span>{quality.missing_trading_days.length} missing days</span>
+                </div>
                 {Object.keys(quality.issue_summary).length > 0 && (
                   <div className="quality-summary">
                     {Object.entries(quality.issue_summary).map(([key, value]) => (
                       <span key={key}>{key}: {value}</span>
+                    ))}
+                  </div>
+                )}
+                {quality.missing_trading_days.length > 0 && (
+                  <div className="missing-days">
+                    {quality.missing_trading_days.slice(0, 6).map((day) => (
+                      <span key={day}>{day}</span>
                     ))}
                   </div>
                 )}
