@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
     auth_token_ttl_hours: int = 24
     allowed_origins: list[str] = ["http://localhost:5173", "http://localhost:3000"]
+    market_data_provider: str = "demo_a_share"
+    tushare_token: str = ""
 
     model_config = SettingsConfigDict(
         env_file=".env",

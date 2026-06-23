@@ -112,6 +112,41 @@ class MarketCsvImportResponse(BaseModel):
     message: str
 
 
+class MarketDataSourceSummary(BaseModel):
+    provider_id: str
+    name: str
+    market: str
+    status: str
+    auth_required: bool
+    supported_frequencies: list[str]
+    note: str
+
+
+class MarketDataSourceListResponse(BaseModel):
+    sources: list[MarketDataSourceSummary]
+
+
+class MarketDataSyncRequest(BaseModel):
+    provider_id: str = "demo_a_share"
+    symbol: str
+    start_date: str
+    end_date: str
+    frequency: str = "1d"
+
+
+class MarketDataSyncResponse(BaseModel):
+    provider_id: str
+    symbol: str
+    frequency: str
+    start_date: str
+    end_date: str
+    fetched_bars: int
+    inserted_bars: int
+    updated_bars: int
+    total_bars: int
+    message: str
+
+
 class MarketImportBatch(BaseModel):
     id: int
     import_type: str

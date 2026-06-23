@@ -251,6 +251,68 @@ def test_market_quality_uses_a_share_trading_calendar() -> None:
     assert quality["issue_summary"]["missing_trading_day"] == 1
 
 
+def test_authenticated_market_data_source_sync_flow() -> None:
+    sources_response = client.get("/api/v1/market/data-sources")
+    assert sources_response.status_code == 200
+    sources = sources_response.json()["sources"]
+    assert any(item["provider_id"] == "demo_a_share" and item["status"] == "ready" for item in sources)
+    assert any(item["provider_id"] == "tushare" and item["auth_required"] for item in sources)
+
+    email = f"sync-{uuid4().hex[:8]}@example.com"
+    register_response = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": email,
+            "password": "strong-password-123",
+            "display_name": "Data Source Manager",
+        },
+    )
+    assert register_response.status_code == 200
+    headers = {"Authorization": f"Bearer {register_response.json()['access_token']}"}
+    symbol = f"SRC{uuid4().hex[:4].upper()}.SH"
+
+    sync_response = client.post(
+        "/api/v1/market/sync",
+        headers=headers,
+        json={
+            "provider_id": "demo_a_share",
+            "symbol": symbol,
+            "start_date": "2024-03-01",
+            "end_date": "2024-03-05",
+            "frequency": "1d",
+        },
+    )
+    assert sync_response.status_code == 200
+    sync_payload = sync_response.json()
+    assert sync_payload["provider_id"] == "demo_a_share"
+    assert sync_payload["fetched_bars"] == 3
+    assert sync_payload["inserted_bars"] == 3
+
+    bars_response = client.get(f"/api/v1/market/bars?symbol={symbol}&frequency=1d&limit=5")
+    assert bars_response.status_code == 200
+    bars = bars_response.json()["bars"]
+    assert len(bars) == 3
+    assert {bar["source"] for bar in bars} == {"demo_a_share"}
+
+    imports_response = client.get("/api/v1/market/imports", headers=headers)
+    assert imports_response.status_code == 200
+    imported = next(item for item in imports_response.json()["imports"] if item["symbol"] == symbol)
+    assert imported["import_type"] == "data_source_sync"
+
+    unsupported_response = client.post(
+        "/api/v1/market/sync",
+        headers=headers,
+        json={
+            "provider_id": "demo_a_share",
+            "symbol": symbol,
+            "start_date": "2024-03-01",
+            "end_date": "2024-03-05",
+            "frequency": "60m",
+        },
+    )
+    assert unsupported_response.status_code == 400
+
+
 def test_authenticated_market_csv_import_flow() -> None:
     email = f"csv-{uuid4().hex[:8]}@example.com"
     register_response = client.post(

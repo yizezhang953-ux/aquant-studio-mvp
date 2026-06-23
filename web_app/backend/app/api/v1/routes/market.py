@@ -8,6 +8,10 @@ from app.schemas.market import (
     MarketCoverageResponse,
     MarketCsvImportRequest,
     MarketCsvImportResponse,
+    MarketDataSourceListResponse,
+    MarketDataSourceSummary,
+    MarketDataSyncRequest,
+    MarketDataSyncResponse,
     MarketImportBatchDetail,
     MarketImportBatchListResponse,
     MarketImportRequest,
@@ -29,6 +33,10 @@ from app.services.market_service import (
     list_market_bars,
     list_market_instruments,
     record_market_import_batch,
+)
+from app.services.market_data_source_service import (
+    list_market_data_sources,
+    sync_market_data_from_source,
 )
 
 
@@ -91,6 +99,57 @@ def get_quality(
     db: Session = Depends(get_db),
 ) -> MarketQualityResponse:
     return MarketQualityResponse(**get_market_quality(db, symbol=symbol, limit=limit))
+
+
+@router.get("/data-sources", response_model=MarketDataSourceListResponse)
+def get_data_sources() -> MarketDataSourceListResponse:
+    sources = [MarketDataSourceSummary(**item.__dict__) for item in list_market_data_sources()]
+    return MarketDataSourceListResponse(sources=sources)
+
+
+@router.post("/sync", response_model=MarketDataSyncResponse)
+def sync_data_source(
+    request: MarketDataSyncRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> MarketDataSyncResponse:
+    try:
+        payload = sync_market_data_from_source(
+            provider_id=request.provider_id,
+            symbol=request.symbol,
+            start_date=request.start_date,
+            end_date=request.end_date,
+            frequency=request.frequency,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    result = import_market_data(
+        db,
+        MarketImportRequest(
+            instrument=payload.instrument,
+            bars=payload.bars,
+        ),
+    )
+    record_market_import_batch(
+        db,
+        owner_id=current_user.id,
+        import_type="data_source_sync",
+        result=result,
+        frequency=request.frequency,
+        source=request.provider_id,
+    )
+    return MarketDataSyncResponse(
+        provider_id=request.provider_id,
+        symbol=request.symbol,
+        frequency=request.frequency,
+        start_date=request.start_date,
+        end_date=request.end_date,
+        fetched_bars=len(payload.bars),
+        inserted_bars=result["inserted_bars"],
+        updated_bars=result["updated_bars"],
+        total_bars=result["total_bars"],
+        message="market data synchronized",
+    )
 
 
 @router.post("/import", response_model=MarketImportResponse)
