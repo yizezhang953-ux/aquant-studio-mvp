@@ -45,10 +45,20 @@ REQUIRED_PATHS = [
     "backend/app/services/template_service.py",
     "backend/pyproject.toml",
     "backend/.env.example",
+    "deploy/backend.Dockerfile",
+    "deploy/frontend.Dockerfile",
+    "deploy/nginx.frontend.conf",
+    "deploy/render.yaml",
+    "deploy/railway.backend.json",
+    "deploy/railway.frontend.json",
+    "deploy/fly.backend.toml",
+    "deploy/fly.frontend.toml",
     "frontend/package.json",
+    "frontend/.env.example",
     "frontend/index.html",
     "frontend/src/App.tsx",
     "frontend/src/main.tsx",
+    "frontend/src/vite-env.d.ts",
     "frontend/src/styles.css",
     "docs/stage-1-web-app-structure.md",
     "docs/stage-2-backend-api-mvp.md",
@@ -71,6 +81,7 @@ REQUIRED_PATHS = [
     "docs/stage-19-a-share-trading-calendar.md",
     "docs/stage-20-real-market-data-sources.md",
     "docs/stage-21-postgresql-migration.md",
+    "docs/stage-22-deployment-environments.md",
 ]
 
 

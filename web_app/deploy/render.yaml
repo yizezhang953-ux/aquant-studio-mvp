@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: aquant-studio-api
+    runtime: python
+    rootDir: web_app/backend
+    buildCommand: pip install -e .
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: LIVE_TRADING_ENABLED
+        value: false
+      - key: DATABASE_URL
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
+
+  - type: web
+    name: aquant-studio-web
+    runtime: static
+    rootDir: web_app/frontend
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        sync: false

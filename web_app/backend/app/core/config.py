@@ -1,3 +1,4 @@
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -12,6 +13,13 @@ class Settings(BaseSettings):
     allowed_origins: list[str] = ["http://localhost:5173", "http://localhost:3000"]
     market_data_provider: str = "demo_a_share"
     tushare_token: str = ""
+
+    @field_validator("allowed_origins", mode="before")
+    @classmethod
+    def parse_allowed_origins(cls, value: str | list[str]) -> list[str]:
+        if isinstance(value, str):
+            return [item.strip() for item in value.split(",") if item.strip()]
+        return value
 
     model_config = SettingsConfigDict(
         env_file=".env",

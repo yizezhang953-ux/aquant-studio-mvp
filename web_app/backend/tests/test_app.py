@@ -2,6 +2,7 @@ from fastapi.testclient import TestClient
 from uuid import uuid4
 
 from app.main import app
+from app.core.config import Settings
 from app.db.session import connect_args_for, normalize_database_url
 from app.services.json_utils import read_json
 from app.services.legacy_paths import TEMPLATE_MODULE
@@ -75,6 +76,11 @@ def test_database_url_supports_postgresql_driver_normalization() -> None:
     )
     assert connect_args_for("sqlite:///./aquant_web_app.db") == {"check_same_thread": False}
     assert connect_args_for("postgresql+psycopg://user:pass@localhost:5432/aquant") == {}
+
+
+def test_settings_parse_comma_separated_allowed_origins() -> None:
+    settings = Settings(allowed_origins="https://app.example.com, https://api.example.com")
+    assert settings.allowed_origins == ["https://app.example.com", "https://api.example.com"]
 
 
 def test_market_data_browser_endpoints() -> None:
