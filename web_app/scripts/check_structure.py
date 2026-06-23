@@ -70,6 +70,7 @@ REQUIRED_PATHS = [
     "docs/stage-18-market-quality-rules.md",
     "docs/stage-19-a-share-trading-calendar.md",
     "docs/stage-20-real-market-data-sources.md",
+    "docs/stage-21-postgresql-migration.md",
 ]
 
 

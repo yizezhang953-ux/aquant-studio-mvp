@@ -2,6 +2,7 @@ from fastapi.testclient import TestClient
 from uuid import uuid4
 
 from app.main import app
+from app.db.session import connect_args_for, normalize_database_url
 from app.services.json_utils import read_json
 from app.services.legacy_paths import TEMPLATE_MODULE
 
@@ -55,8 +56,25 @@ def test_database_init_and_status() -> None:
     status_response = client.get("/api/v1/database/status")
     assert status_response.status_code == 200
     status_payload = status_response.json()
+    assert status_payload["dialect"] in {"sqlite", "postgresql"}
     assert status_payload["table_count"] >= 7
     assert status_payload["tables"]["market_bars"] >= 1
+
+
+def test_database_url_supports_postgresql_driver_normalization() -> None:
+    assert (
+        normalize_database_url("postgres://user:pass@localhost:5432/aquant")
+        == "postgresql+psycopg://user:pass@localhost:5432/aquant"
+    )
+    assert (
+        normalize_database_url("postgresql://user:pass@localhost:5432/aquant")
+        == "postgresql+psycopg://user:pass@localhost:5432/aquant"
+    )
+    assert normalize_database_url("postgresql+psycopg://user:pass@localhost:5432/aquant").startswith(
+        "postgresql+psycopg://"
+    )
+    assert connect_args_for("sqlite:///./aquant_web_app.db") == {"check_same_thread": False}
+    assert connect_args_for("postgresql+psycopg://user:pass@localhost:5432/aquant") == {}
 
 
 def test_market_data_browser_endpoints() -> None:

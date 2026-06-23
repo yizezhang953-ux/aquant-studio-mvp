@@ -53,6 +53,7 @@ def get_database_status(db: Session) -> dict[str, Any]:
     }
     return {
         "database": "ready",
+        "dialect": engine.dialect.name,
         "table_count": len(TABLE_MODELS),
         "tables": counts,
     }
