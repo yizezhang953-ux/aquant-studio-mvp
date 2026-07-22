@@ -1,0 +1,42 @@
+{
+  "gateway_config": "trading_gateway_module/configs/sandbox_gateway.json",
+  "monitor_report": "monitoring_module/output/stage10_monitor_report.json",
+  "audit_manifest": "audit_module/output/stage11_audit_manifest.json",
+  "limited_auto_policy": "automation_controls_module/configs/limited_auto_policy.json",
+  "required_external_confirmations": [
+    {
+      "name": "broker official API access approved",
+      "confirmed": false
+    },
+    {
+      "name": "programmatic trading reporting requirements confirmed with broker",
+      "confirmed": false
+    },
+    {
+      "name": "production credential storage approved",
+      "confirmed": false
+    },
+    {
+      "name": "real-money user risk disclosure approved",
+      "confirmed": false
+    }
+  ],
+  "required_internal_controls": [
+    {
+      "name": "frontend manual confirmation screen",
+      "ready": false
+    },
+    {
+      "name": "external alert channel",
+      "ready": false
+    },
+    {
+      "name": "production database backup and restore drill",
+      "ready": false
+    },
+    {
+      "name": "broker adapter integration test environment",
+      "ready": false
+    }
+  ]
+}

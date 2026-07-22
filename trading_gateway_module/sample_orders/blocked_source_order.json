@@ -1,0 +1,11 @@
+{
+  "client_order_id": "CLIENT-ORDER-BLOCKED-SOURCE-0001",
+  "strategy_id": "template_source_control_test",
+  "symbol": "000001.SZ",
+  "side": "buy",
+  "order_type": "market",
+  "quantity": 100,
+  "estimated_price": 10.0,
+  "reason": "entry_rule",
+  "source": "unapproved_robot"
+}

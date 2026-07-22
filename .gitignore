@@ -25,3 +25,17 @@ web_app/backend/*.egg-info/
 web_app/backend/*.db
 web_app/backend/*.sqlite
 web_app/backend/*.sqlite3
+
+# Local verification outputs
+trading_gateway_module/output/stage1_verify*/
+trading_gateway_module/output/stage2_verify*/
+trading_gateway_module/output/stage3_verify*/
+simulation_module/output/stage4_event_driven_verify/
+trading_gateway_module/output/stage5_verify*/
+broker_adapter_module/output/stage6_*/
+shadow_trading_module/output/stage7_*/
+manual_confirmation_module/output/stage8_*/
+automation_controls_module/output/stage9_*/
+monitoring_module/output/stage10_*/
+audit_module/output/stage11_*/
+live_readiness_module/output/stage12_*/

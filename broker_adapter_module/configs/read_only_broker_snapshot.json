@@ -1,0 +1,61 @@
+{
+  "snapshot_id": "readonly_demo_snapshot_001",
+  "broker": "demo_read_only_broker",
+  "account": {
+    "account_id": "readonly_account_001",
+    "currency": "MULTI",
+    "cash": {
+      "CNY": 120000,
+      "HKD": 80000
+    },
+    "total_asset_proxy": 200000,
+    "risk_level": "demo"
+  },
+  "positions": {
+    "600519.SH": {
+      "quantity": 100,
+      "sellable_quantity": 0,
+      "market": "a_share",
+      "currency": "CNY",
+      "last_price": 1683.34
+    },
+    "00700.HK": {
+      "quantity": 100,
+      "sellable_quantity": 100,
+      "market": "hk_stock",
+      "currency": "HKD",
+      "last_price": 380.0
+    }
+  },
+  "orders": [
+    {
+      "broker_order_id": "RO-DEMO-ORDER-0001",
+      "symbol": "00700.HK",
+      "side": "buy",
+      "quantity": 100,
+      "status": "filled",
+      "submitted_at": "2026-07-19T10:00:00+00:00"
+    }
+  ],
+  "fills": [
+    {
+      "fill_id": "RO-DEMO-FILL-0001",
+      "broker_order_id": "RO-DEMO-ORDER-0001",
+      "gateway_order_id": "GW-DEMO-READONLY",
+      "symbol": "00700.HK",
+      "side": "buy",
+      "quantity": 100,
+      "fill_price": 380.0,
+      "amount": 38000.0,
+      "fee": 53.63,
+      "fee_details": {
+        "brokerage": 11.4,
+        "sfc_transaction_levy": 1.03,
+        "afrc_transaction_levy": 0.06,
+        "trading_fee": 2.15,
+        "stamp_duty": 39.0
+      },
+      "filled_at": "2026-07-19T10:01:00+00:00"
+    }
+  ]
+}

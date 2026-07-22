@@ -1,0 +1,11 @@
+{
+  "client_order_id": "CLIENT-ORDER-HK-0001",
+  "strategy_id": "template_hk_price_breakout_sandbox",
+  "symbol": "00700.HK",
+  "side": "buy",
+  "order_type": "limit",
+  "quantity": 100,
+  "estimated_price": 380.0,
+  "reason": "entry_rule",
+  "source": "paper_trading_promotion"
+}

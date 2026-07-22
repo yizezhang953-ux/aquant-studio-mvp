@@ -1,0 +1,100 @@
+{
+  "manifest_id": "aquant_live_path_audit_manifest_v0_2",
+  "artifacts": [
+    {
+      "id": "market_rules",
+      "category": "config",
+      "path": "market_rules_module/configs/market_rules.json"
+    },
+    {
+      "id": "sandbox_gateway",
+      "category": "config",
+      "path": "trading_gateway_module/configs/sandbox_gateway.json"
+    },
+    {
+      "id": "read_only_snapshot",
+      "category": "account_snapshot",
+      "path": "broker_adapter_module/configs/read_only_broker_snapshot.json"
+    },
+    {
+      "id": "shadow_report",
+      "category": "shadow_trading",
+      "path": "shadow_trading_module/output/stage7_shadow_report.json"
+    },
+    {
+      "id": "manual_confirmation",
+      "category": "approval",
+      "path": "manual_confirmation_module/output/stage8_manual_confirmation_result.json"
+    },
+    {
+      "id": "limited_auto_candidates",
+      "category": "automation_guard",
+      "path": "automation_controls_module/output/stage9_limited_auto_candidates.json"
+    },
+    {
+      "id": "monitor_report",
+      "category": "monitoring",
+      "path": "monitoring_module/output/stage10_monitor_report.json"
+    },
+    {
+      "id": "stage_1_delivery",
+      "category": "delivery_doc",
+      "path": "trading_gateway_module/live-trading-stage-1-delivery.md"
+    },
+    {
+      "id": "stage_2_delivery",
+      "category": "delivery_doc",
+      "path": "market_rules_module/market-rules-stage-2-delivery.md"
+    },
+    {
+      "id": "stage_3_delivery",
+      "category": "delivery_doc",
+      "path": "trading_gateway_module/risk-gateway-stage-3-delivery.md"
+    },
+    {
+      "id": "stage_4_delivery",
+      "category": "delivery_doc",
+      "path": "simulation_module/event-driven-paper-stage-4-delivery.md"
+    },
+    {
+      "id": "stage_5_delivery",
+      "category": "delivery_doc",
+      "path": "broker_adapter_module/broker-adapter-stage-5-delivery.md"
+    },
+    {
+      "id": "stage_6_delivery",
+      "category": "delivery_doc",
+      "path": "broker_adapter_module/read-only-account-stage-6-delivery.md"
+    },
+    {
+      "id": "stage_7_delivery",
+      "category": "delivery_doc",
+      "path": "shadow_trading_module/shadow-trading-stage-7-delivery.md"
+    },
+    {
+      "id": "stage_8_delivery",
+      "category": "delivery_doc",
+      "path": "manual_confirmation_module/manual-confirmation-stage-8-delivery.md"
+    },
+    {
+      "id": "stage_9_delivery",
+      "category": "delivery_doc",
+      "path": "automation_controls_module/limited-auto-stage-9-delivery.md"
+    },
+    {
+      "id": "stage_10_delivery",
+      "category": "delivery_doc",
+      "path": "monitoring_module/monitoring-stage-10-delivery.md"
+    },
+    {
+      "id": "stage_11_delivery",
+      "category": "delivery_doc",
+      "path": "audit_module/audit-stage-11-delivery.md"
+    },
+    {
+      "id": "stage_12_delivery",
+      "category": "delivery_doc",
+      "path": "live_readiness_module/final-readiness-stage-12-delivery.md"
+    }
+  ]
+}

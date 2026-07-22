@@ -4,7 +4,7 @@
   "symbol": "600519.SH",
   "side": "buy",
   "order_type": "market",
-  "quantity": 11,
+  "quantity": 100,
   "estimated_price": 1683.34125,
   "reason": "entry_rule",
   "source": "paper_trading_promotion"

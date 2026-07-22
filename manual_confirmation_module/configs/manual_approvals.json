@@ -1,0 +1,11 @@
+{
+  "approvals": [
+    {
+      "approval_id": "APPROVAL-0001",
+      "decision": "approved",
+      "reviewed_by": "demo_operator",
+      "reviewed_at": "2026-07-19T12:05:00+00:00",
+      "review_note": "Demo approval for shadow trading workflow only."
+    }
+  ]
+}

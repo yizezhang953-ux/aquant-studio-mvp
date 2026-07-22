@@ -1,0 +1,24 @@
+{
+  "snapshot_path": "broker_adapter_module/configs/read_only_broker_snapshot.json",
+  "market_rules_path": "market_rules_module/configs/market_rules.json",
+  "theoretical_orders": [
+    {
+      "client_order_id": "SHADOW-HK-BUY-0001",
+      "symbol": "00700.HK",
+      "side": "buy",
+      "order_type": "limit",
+      "quantity": 100,
+      "estimated_price": 380.0,
+      "source": "shadow_trading"
+    },
+    {
+      "client_order_id": "SHADOW-A-SELL-0001",
+      "symbol": "600519.SH",
+      "side": "sell",
+      "order_type": "limit",
+      "quantity": 100,
+      "estimated_price": 1683.0,
+      "source": "shadow_trading"
+    }
+  ]
+}

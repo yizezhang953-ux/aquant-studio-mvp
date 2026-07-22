@@ -1,0 +1,11 @@
+{
+  "client_order_id": "CLIENT-ORDER-HK-LOT-REJECT-0001",
+  "strategy_id": "template_hk_lot_control_test",
+  "symbol": "00005.HK",
+  "side": "buy",
+  "order_type": "limit",
+  "quantity": 100,
+  "estimated_price": 65.0,
+  "reason": "entry_rule",
+  "source": "risk_test"
+}

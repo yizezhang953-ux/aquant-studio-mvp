@@ -1,0 +1,8 @@
+{
+  "paths": {
+    "gateway_result": "trading_gateway_module/output/stage5_verify_broker_adapter_final/last_order_result.json",
+    "shadow_report": "shadow_trading_module/output/stage7_shadow_report.json",
+    "limited_auto_candidates": "automation_controls_module/output/stage9_limited_auto_candidates.json",
+    "read_only_account": "broker_adapter_module/output/stage6_read_only_account_snapshot.json"
+  }
+}

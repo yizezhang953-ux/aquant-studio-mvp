@@ -1,0 +1,10 @@
+{
+  "policy_id": "limited_auto_demo_policy_001",
+  "kill_switch_enabled": false,
+  "manual_approval_required": true,
+  "allowed_symbols": ["00700.HK", "000001.SZ"],
+  "allowed_sources": ["manual_confirm_test"],
+  "max_order_value": 50000,
+  "max_daily_order_count": 2,
+  "max_daily_order_value": 80000
+}

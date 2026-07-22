@@ -2,22 +2,48 @@
   "gateway_id": "gateway_a_share_sandbox_001",
   "mode": "sandbox",
   "broker_adapter": "sandbox_a_share",
+  "market_rules_path": "market_rules_module/configs/market_rules.json",
   "live_trading_enabled": false,
+  "live_trading_policy": {
+    "mode": "paper_trading",
+    "allowed_modes": [
+      "research_only",
+      "paper_trading",
+      "broker_shadow",
+      "manual_confirm_live",
+      "limited_auto_live"
+    ],
+    "require_gateway_submission": true,
+    "manual_approval_required": true,
+    "allow_real_broker_submit": false
+  },
   "account": {
     "account_id": "sandbox_account_001",
-    "initial_cash": 100000,
+    "initial_cash": 300000,
     "fee_rate": 0.0003,
     "slippage_rate": 0.0005,
     "initial_positions": {}
   },
   "risk_limits": {
-    "allowed_symbols": ["600519.SH", "000001.SZ", "300750.SZ"],
+    "allowed_symbols": ["600519.SH", "000001.SZ", "300750.SZ", "00700.HK", "00005.HK", "09988.HK"],
     "allowed_sides": ["buy", "sell"],
-    "max_order_value": 30000,
+    "max_order_value": 200000,
     "max_quantity": 1000,
     "reject_short_sell": true,
     "require_a_share_lot_size": false,
     "daily_order_limit": 20
+  },
+  "runtime_risk_controls": {
+    "enabled": true,
+    "kill_switch_enabled": false,
+    "allowed_sources": ["paper_trading_promotion", "risk_test", "manual_confirm_test"],
+    "restricted_symbols": [],
+    "reject_duplicate_client_order_id": true,
+    "max_daily_orders": 20,
+    "max_daily_submitted_orders": 10,
+    "max_daily_submitted_value": 500000,
+    "max_symbol_position_value_pct": 0.8,
+    "max_daily_loss": 20000
   },
   "audit": {
     "write_audit_log": true,
