@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>量化项目最终交付物</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f8fb;
+      --panel: #ffffff;
+      --text: #17202a;
+      --muted: #667085;
+      --line: #d8dee8;
+      --blue: #1457d9;
+      --green: #0f8f5f;
+      --red: #b42318;
+      --amber: #b76e00;
+      --ink: #27364a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+      line-height: 1.5;
+    }
+    header {
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+    }
+    .wrap {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+    .top {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 24px;
+      align-items: center;
+      padding: 28px 0;
+    }
+    h1 {
+      margin: 0;
+      font-size: 30px;
+      letter-spacing: 0;
+    }
+    .sub {
+      margin: 8px 0 0;
+      color: var(--muted);
+      max-width: 760px;
+    }
+    .status {
+      display: grid;
+      gap: 8px;
+      min-width: 260px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f9fbff;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      width: fit-content;
+      min-height: 28px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .ok { color: var(--green); background: #e9f8f1; }
+    .blocked { color: var(--red); background: #fff0ee; }
+    .warn { color: var(--amber); background: #fff6e5; }
+    main { padding: 26px 0 42px; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 16px;
+    }
+    section {
+      grid-column: span 12;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+    }
+    .half { grid-column: span 6; }
+    h2 {
+      margin: 0 0 14px;
+      font-size: 18px;
+    }
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #fbfcff;
+    }
+    .metric strong {
+      display: block;
+      font-size: 22px;
+      margin-bottom: 4px;
+    }
+    .metric span { color: var(--muted); font-size: 13px; }
+    .links {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    a.button {
+      display: block;
+      text-decoration: none;
+      color: var(--ink);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #fbfcff;
+      font-weight: 700;
+    }
+    a.button small {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-weight: 500;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 10px 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      color: var(--muted);
+      font-weight: 700;
+      background: #fbfcff;
+    }
+    code {
+      padding: 2px 5px;
+      border-radius: 6px;
+      background: #eef2f8;
+      color: #243246;
+      font-family: "Cascadia Mono", Consolas, monospace;
+      font-size: 12px;
+    }
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 8px;
+    }
+    .node {
+      min-height: 62px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcff;
+      padding: 10px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .node span {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-weight: 500;
+      font-size: 12px;
+    }
+    ul { margin: 0; padding-left: 18px; }
+    li { margin: 6px 0; }
+    footer {
+      padding: 20px 0 34px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    @media (max-width: 860px) {
+      .top, .metrics, .links, .flow { grid-template-columns: 1fr; }
+      .half { grid-column: span 12; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap top">
+      <div>
+        <h1>量化项目最终交付物</h1>
+        <p class="sub">AQuant Studio 已从研究型 MVP 扩展为实盘前受控链路：策略订单、市场规则、风控、模拟盘、券商适配器、只读账户、影子交易、人工确认、限额自动化、监控、审计和最终检查。</p>
+      </div>
+      <div class="status">
+        <span class="pill ok">GitHub 已推送</span>
+        <span><strong>提交：</strong><code>f9ffe4c</code></span>
+        <span><strong>实盘状态：</strong><span class="pill blocked">blocked_for_live_trading</span></span>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap grid">
+    <section>
+      <h2>当前交付状态</h2>
+      <div class="metrics">
+        <div class="metric"><strong>12</strong><span>实盘路线阶段</span></div>
+        <div class="metric"><strong>19</strong><span>审计清单关键产物</span></div>
+        <div class="metric"><strong>A 股 + 港股</strong><span>交易规则覆盖</span></div>
+        <div class="metric"><strong>0</strong><span>真实券商下单能力开启</span></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>直接使用入口</h2>
+      <div class="links">
+        <a class="button" href="./index.html">MVP 发布首页<small>原项目发布入口</small></a>
+        <a class="button" href="../prototype/index.html">产品原型<small>查看早期交互原型</small></a>
+        <a class="button" href="../web_app/docs/user-manual-first-use.md">Web App 使用手册<small>本地前后端使用说明</small></a>
+        <a class="button" href="../live_readiness_module/final-readiness-stage-12-delivery.md">最终检查报告说明<small>实盘前阻断项</small></a>
+        <a class="button" href="../market_rules_module/market-rules-stage-2-delivery.md">交易规则模块<small>A 股与港股规则</small></a>
+        <a class="button" href="../audit_module/audit-stage-11-delivery.md">审计清单说明<small>关键产物哈希与追踪</small></a>
+      </div>
+    </section>
+
+    <section>
+      <h2>实盘前链路</h2>
+      <div class="flow">
+        <div class="node">OMS<span>订单生命周期</span></div>
+        <div class="node">市场规则<span>A 股 / 港股</span></div>
+        <div class="node">风控网关<span>限额 / 白名单 / 熔断</span></div>
+        <div class="node">模拟盘<span>事件驱动 / 部分成交</span></div>
+        <div class="node">券商适配器<span>统一接口</span></div>
+        <div class="node">只读账户<span>默认禁止下单</span></div>
+        <div class="node">影子交易<span>只评估不提交</span></div>
+        <div class="node">人工确认<span>审批后导出</span></div>
+        <div class="node">限额自动化<span>候选订单</span></div>
+        <div class="node">监控告警<span>状态汇总</span></div>
+        <div class="node">审计清单<span>哈希追踪</span></div>
+        <div class="node">最终检查<span>保持阻断</span></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>阶段交付物</h2>
+      <table>
+        <thead>
+          <tr><th>阶段</th><th>名称</th><th>核心文件</th><th>结果</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>1</td><td>OMS 与实盘策略闸门</td><td><code>trading_gateway_module/order_management.py</code></td><td>完成</td></tr>
+          <tr><td>2</td><td>A 股 + 港股交易规则</td><td><code>market_rules_module/market_rules.py</code></td><td>完成</td></tr>
+          <tr><td>3</td><td>风控网关增强</td><td><code>trading_gateway_module/risk_gateway.py</code></td><td>完成</td></tr>
+          <tr><td>4</td><td>事件驱动模拟盘</td><td><code>simulation_module/event_driven_paper_trader.py</code></td><td>完成</td></tr>
+          <tr><td>5</td><td>Broker Adapter 抽象</td><td><code>broker_adapter_module/broker_adapter.py</code></td><td>完成</td></tr>
+          <tr><td>6</td><td>账户只读接入骨架</td><td><code>broker_adapter_module/read_only_broker_adapter.py</code></td><td>完成</td></tr>
+          <tr><td>7</td><td>影子交易</td><td><code>shadow_trading_module/shadow_trader.py</code></td><td>完成</td></tr>
+          <tr><td>8</td><td>人工确认工作流</td><td><code>manual_confirmation_module/confirmation_workflow.py</code></td><td>完成</td></tr>
+          <tr><td>9</td><td>小资金限额自动化守门器</td><td><code>automation_controls_module/limited_auto_guard.py</code></td><td>完成</td></tr>
+          <tr><td>10</td><td>监控与告警</td><td><code>monitoring_module/monitor.py</code></td><td>完成</td></tr>
+          <tr><td>11</td><td>审计与合规清单</td><td><code>audit_module/audit_manifest.py</code></td><td>完成</td></tr>
+          <tr><td>12</td><td>最终实盘准备检查</td><td><code>live_readiness_module/final_readiness.py</code></td><td>完成，实盘阻断</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="half">
+      <h2>如何使用修改后的 Web 应用</h2>
+      <ul>
+        <li>静态 MVP：直接打开 <code>release_module/index.html</code>。</li>
+        <li>最终交付页：直接打开本文件 <code>release_module/quant_project_delivery.html</code>。</li>
+        <li>在线应用骨架：后端在 <code>web_app/backend</code>，前端在 <code>web_app/frontend</code>。</li>
+        <li>当前新增的实盘链路模块主要是后端与交付文档，尚未接入完整前端按钮流。</li>
+      </ul>
+    </section>
+
+    <section class="half">
+      <h2>实盘阻断项</h2>
+      <ul>
+        <li>券商官方 API 访问未确认。</li>
+        <li>程序化交易报备/确认要求未和券商完成。</li>
+        <li>生产密钥管理未完成。</li>
+        <li>真实资金风险披露未审批。</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="wrap">
+    量化项目当前可用于研究、回测、模拟盘、影子交易和实盘前准备，不应直接用于真实资金自动交易。
+  </footer>
+</body>
+</html>
