@@ -5,6 +5,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api
 type AuthMode = "login" | "register";
 type EditorMode = "form" | "json";
 type MessageKind = "info" | "success" | "error";
+type MarketKey = "a_share" | "hk_stock" | "hk_connect";
 type StrategyStatus = "draft" | "active" | "archived";
 type LogicMode = "all" | "any";
 
@@ -12,6 +13,7 @@ type User = {
   id: number;
   email: string;
   display_name: string;
+  is_admin?: boolean;
 };
 
 type TemplateSummary = {
@@ -21,6 +23,8 @@ type TemplateSummary = {
   risk_level: string;
   default_symbol: string;
   default_frequency: string;
+  default_market?: MarketKey;
+  market?: MarketKey;
   description: string;
 };
 
@@ -50,6 +54,9 @@ type BacktestRunResponse = {
   backtest_id: string;
   status: string;
   metrics: Record<string, number>;
+  warnings?: string[];
+  market?: MarketKey;
+  currency?: string;
   report_path: string;
 };
 
@@ -111,6 +118,11 @@ type BacktestReport = {
   strategy_name: string;
   symbol: string;
   frequency: string;
+  market?: MarketKey;
+  currency?: string;
+  lot_size?: number;
+  lot_source?: string;
+  warnings?: string[];
   metrics: Record<string, number>;
   trades: BacktestTrade[];
   equity_curve: EquityPoint[];
@@ -122,6 +134,8 @@ type MarketInstrument = {
   market: string;
   exchange: string;
   asset_type: string;
+  currency?: string;
+  lot_size?: number | null;
   listed_date: string | null;
   status: string;
   bar_count: number;
@@ -203,6 +217,22 @@ type MarketFileImportDraft = {
   file: File | null;
 };
 
+type MarketSyncDraft = {
+  provider: string;
+  symbol: string;
+  startDate: string;
+  endDate: string;
+};
+
+type MarketSyncResponse = {
+  symbol: string;
+  fetched_bars: number;
+  inserted_bars: number;
+  updated_bars: number;
+  corporate_actions: number;
+  fx_rates: number;
+};
+
 type MarketImportResponse = {
   symbol: string;
   inserted_bars: number;
@@ -265,7 +295,10 @@ type StrategyJson = {
     entry_price?: string;
     exit_price?: string;
     fee_rate?: number;
+    commission_rate?: number;
+    min_commission?: number;
     slippage_rate?: number;
+    [key: string]: unknown;
   };
   risk?: {
     stop_loss_pct?: number;
@@ -295,6 +328,7 @@ type RuleCondition = {
 };
 
 type StrategyForm = {
+  market: MarketKey;
   symbol: string;
   frequency: string;
   startDate: string;
@@ -316,20 +350,21 @@ type StrategyForm = {
 };
 
 const defaultForm: StrategyForm = {
+  market: "a_share",
   symbol: "600519.SH",
   frequency: "1d",
-  startDate: "2024-01-02",
-  endDate: "2024-01-08",
+  startDate: "2018-01-01",
+  endDate: "2025-12-31",
   entryLogic: "all",
   entryOperator: "gt",
   entryValue: "1680",
   exitLogic: "any",
   exitOperator: "lt",
   exitValue: "1670",
-  initialCash: "100000",
+  initialCash: "1000000",
   orderSizeValue: "0.3",
   maxPositionPct: "0.8",
-  feeRate: "0.0003",
+  feeRate: "0.00025",
   slippageRate: "0.0005",
   stopLossPct: "0.08",
   takeProfitPct: "0.2",
@@ -342,7 +377,43 @@ const templateNames: Record<string, string> = {
   tpl_price_breakout: "价格突破策略",
   tpl_volume_breakout: "成交量突破策略",
   tpl_return_momentum: "收益率动量策略",
+  tpl_hk_connect_ma_trend: "港股通双均线趋势策略",
+  tpl_hk_rsi_pullback: "港股 RSI 回调策略",
 };
+
+const marketLabels: Record<MarketKey, string> = {
+  a_share: "A股（人民币账户）",
+  hk_stock: "港股（港币账户）",
+  hk_connect: "港股通（人民币账户买港股）",
+};
+
+const symbolHints: Record<MarketKey, string> = {
+  a_share: "600519.SH / 000001.SZ / 430047.BJ",
+  hk_stock: "00700.HK（5 位代码）",
+  hk_connect: "00700.HK（5 位代码）",
+};
+
+function exchangeOf(symbol: string) {
+  const parts = symbol.trim().toUpperCase().split(".");
+  return parts.length > 1 ? parts[parts.length - 1] : "";
+}
+
+function inferMarket(symbol: string): MarketKey {
+  return exchangeOf(symbol) === "HK" ? "hk_connect" : "a_share";
+}
+
+function marketMatchesSymbol(market: MarketKey, symbol: string) {
+  const isHk = exchangeOf(symbol) === "HK";
+  return market === "a_share" ? !isHk : isHk;
+}
+
+function isSimpleCondition(condition: RuleCondition) {
+  return condition.left?.type === "price" && condition.right?.type === "constant";
+}
+
+function isSimpleGroup(group?: RuleGroup) {
+  return !group?.conditions?.length || (group.conditions.length === 1 && isSimpleCondition(group.conditions[0]));
+}
 
 const operatorLabels: Record<string, string> = {
   gt: "> 大于",
@@ -368,9 +439,9 @@ const diffFields: DiffField[] = [
 ];
 
 const emptyLogin = {
-  email: "demo@example.com",
-  password: "strong-password-123",
-  displayName: "Demo User",
+  email: "",
+  password: "",
+  displayName: "",
 };
 
 function getStoredToken() {
@@ -441,7 +512,9 @@ function formFromStrategy(strategy: StrategyJson): StrategyForm {
   const entry = firstCondition(strategy.entry);
   const exit = firstCondition(strategy.exit);
   const symbol = strategy.universe?.symbols?.[0] || defaultForm.symbol;
+  const market = (strategy.market as MarketKey) || inferMarket(symbol);
   return {
+    market: marketLabels[market] ? market : inferMarket(symbol),
     symbol,
     frequency: strategy.data?.frequency || defaultForm.frequency,
     startDate: strategy.data?.start_date || defaultForm.startDate,
@@ -455,7 +528,7 @@ function formFromStrategy(strategy: StrategyJson): StrategyForm {
     initialCash: String(strategy.position?.initial_cash ?? defaultForm.initialCash),
     orderSizeValue: String(strategy.position?.order_size_value ?? defaultForm.orderSizeValue),
     maxPositionPct: String(strategy.position?.max_position_pct ?? defaultForm.maxPositionPct),
-    feeRate: String(strategy.execution?.fee_rate ?? defaultForm.feeRate),
+    feeRate: String(strategy.execution?.commission_rate ?? strategy.execution?.fee_rate ?? defaultForm.feeRate),
     slippageRate: String(strategy.execution?.slippage_rate ?? defaultForm.slippageRate),
     stopLossPct: String(strategy.risk?.stop_loss_pct ?? defaultForm.stopLossPct),
     takeProfitPct: String(strategy.risk?.take_profit_pct ?? defaultForm.takeProfitPct),
@@ -464,14 +537,41 @@ function formFromStrategy(strategy: StrategyJson): StrategyForm {
 }
 
 function strategyFromForm(base: StrategyJson, name: string, form: StrategyForm): StrategyJson {
+  // The form edits single "close vs constant" rules. Indicator rules (MA/RSI/MACD...) are kept as they
+  // are and must be edited in JSON mode.
+  const { fee_rate: _legacyFee, ...baseExecution } = base.execution || {};
+  const entry: RuleGroup = isSimpleGroup(base.entry)
+    ? {
+        logic: form.entryLogic,
+        conditions: [
+          {
+            left: { type: "price", field: "close" },
+            operator: form.entryOperator,
+            right: { type: "constant", value: toNumber(form.entryValue, 0) },
+          },
+        ],
+      }
+    : { ...base.entry, logic: form.entryLogic };
+  const exit: RuleGroup = isSimpleGroup(base.exit)
+    ? {
+        logic: form.exitLogic,
+        conditions: [
+          {
+            left: { type: "price", field: "close" },
+            operator: form.exitOperator,
+            right: { type: "constant", value: toNumber(form.exitValue, 0) },
+          },
+        ],
+      }
+    : { ...base.exit, logic: form.exitLogic };
   return {
     ...base,
     name,
-    market: "a_share",
+    market: form.market,
     universe: {
       ...(base.universe || {}),
       type: "single",
-      symbols: [form.symbol.trim() || defaultForm.symbol],
+      symbols: [form.symbol.trim().toUpperCase() || defaultForm.symbol],
     },
     data: {
       ...(base.data || {}),
@@ -480,38 +580,20 @@ function strategyFromForm(base: StrategyJson, name: string, form: StrategyForm):
       start_date: form.startDate,
       end_date: form.endDate,
     },
-    entry: {
-      logic: form.entryLogic,
-      conditions: [
-        {
-          left: { type: "price", field: "close" },
-          operator: form.entryOperator,
-          right: { type: "constant", value: toNumber(form.entryValue, 0) },
-        },
-      ],
-    },
-    exit: {
-      logic: form.exitLogic,
-      conditions: [
-        {
-          left: { type: "price", field: "close" },
-          operator: form.exitOperator,
-          right: { type: "constant", value: toNumber(form.exitValue, 0) },
-        },
-      ],
-    },
+    entry,
+    exit,
     position: {
       ...(base.position || {}),
-      initial_cash: toNumber(form.initialCash, 100000),
+      initial_cash: toNumber(form.initialCash, 1000000),
       order_size_type: base.position?.order_size_type || "cash_pct",
       order_size_value: toNumber(form.orderSizeValue, 0.3),
       max_position_pct: toNumber(form.maxPositionPct, 0.8),
     },
     execution: {
-      ...(base.execution || {}),
-      entry_price: base.execution?.entry_price || "current_close",
-      exit_price: base.execution?.exit_price || "current_close",
-      fee_rate: toNumber(form.feeRate, 0.0003),
+      ...baseExecution,
+      entry_price: base.execution?.entry_price || "next_open",
+      exit_price: base.execution?.exit_price || "next_open",
+      commission_rate: toNumber(form.feeRate, 0.00025),
       slippage_rate: toNumber(form.slippageRate, 0.0005),
     },
     risk: {
@@ -746,8 +828,7 @@ export default function App() {
             instrument: {
               symbol,
               name: draft.name.trim(),
-              market: "a_share",
-              exchange: draft.exchange,
+              exchange: exchangeOf(symbol),
               asset_type: "stock",
               status: "active",
             },
@@ -802,7 +883,7 @@ export default function App() {
           body: JSON.stringify({
             symbol,
             name: draft.name.trim(),
-            exchange: draft.exchange,
+            exchange: exchangeOf(symbol),
             frequency: draft.frequency,
             csv_text: draft.csvText,
             source: "csv",
@@ -838,7 +919,7 @@ export default function App() {
       const formData = new FormData();
       formData.append("symbol", symbol);
       formData.append("name", draft.name.trim());
-      formData.append("exchange", draft.exchange);
+      formData.append("exchange", exchangeOf(symbol));
       formData.append("frequency", draft.frequency);
       formData.append("file", draft.file);
       const result = await requestFormData<MarketCsvImportResponse>("/market/import/file", formData, token);
@@ -853,6 +934,58 @@ export default function App() {
       });
     } catch (error) {
       setMessage({ kind: "error", text: `文件导入失败：${getErrorMessage(error)}` });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function syncMarketData(draft: MarketSyncDraft) {
+    if (!token) return;
+    if (!draft.symbol.trim() || !draft.startDate.trim() || !draft.endDate.trim()) {
+      setMessage({ kind: "error", text: "请填写代码、开始和结束日期。" });
+      return;
+    }
+    setLoading(true);
+    try {
+      const result = await request<MarketSyncResponse>(
+        "/market/sync",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            provider_id: draft.provider,
+            symbol: draft.symbol.trim().toUpperCase(),
+            start_date: draft.startDate.trim(),
+            end_date: draft.endDate.trim(),
+            frequency: "1d",
+          }),
+        },
+        token,
+      );
+      await loadMarketOverview();
+      setSelectedMarketSymbol(result.symbol);
+      setMarketFrequency("1d");
+      await loadMarketBars(result.symbol, "1d");
+      await loadMarketImports();
+      setMessage({
+        kind: "success",
+        text: `已同步 ${result.symbol}：${result.fetched_bars} 根日线，分红/送股 ${result.corporate_actions} 条，汇率 ${result.fx_rates} 天。`,
+      });
+    } catch (error) {
+      setMessage({ kind: "error", text: `同步失败：${getErrorMessage(error)}` });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function syncBoardLots() {
+    if (!token) return;
+    setLoading(true);
+    try {
+      const result = await request<{ updated: number; message: string }>("/market/board-lots/sync", { method: "POST" }, token);
+      await loadMarketOverview();
+      setMessage({ kind: "success", text: `已更新 ${result.updated} 只港股的每手股数。` });
+    } catch (error) {
+      setMessage({ kind: "error", text: `每手股数更新失败：${getErrorMessage(error)}` });
     } finally {
       setLoading(false);
     }
@@ -1111,7 +1244,7 @@ export default function App() {
           <h1>策略工作台</h1>
         </div>
         <div className="system-state">
-          <span>A 股</span>
+          <span>A股 · 港股 · 港股通</span>
           <span>模拟环境</span>
           <strong>实盘禁用</strong>
         </div>
@@ -1260,7 +1393,13 @@ export default function App() {
                 </div>
 
                 {editorMode === "form" ? (
-                  <StructuredEditor form={strategyForm} updateForm={updateForm} syncJsonFromForm={syncJsonFromForm} />
+                  <StructuredEditor
+                    form={strategyForm}
+                    updateForm={updateForm}
+                    syncJsonFromForm={syncJsonFromForm}
+                    entrySimple={isSimpleGroup(selectedStrategy?.strategy.entry)}
+                    exitSimple={isSimpleGroup(selectedStrategy?.strategy.exit)}
+                  />
                 ) : (
                   <textarea
                     className="json-editor"
@@ -1293,6 +1432,9 @@ export default function App() {
               onImportCsv={importMarketCsv}
               onImportFile={importMarketFile}
               onOpenImport={openMarketImport}
+              onSync={syncMarketData}
+              onSyncBoardLots={syncBoardLots}
+              isAdmin={Boolean(user?.is_admin)}
             />
 
             <div className="backtest-panel">
@@ -1371,6 +1513,13 @@ export default function App() {
 
 function BacktestSummary({ report }: { report: BacktestReport }) {
   const metrics = report.metrics || {};
+  const blocked = (report.metrics as Record<string, unknown>)?.blocked_orders as Record<string, number> | undefined;
+  const warnings = [
+    ...(report.warnings || []),
+    ...(blocked && Object.keys(blocked).length
+      ? [`未成交订单：${Object.entries(blocked).map(([k, v]) => `${k} × ${v}`).join("，")}`]
+      : []),
+  ];
   const equity = report.equity_curve || [];
   const values = equity.map((point) => point.equity);
   const min = Math.min(...values);
@@ -1384,9 +1533,24 @@ function BacktestSummary({ report }: { report: BacktestReport }) {
         <Metric label="最大回撤" value={formatPercent(metrics.max_drawdown)} />
         <Metric label="胜率" value={formatPercent(metrics.win_rate)} />
         <Metric label="交易数" value={formatNumber(metrics.trade_count, 0)} />
-        <Metric label="最终权益" value={formatNumber(metrics.final_equity)} />
+        <Metric label={`最终权益 (${report.currency || "CNY"})`} value={formatNumber(metrics.final_equity)} />
         <Metric label="夏普" value={formatNumber(metrics.sharpe)} />
+        <Metric label="年化收益" value={formatPercent(metrics.annualized_return)} />
+        <Metric label="买入持有" value={formatPercent(metrics.benchmark_return)} />
+        <Metric label="税后分红" value={formatNumber(metrics.dividends_net)} />
+        <Metric label="费用合计" value={formatNumber(metrics.total_fees)} />
       </div>
+      <p className="muted">
+        {report.market ? marketLabels[report.market] : "A股"} · 每手 {report.lot_size ?? "-"} 股
+        {report.lot_source === "default" ? "（默认值，请同步港股每手股数）" : ""}
+      </p>
+      {warnings.length > 0 && (
+        <ul className="warning-list">
+          {warnings.map((warning) => (
+            <li key={warning}>{warning}</li>
+          ))}
+        </ul>
+      )}
 
       <div className="equity-card">
         <div className="section-heading">
@@ -1455,6 +1619,9 @@ function MarketDataPanel({
   onImportCsv,
   onImportFile,
   onOpenImport,
+  onSync,
+  onSyncBoardLots,
+  isAdmin,
 }: {
   instruments: MarketInstrument[];
   selectedSymbol: string;
@@ -1472,7 +1639,16 @@ function MarketDataPanel({
   onImportCsv: (draft: MarketCsvImportDraft) => Promise<void>;
   onImportFile: (draft: MarketFileImportDraft) => Promise<void>;
   onOpenImport: (batchId: number) => Promise<void>;
+  onSync: (draft: MarketSyncDraft) => Promise<void>;
+  onSyncBoardLots: () => Promise<void>;
+  isAdmin: boolean;
 }) {
+  const [syncDraft, setSyncDraft] = useState<MarketSyncDraft>({
+    provider: "tencent",
+    symbol: "00700.HK",
+    startDate: "2018-01-01",
+    endDate: new Date().toISOString().slice(0, 10),
+  });
   const [importDraft, setImportDraft] = useState<MarketImportDraft>({
     symbol: selectedSymbol || "600519.SH",
     name: selectedInstrument?.name || "贵州茅台",
@@ -1596,6 +1772,8 @@ function MarketDataPanel({
           </div>
           <div className="market-quality">
             <span>{selectedInstrument.exchange}</span>
+            <span>{selectedInstrument.currency || "CNY"}</span>
+            {selectedInstrument.exchange === "HK" && <span>每手 {selectedInstrument.lot_size ?? "未知"}</span>}
             <span>{coverageItem?.quality_status || "ready"}</span>
             <span>{coverage?.total_bar_count || selectedInstrument.bar_count} bars</span>
             <span>{quality ? `${quality.issue_count} issues` : "quality -"}</span>
@@ -1664,6 +1842,52 @@ function MarketDataPanel({
               <p className="muted">最近数据未发现 OHLC 或成交量异常。</p>
             )}
           </div>
+          {!isAdmin && (
+            <p className="form-note">行情数据由所有用户共享，导入和同步需要管理员账户（本地运行时首个注册用户；服务器上用 make-admin 命令授予）。</p>
+          )}
+          <form
+            className="market-import"
+            onSubmit={async (event) => {
+              event.preventDefault();
+              await onSync(syncDraft);
+            }}
+          >
+            <div className="section-heading">
+              <h3>同步真实日线</h3>
+              <button className="ghost-button" type="button" disabled={loading || !isAdmin} onClick={onSyncBoardLots}>
+                更新港股每手股数
+              </button>
+            </div>
+            <div className="form-grid compact">
+              <label>
+                数据源
+                <select value={syncDraft.provider} onChange={(event) => setSyncDraft({ ...syncDraft, provider: event.target.value })}>
+                  <option value="tencent">腾讯行情（A股/港股）</option>
+                  <option value="demo">合成演示数据</option>
+                </select>
+              </label>
+              <label>
+                代码
+                <input
+                  value={syncDraft.symbol}
+                  placeholder="600519.SH / 00700.HK"
+                  onChange={(event) => setSyncDraft({ ...syncDraft, symbol: event.target.value })}
+                />
+              </label>
+              <label>
+                开始
+                <input value={syncDraft.startDate} onChange={(event) => setSyncDraft({ ...syncDraft, startDate: event.target.value })} />
+              </label>
+              <label>
+                结束
+                <input value={syncDraft.endDate} onChange={(event) => setSyncDraft({ ...syncDraft, endDate: event.target.value })} />
+              </label>
+            </div>
+            <p className="form-note">港股代码会同时载入港币兑人民币汇率，供港股通回测使用；分红从复权数据推算。</p>
+            <button className="ghost-button" type="submit" disabled={loading || !isAdmin}>
+              同步
+            </button>
+          </form>
           <form className="market-import" onSubmit={handleImport}>
             <div className="section-heading">
               <h3>手动导入日线</h3>
@@ -1679,10 +1903,7 @@ function MarketDataPanel({
               </label>
               <label>
                 交易所
-                <select value={importDraft.exchange} onChange={(event) => updateDraft("exchange", event.target.value)}>
-                  <option value="SH">SH</option>
-                  <option value="SZ">SZ</option>
-                </select>
+                <input value={exchangeOf(importDraft.symbol) || "-"} readOnly title="由代码后缀自动识别：SH/SZ/BJ/HK" />
               </label>
               <label>
                 日期
@@ -1919,21 +2140,40 @@ function StructuredEditor({
   form,
   updateForm,
   syncJsonFromForm,
+  entrySimple,
+  exitSimple,
 }: {
   form: StrategyForm;
   updateForm: <K extends keyof StrategyForm>(key: K, value: StrategyForm[K]) => void;
   syncJsonFromForm: () => void;
+  entrySimple: boolean;
+  exitSimple: boolean;
 }) {
+  const mismatch = !marketMatchesSymbol(form.market, form.symbol);
   return (
     <div className="structured-editor">
       <section className="editor-section">
         <div className="section-heading">
-          <h3>标的与周期</h3>
+          <h3>市场、标的与周期</h3>
         </div>
         <div className="form-grid three">
           <label>
+            市场 / 账户
+            <select value={form.market} onChange={(event) => updateForm("market", event.target.value as MarketKey)}>
+              {(Object.keys(marketLabels) as MarketKey[]).map((key) => (
+                <option key={key} value={key}>
+                  {marketLabels[key]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
             股票代码
-            <input value={form.symbol} onChange={(event) => updateForm("symbol", event.target.value)} />
+            <input
+              value={form.symbol}
+              placeholder={symbolHints[form.market]}
+              onChange={(event) => updateForm("symbol", event.target.value)}
+            />
           </label>
           <label>
             频率
@@ -1953,6 +2193,17 @@ function StructuredEditor({
             <input value={form.endDate} onChange={(event) => updateForm("endDate", event.target.value)} />
           </label>
         </div>
+        {mismatch ? (
+          <p className="form-note error-text">
+            {form.market === "a_share" ? "A股代码应为 6 位数字加 .SH / .SZ / .BJ。" : "港股 / 港股通代码应为 5 位数字加 .HK。"}
+          </p>
+        ) : (
+          <p className="form-note">
+            {form.market === "a_share" && "按 100 股整手（科创板 200 股起）、T+1、涨跌停和印花税回测。"}
+            {form.market === "hk_stock" && "按该股每手股数、T+0、无涨跌停、港币计价回测。"}
+            {form.market === "hk_connect" && "人民币账户：港币价格按每日汇率换算，只在港股和 A 股都开市的日子成交，股息按 20% 预扣。"}
+          </p>
+        )}
       </section>
 
       <section className="editor-section">
@@ -1962,6 +2213,7 @@ function StructuredEditor({
         <div className="rule-grid">
           <RuleBox
             title="入场"
+            editable={entrySimple}
             logic={form.entryLogic}
             operator={form.entryOperator}
             value={form.entryValue}
@@ -1971,6 +2223,7 @@ function StructuredEditor({
           />
           <RuleBox
             title="出场"
+            editable={exitSimple}
             logic={form.exitLogic}
             operator={form.exitOperator}
             value={form.exitValue}
@@ -1999,8 +2252,12 @@ function StructuredEditor({
             <input value={form.maxPositionPct} onChange={(event) => updateForm("maxPositionPct", event.target.value)} />
           </label>
           <label>
-            手续费率
-            <input value={form.feeRate} onChange={(event) => updateForm("feeRate", event.target.value)} />
+            券商佣金率
+            <input
+              value={form.feeRate}
+              title="仅券商佣金；印花税、交易所费用、最低佣金按所选市场规则自动计算"
+              onChange={(event) => updateForm("feeRate", event.target.value)}
+            />
           </label>
           <label>
             滑点率
@@ -2038,6 +2295,7 @@ function StructuredEditor({
 
 function RuleBox({
   title,
+  editable,
   logic,
   operator,
   value,
@@ -2046,6 +2304,7 @@ function RuleBox({
   onValue,
 }: {
   title: string;
+  editable: boolean;
   logic: LogicMode;
   operator: string;
   value: string;
@@ -2056,6 +2315,7 @@ function RuleBox({
   return (
     <div className="rule-box">
       <strong>{title}</strong>
+      {!editable && <p className="form-note">该规则使用指标（如均线、RSI），请在 JSON 模式编辑；表单只修改逻辑 all/any。</p>}
       <div className="form-grid compact">
         <label>
           逻辑
@@ -2064,20 +2324,24 @@ function RuleBox({
             <option value="any">any</option>
           </select>
         </label>
-        <label>
-          条件
-          <select value={operator} onChange={(event) => onOperator(event.target.value)}>
-            {Object.entries(operatorLabels).map(([key, label]) => (
-              <option key={key} value={key}>
-                收盘价 {label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          阈值
-          <input value={value} onChange={(event) => onValue(event.target.value)} />
-        </label>
+        {editable && (
+          <>
+            <label>
+              条件
+              <select value={operator} onChange={(event) => onOperator(event.target.value)}>
+                {Object.entries(operatorLabels).map(([key, label]) => (
+                  <option key={key} value={key}>
+                    收盘价 {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              阈值
+              <input value={value} onChange={(event) => onValue(event.target.value)} />
+            </label>
+          </>
+        )}
       </div>
     </div>
   );

@@ -14,6 +14,8 @@ from app.models import (
     BacktestRun,
     BacktestTrade,
     MarketBar,
+    MarketCorporateAction,
+    MarketFxRate,
     MarketInstrument,
     StrategyVersion,
     StrategyTemplate,
@@ -22,7 +24,9 @@ from app.models import (
     UserStrategy,
 )
 from app.services.json_utils import read_json
-from app.services.legacy_paths import BACKTEST_MODULE, DATA_MODULE, TEMPLATE_MODULE
+from app.services.legacy_paths import BACKEND_DIR, BACKTEST_MODULE, DATA_MODULE, TEMPLATE_MODULE
+
+BASELINE_REVISION = "0001"
 
 
 TABLE_MODELS = {
@@ -33,6 +37,8 @@ TABLE_MODELS = {
     "strategy_versions": StrategyVersion,
     "market_instruments": MarketInstrument,
     "market_bars": MarketBar,
+    "market_corporate_actions": MarketCorporateAction,
+    "market_fx_rates": MarketFxRate,
     "backtest_runs": BacktestRun,
     "backtest_trades": BacktestTrade,
     "backtest_equity_points": BacktestEquityPoint,
@@ -40,13 +46,53 @@ TABLE_MODELS = {
 }
 
 
+def _alembic_config():
+    from alembic.config import Config
+
+    config = Config(str(BACKEND_DIR / "alembic.ini"))
+    config.set_main_option("script_location", str(BACKEND_DIR / "alembic"))
+    return config
+
+
+def run_migrations(target_engine=None) -> None:
+    """Bring the schema to the latest Alembic revision (SQLite and PostgreSQL alike).
+
+    Databases created by the old ``create_all`` start-up (no alembic_version table) get their
+    missing baseline tables/columns created, are stamped at the baseline, then upgraded.
+    """
+    from alembic import command
+
+    target_engine = target_engine or engine
+    config = _alembic_config()
+    tables = set(inspect(target_engine).get_table_names())
+    if "alembic_version" not in tables and "users" in tables:
+        baseline = [t for t in Base.metadata.sorted_tables if t.name in _BASELINE_TABLES and t.name not in tables]
+        if baseline:
+            Base.metadata.create_all(bind=target_engine, tables=baseline)
+        _upgrade_sqlite_schema(target_engine)
+        with target_engine.begin() as connection:
+            config.attributes["connection"] = connection
+            command.stamp(config, BASELINE_REVISION)
+    with target_engine.begin() as connection:
+        config.attributes["connection"] = connection
+        command.upgrade(config, "head")
+
+
+_BASELINE_TABLES = {
+    "users", "user_sessions", "strategy_templates", "user_strategies", "strategy_versions",
+    "market_instruments", "market_bars", "backtest_runs", "backtest_trades", "backtest_equity_points", "audit_logs",
+}
+
+
 def create_database() -> None:
-    Base.metadata.create_all(bind=engine)
-    _upgrade_sqlite_schema()
+    run_migrations()
+
+
+def is_seeded(db: Session) -> bool:
+    return (db.scalar(select(func.count()).select_from(StrategyTemplate)) or 0) > 0
 
 
 def get_database_status(db: Session) -> dict[str, Any]:
-    create_database()
     counts = {
         table_name: db.scalar(select(func.count()).select_from(model)) or 0
         for table_name, model in TABLE_MODELS.items()
@@ -95,7 +141,7 @@ def seed_strategy_templates(db: Session) -> int:
         payload = {
             "template_id": item["template_id"],
             "name": item["name"],
-            "market": template_index.get("market", "a_share"),
+            "market": item.get("default_market") or strategy_json.get("market", "a_share"),
             "category": item["category"],
             "risk_level": item["risk_level"],
             "default_symbol": item["default_symbol"],
@@ -143,6 +189,7 @@ def seed_user_strategies(db: Session) -> int:
 
 
 def seed_market_data(db: Session) -> dict[str, int]:
+    """Copy the bundled research database (data_module/market_data.sqlite) into the web database."""
     source_db = DATA_MODULE / "market_data.sqlite"
     if not source_db.exists():
         return {"market_instruments": 0, "market_bars": 0}
@@ -150,6 +197,7 @@ def seed_market_data(db: Session) -> dict[str, int]:
     inserted_instruments = 0
     inserted_bars = 0
     with _legacy_connection(source_db) as conn:
+        instrument_columns = {row[1] for row in conn.execute("PRAGMA table_info(instruments)")}
         for row in conn.execute("select * from instruments"):
             symbol = row["symbol"]
             instrument = db.get(MarketInstrument, symbol)
@@ -159,6 +207,10 @@ def seed_market_data(db: Session) -> dict[str, int]:
                 "market": row["market"],
                 "exchange": row["exchange"],
                 "asset_type": row["asset_type"],
+                "currency": row["currency"] if "currency" in instrument_columns else "CNY",
+                "lot_size": row["lot_size"] if "lot_size" in instrument_columns else None,
+                "connect_eligible": (bool(row["connect_eligible"]) if "connect_eligible" in instrument_columns
+                                     and row["connect_eligible"] is not None else None),
                 "listed_date": row["listed_date"],
                 "status": row["status"],
             }
@@ -166,19 +218,15 @@ def seed_market_data(db: Session) -> dict[str, int]:
                 db.add(MarketInstrument(**payload))
             else:
                 for key, value in payload.items():
+                    if value is None and key in {"lot_size", "connect_eligible"}:
+                        continue  # keep board lots / eligibility synced in the web app
                     setattr(instrument, key, value)
             inserted_instruments += 1
 
         db.flush()
+        existing = set(db.execute(select(MarketBar.symbol, MarketBar.frequency, MarketBar.trade_time)).all())
         for row in conn.execute("select * from bars"):
-            exists = db.scalar(
-                select(MarketBar).where(
-                    MarketBar.symbol == row["symbol"],
-                    MarketBar.frequency == row["frequency"],
-                    MarketBar.trade_time == row["trade_time"],
-                )
-            )
-            if exists is not None:
+            if (row["symbol"], row["frequency"], row["trade_time"]) in existing:
                 continue
             db.add(
                 MarketBar(
@@ -196,6 +244,20 @@ def seed_market_data(db: Session) -> dict[str, int]:
                 )
             )
             inserted_bars += 1
+        tables = {row[0] for row in conn.execute("select name from sqlite_master where type='table'")}
+        if "corporate_actions" in tables:
+            known = set(db.execute(select(MarketCorporateAction.symbol, MarketCorporateAction.ex_date,
+                                          MarketCorporateAction.source)).all())
+            for row in conn.execute("select * from corporate_actions"):
+                if (row["symbol"], row["ex_date"], row["source"]) not in known:
+                    db.add(MarketCorporateAction(symbol=row["symbol"], ex_date=row["ex_date"],
+                                                 cash_dividend=row["cash_dividend"], bonus_ratio=row["bonus_ratio"],
+                                                 currency=row["currency"], source=row["source"]))
+        if "fx_rates" in tables:
+            known_fx = set(db.execute(select(MarketFxRate.pair, MarketFxRate.rate_date)).all())
+            for row in conn.execute("select * from fx_rates"):
+                if (row["pair"], row["rate_date"]) not in known_fx:
+                    db.add(MarketFxRate(pair=row["pair"], rate_date=row["rate_date"], rate=row["rate"], source=row["source"]))
     db.commit()
     return {"market_instruments": inserted_instruments, "market_bars": inserted_bars}
 
@@ -299,13 +361,16 @@ def _legacy_connection(path: Path) -> sqlite3.Connection:
     return conn
 
 
-def _upgrade_sqlite_schema() -> None:
-    if engine.dialect.name != "sqlite":
+def _upgrade_sqlite_schema(target_engine=None) -> None:
+    """Column patches for databases created by v0.1 builds before Alembic (SQLite only)."""
+    target_engine = target_engine or engine
+    if target_engine.dialect.name != "sqlite":
         return
-    inspector = inspect(engine)
+    inspector = inspect(target_engine)
     tables = inspector.get_table_names()
     if "user_strategies" in tables:
         _add_missing_columns(
+            target_engine,
             inspector,
             "user_strategies",
             {
@@ -316,6 +381,7 @@ def _upgrade_sqlite_schema() -> None:
         )
     if "backtest_runs" in tables:
         _add_missing_columns(
+            target_engine,
             inspector,
             "backtest_runs",
             {
@@ -327,9 +393,9 @@ def _upgrade_sqlite_schema() -> None:
         )
 
 
-def _add_missing_columns(inspector, table_name: str, additions: dict[str, str]) -> None:
+def _add_missing_columns(target_engine, inspector, table_name: str, additions: dict[str, str]) -> None:
     columns = {column["name"] for column in inspector.get_columns(table_name)}
-    with engine.begin() as conn:
+    with target_engine.begin() as conn:
         for column_name, statement in additions.items():
             if column_name not in columns:
                 conn.execute(text(statement))

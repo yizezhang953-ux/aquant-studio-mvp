@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class MarketInstrumentSummary(BaseModel):
@@ -7,6 +7,9 @@ class MarketInstrumentSummary(BaseModel):
     market: str
     exchange: str
     asset_type: str
+    currency: str = "CNY"
+    lot_size: int | None = None
+    connect_eligible: bool | None = None
     listed_date: str | None = None
     status: str
     bar_count: int = 0
@@ -41,6 +44,9 @@ class MarketBarListResponse(BaseModel):
 class MarketCoverageItem(BaseModel):
     symbol: str
     name: str
+    market: str = "a_share"
+    currency: str = "CNY"
+    lot_size: int | None = None
     frequencies: list[str]
     bar_count: int
     first_trade_time: str | None = None
@@ -56,11 +62,16 @@ class MarketCoverageResponse(BaseModel):
 
 
 class MarketInstrumentImport(BaseModel):
+    """market/exchange/currency are derived from the symbol when omitted (600519.SH, 00700.HK)."""
+
     symbol: str
     name: str
-    market: str = "a_share"
-    exchange: str
+    market: str | None = None
+    exchange: str | None = None
     asset_type: str = "stock"
+    currency: str | None = None
+    lot_size: int | None = Field(default=None, gt=0)
+    connect_eligible: bool | None = None
     listed_date: str | None = None
     status: str = "active"
 
@@ -95,10 +106,11 @@ class MarketImportResponse(BaseModel):
 class MarketCsvImportRequest(BaseModel):
     symbol: str
     name: str
-    exchange: str
+    exchange: str | None = None
     frequency: str = "1d"
-    csv_text: str
+    csv_text: str = Field(max_length=20 * 1024 * 1024)
     source: str = "csv"
+    lot_size: int | None = Field(default=None, gt=0)
 
 
 class MarketCsvImportResponse(BaseModel):
@@ -127,7 +139,7 @@ class MarketDataSourceListResponse(BaseModel):
 
 
 class MarketDataSyncRequest(BaseModel):
-    provider_id: str = "demo_a_share"
+    provider_id: str = "tencent"
     symbol: str
     start_date: str
     end_date: str
@@ -144,6 +156,41 @@ class MarketDataSyncResponse(BaseModel):
     inserted_bars: int
     updated_bars: int
     total_bars: int
+    corporate_actions: int = 0
+    fx_rates: int = 0
+    message: str
+
+
+class CorporateActionItem(BaseModel):
+    ex_date: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+    cash_dividend: float = Field(default=0.0, ge=0)
+    bonus_ratio: float = Field(default=0.0, ge=0)
+    currency: str | None = None
+
+
+class CorporateActionImportRequest(BaseModel):
+    symbol: str
+    actions: list[CorporateActionItem]
+    source: str = "manual"
+
+
+class CorporateActionListResponse(BaseModel):
+    symbol: str
+    actions: list[dict]
+
+
+class FxRateImportRequest(BaseModel):
+    pair: str = "HKDCNY"
+    rates: dict[str, float]
+    source: str = "manual"
+
+
+class FxCoverageResponse(BaseModel):
+    pairs: list[dict]
+
+
+class BoardLotSyncResponse(BaseModel):
+    updated: int
     message: str
 
 

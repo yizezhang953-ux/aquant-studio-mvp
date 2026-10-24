@@ -8,7 +8,11 @@ TEMPLATE_DIR = TEMPLATE_MODULE / "templates"
 
 
 def list_templates() -> dict:
-    return read_json(TEMPLATE_DIR / "index.json")
+    """Template index; each item carries ``market`` (a_share / hk_stock / hk_connect)."""
+    index = read_json(TEMPLATE_DIR / "index.json")
+    for item in index.get("templates", []):
+        item.setdefault("market", item.get("default_market", "a_share"))
+    return index
 
 
 def get_template(template_id: str) -> dict | None:

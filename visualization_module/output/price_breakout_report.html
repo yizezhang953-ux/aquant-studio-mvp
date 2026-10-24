@@ -85,7 +85,7 @@
       <header id="overview">
         <div>
           <h1>价格突破演示策略</h1>
-          <div class="sub">600519.SH · 1d · 2024-01-02 至 2024-01-08</div>
+          <div class="sub">600519.SH · A股 · 1d · 2024-01-02 至 2024-01-08 · 账户币种 CNY</div>
         </div>
         <span class="badge">回测报告 MVP</span>
       </header>
@@ -93,17 +93,21 @@
         <div class="summary-grid">
           <div class="summary-item"><span>策略 ID</span>strategy_price_breakout_demo_600519</div>
           <div class="summary-item"><span>初始资金</span>100,000.00</div>
-          <div class="summary-item"><span>平均持仓 K 线</span>3.0000</div>
+          <div class="summary-item"><span>平均持仓 K 线</span>0</div>
+          <div class="summary-item"><span>每手股数</span>100（board）</div>
         </div>
+        <div class="summary-item" style="border-color:#f59e0b"><span>回测提示</span><ul style="margin:0;padding-left:18px"><li>current_close execution fills at the signal bar&#x27;s close (assumes a closing-auction order)</li><li>sample shorter than 60 calendar days; annualized_return not reported</li><li>only 5 bars in the backtest window; results are not statistically meaningful</li><li>未成交订单：insufficient_cash_for_one_lot × 2</li></ul></div>
         <section class="metrics">
-          <div class="metric neutral"><span>最终权益</span><strong>99,721.52</strong></div>
-<div class="metric bad"><span>总收益率</span><strong>-0.28%</strong></div>
-<div class="metric bad"><span>年化收益</span><strong>-13.11%</strong></div>
-<div class="metric bad"><span>最大回撤</span><strong>0.54%</strong></div>
+          <div class="metric neutral"><span>最终权益</span><strong>100,000.00</strong></div>
+<div class="metric good"><span>总收益率</span><strong>0.00%</strong></div>
+<div class="metric neutral"><span>年化收益</span><strong>-</strong></div>
+<div class="metric bad"><span>买入持有收益</span><strong>-1.36%</strong></div>
+<div class="metric neutral"><span>税后分红</span><strong>0.00</strong></div>
+<div class="metric bad"><span>最大回撤</span><strong>0.00%</strong></div>
 <div class="metric neutral"><span>胜率</span><strong>0.00%</strong></div>
-<div class="metric neutral"><span>交易次数</span><strong>1</strong></div>
-<div class="metric neutral"><span>夏普比率</span><strong>-2.9126</strong></div>
-<div class="metric neutral"><span>手续费</span><strong>17.09</strong></div>
+<div class="metric neutral"><span>交易次数</span><strong>0</strong></div>
+<div class="metric neutral"><span>夏普比率</span><strong>-</strong></div>
+<div class="metric neutral"><span>手续费</span><strong>0.00</strong></div>
         </section>
         <section class="panel" id="chart">
           <div class="panel-head">
@@ -125,16 +129,16 @@
             <line x1="34" y1="198" x2="886" y2="198"></line>
             <line x1="34" y1="270" x2="886" y2="270"></line>
           </g>
-          <polyline points="34.00,167.36 247.00,34.00 460.00,286.00 673.00,286.00 886.00,286.00" fill="none" stroke="#0f766e" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></polyline>
+          <polyline points="34.00,160.00 247.00,160.00 460.00,160.00 673.00,160.00 886.00,160.00" fill="none" stroke="#0f766e" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></polyline>
           <polyline points="34.00,141.27 247.00,34.00 460.00,228.24 673.00,162.22 886.00,286.00" fill="none" stroke="#b7791f" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.82"></polyline>
-          <polyline points="34.00,44.66 247.00,34.00 460.00,286.00 673.00,286.00 886.00,286.00" fill="none" stroke="#c2410c" stroke-width="3" stroke-dasharray="8 8" stroke-linecap="round" stroke-linejoin="round"></polyline>
+          <polyline points="34.00,160.00 247.00,160.00 460.00,160.00 673.00,160.00 886.00,160.00" fill="none" stroke="#c2410c" stroke-width="3" stroke-dasharray="8 8" stroke-linecap="round" stroke-linejoin="round"></polyline>
         </svg>
         <div class="x-labels"><span style="left:0.00%">2024-01-02</span><span style="left:25.00%">2024-01-03</span><span style="left:50.00%">2024-01-04</span><span style="left:75.00%">2024-01-05</span><span style="left:100.00%">2024-01-08</span></div>
       </div>
     
         </section>
         <section class="panel" id="trades">
-          <div class="panel-head"><h2>交易明细</h2><span class="badge">1 笔交易</span></div>
+          <div class="panel-head"><h2>交易明细</h2><span class="badge">0 笔交易</span></div>
           <div class="table-wrap">
             <table>
               <thead>
@@ -142,7 +146,7 @@
                   <th>标的</th><th>买入时间</th><th>卖出时间</th><th>买入价</th><th>卖出价</th><th>数量</th><th>净收益</th><th>收益率</th><th>手续费</th><th>原因</th>
                 </tr>
               </thead>
-              <tbody><tr><td>600519.SH</td><td>2024-01-02</td><td>2024-01-04</td><td>1,683.34</td><td>1,667.97</td><td>17</td><td class="bad-text">-278.48</td><td>-0.97%</td><td>17.09</td><td>exit_rule</td></tr></tbody>
+              <tbody><tr><td colspan="10" class="empty">暂无已平仓交易</td></tr></tbody>
             </table>
           </div>
         </section>
@@ -151,11 +155,11 @@
           <div class="table-wrap">
             <table>
               <thead><tr><th>时间</th><th>现金</th><th>持仓</th><th>收盘价</th><th>总权益</th><th>回撤</th></tr></thead>
-              <tbody><tr><td>2024-01-02</td><td>71,374.61</td><td>17</td><td>1,682.50</td><td>99,977.11</td><td>0.02%</td></tr>
-<tr><td>2024-01-03</td><td>71,374.61</td><td>17</td><td>1,699.40</td><td>100,264.41</td><td>0.00%</td></tr>
-<tr><td>2024-01-04</td><td>99,721.52</td><td>0</td><td>1,668.80</td><td>99,721.52</td><td>0.54%</td></tr>
-<tr><td>2024-01-05</td><td>99,721.52</td><td>0</td><td>1,679.20</td><td>99,721.52</td><td>0.54%</td></tr>
-<tr><td>2024-01-08</td><td>99,721.52</td><td>0</td><td>1,659.70</td><td>99,721.52</td><td>0.54%</td></tr></tbody>
+              <tbody><tr><td>2024-01-02</td><td>100,000.00</td><td>0</td><td>1,682.50</td><td>100,000.00</td><td>0.00%</td></tr>
+<tr><td>2024-01-03</td><td>100,000.00</td><td>0</td><td>1,699.40</td><td>100,000.00</td><td>0.00%</td></tr>
+<tr><td>2024-01-04</td><td>100,000.00</td><td>0</td><td>1,668.80</td><td>100,000.00</td><td>0.00%</td></tr>
+<tr><td>2024-01-05</td><td>100,000.00</td><td>0</td><td>1,679.20</td><td>100,000.00</td><td>0.00%</td></tr>
+<tr><td>2024-01-08</td><td>100,000.00</td><td>0</td><td>1,659.70</td><td>100,000.00</td><td>0.00%</td></tr></tbody>
             </table>
           </div>
         </section>

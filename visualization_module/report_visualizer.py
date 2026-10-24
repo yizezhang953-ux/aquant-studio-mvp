@@ -95,11 +95,33 @@ def render_chart(report: dict[str, Any]) -> str:
     """
 
 
+MARKET_NAMES = {"a_share": "A股", "hk_stock": "港股", "hk_connect": "港股通"}
+
+
+def render_warnings(report: dict[str, Any]) -> str:
+    items = list(report.get("warnings") or [])
+    blocked = (report.get("metrics") or {}).get("blocked_orders") or {}
+    if blocked:
+        items.append("未成交订单：" + "，".join(f"{k} × {v}" for k, v in blocked.items()))
+    if not items:
+        return ""
+    lis = "".join(f"<li>{esc(item)}</li>" for item in items)
+    return f'<div class="summary-item" style="border-color:#f59e0b"><span>回测提示</span><ul style="margin:0;padding-left:18px">{lis}</ul></div>'
+
+
+def tone(value: Any) -> str:
+    if value is None:
+        return "neutral"
+    return "good" if value >= 0 else "bad"
+
+
 def render_metric_cards(metrics: dict[str, Any]) -> str:
     cards = [
         ("最终权益", money(metrics.get("final_equity")), "neutral"),
-        ("总收益率", pct(metrics.get("total_return")), "good" if metrics.get("total_return", 0) >= 0 else "bad"),
-        ("年化收益", pct(metrics.get("annualized_return")), "good" if metrics.get("annualized_return", 0) >= 0 else "bad"),
+        ("总收益率", pct(metrics.get("total_return")), tone(metrics.get("total_return"))),
+        ("年化收益", pct(metrics.get("annualized_return")), tone(metrics.get("annualized_return"))),
+        ("买入持有收益", pct(metrics.get("benchmark_return")), tone(metrics.get("benchmark_return"))),
+        ("税后分红", money(metrics.get("dividends_net")), "neutral"),
         ("最大回撤", pct(metrics.get("max_drawdown")), "bad"),
         ("胜率", pct(metrics.get("win_rate")), "neutral"),
         ("交易次数", number(metrics.get("trade_count")), "neutral"),
@@ -239,7 +261,7 @@ def render_html(report: dict[str, Any]) -> str:
       <header id="overview">
         <div>
           <h1>{esc(report['strategy_name'])}</h1>
-          <div class="sub">{esc(report['symbol'])} · {esc(report['frequency'])} · {esc(report['start_date'])} 至 {esc(report['end_date'])}</div>
+          <div class="sub">{esc(report['symbol'])} · {esc(MARKET_NAMES.get(report.get('market', 'a_share'), report.get('market', '')))} · {esc(report['frequency'])} · {esc(report['start_date'])} 至 {esc(report['end_date'])} · 账户币种 {esc(report.get('currency', 'CNY'))}</div>
         </div>
         <span class="badge">回测报告 MVP</span>
       </header>
@@ -248,7 +270,9 @@ def render_html(report: dict[str, Any]) -> str:
           <div class="summary-item"><span>策略 ID</span>{esc(report['strategy_id'])}</div>
           <div class="summary-item"><span>初始资金</span>{money(metrics.get('initial_cash'))}</div>
           <div class="summary-item"><span>平均持仓 K 线</span>{number(metrics.get('average_holding_bars'))}</div>
+          <div class="summary-item"><span>每手股数</span>{esc(report.get('lot_size', '-'))}（{esc(report.get('lot_source', '-'))}）</div>
         </div>
+        {render_warnings(report)}
         <section class="metrics">
           {render_metric_cards(metrics)}
         </section>

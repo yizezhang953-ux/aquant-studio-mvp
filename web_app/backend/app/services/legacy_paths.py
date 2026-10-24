@@ -1,6 +1,7 @@
 from pathlib import Path
 
 
+BACKEND_DIR = Path(__file__).resolve().parents[2]
 REPO_ROOT = Path(__file__).resolve().parents[4]
 LEGACY_MODULE_ROOT = REPO_ROOT
 
@@ -9,3 +10,4 @@ STRATEGY_MODULE = LEGACY_MODULE_ROOT / "strategy_module"
 BACKTEST_MODULE = LEGACY_MODULE_ROOT / "backtest_module"
 TEMPLATE_MODULE = LEGACY_MODULE_ROOT / "template_module"
 SECURITY_COMPLIANCE_MODULE = LEGACY_MODULE_ROOT / "security_compliance_module"
+MARKET_RULES_MODULE = LEGACY_MODULE_ROOT / "market_rules_module"

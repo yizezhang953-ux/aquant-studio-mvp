@@ -13,7 +13,9 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backtest_module"))
 
-from backtest_engine import load_bars, run_backtest, write_report  # noqa: E402
+from backtest_engine import load_bars, load_market_context, run_backtest, write_report  # noqa: E402
+
+DEFAULT_VALIDATION = {"method": "holdout", "train_ratio": 0.7}
 
 
 def read_json(path: Path) -> dict[str, Any]:
@@ -57,15 +59,84 @@ def apply_params(strategy: dict[str, Any], parameters: list[dict[str, Any]], val
     return candidate
 
 
+def _key(value: Any, direction: str | None) -> tuple[int, float]:
+    if value is None:
+        return (1, 0.0)  # missing metrics (e.g. Sharpe with no trades) rank last
+    return (0, float(value) if direction == "min" else -float(value))
+
+
 def sort_key(row: dict[str, Any], objective: dict[str, Any]) -> tuple[Any, ...]:
-    keys = []
-    primary = objective["primary_metric"]
-    primary_value = row.get(primary)
-    keys.append(primary_value if objective.get("direction") == "min" else -primary_value)
+    keys = [_key(row.get(objective["primary_metric"]), objective.get("direction"))]
     for breaker in objective.get("tie_breakers", []):
-        value = row.get(breaker["metric"])
-        keys.append(value if breaker.get("direction") == "min" else -value)
+        keys.append(_key(row.get(breaker["metric"]), breaker.get("direction")))
     return tuple(keys)
+
+
+def split_windows(bars: list, start: str, end: str, validation: dict[str, Any]) -> list[dict[str, str]]:
+    """Train/test windows inside [start, end].
+
+    holdout      : first ``train_ratio`` of the bars to train, the rest to test (or ``split_date``).
+    walk_forward : ``folds`` sequential test windows; each trains on all bars before it (anchored).
+    """
+    days = sorted({bar.trade_time[:10] for bar in bars if start <= bar.trade_time[:10] <= end})
+    if len(days) < 4:
+        raise ValueError("not enough bars for an out-of-sample split; load more history")
+    method = validation.get("method", "holdout")
+    if method == "holdout":
+        if validation.get("split_date"):
+            train_days = [d for d in days if d <= validation["split_date"]]
+            test_days = [d for d in days if d > validation["split_date"]]
+        else:
+            cut = max(2, min(len(days) - 2, int(len(days) * float(validation.get("train_ratio", 0.7)))))
+            train_days, test_days = days[:cut], days[cut:]
+        if not train_days or not test_days:
+            raise ValueError("split leaves an empty train or test window")
+        return [{"train_start": train_days[0], "train_end": train_days[-1], "test_start": test_days[0], "test_end": test_days[-1]}]
+    if method == "walk_forward":
+        folds = int(validation.get("folds", 4))
+        first_test = int(len(days) * float(validation.get("initial_train_ratio", 0.5)))
+        size = max(1, (len(days) - first_test) // folds)
+        windows = []
+        for fold in range(folds):
+            a = first_test + fold * size
+            b = len(days) - 1 if fold == folds - 1 else a + size - 1
+            if a >= len(days) or a < 2:
+                break
+            windows.append({"train_start": days[0], "train_end": days[a - 1], "test_start": days[a], "test_end": days[b]})
+        return windows
+    raise ValueError(f"unsupported validation method: {method}")
+
+
+def with_window(strategy: dict[str, Any], start: str, end: str) -> dict[str, Any]:
+    candidate = deepcopy(strategy)
+    candidate["data"]["start_date"] = start
+    candidate["data"]["end_date"] = end
+    return candidate
+
+
+def spearman(xs: list[float | None], ys: list[float | None]) -> float | None:
+    pairs = [(x, y) for x, y in zip(xs, ys) if x is not None and y is not None]
+    if len(pairs) < 3:
+        return None
+
+    def ranks(values: list[float]) -> list[float]:
+        order = sorted(range(len(values)), key=lambda i: values[i])
+        out = [0.0] * len(values)
+        i = 0
+        while i < len(order):
+            j = i
+            while j + 1 < len(order) and values[order[j + 1]] == values[order[i]]:
+                j += 1
+            for k in range(i, j + 1):
+                out[order[k]] = (i + j) / 2
+            i = j + 1
+        return out
+
+    rx, ry = ranks([p[0] for p in pairs]), ranks([p[1] for p in pairs])
+    mx, my = sum(rx) / len(rx), sum(ry) / len(ry)
+    cov = sum((a - mx) * (b - my) for a, b in zip(rx, ry))
+    var = (sum((a - mx) ** 2 for a in rx) * sum((b - my) ** 2 for b in ry)) ** 0.5
+    return round(cov / var, 4) if var else None
 
 
 def flatten_result(rank: int, params: dict[str, Any], report: dict[str, Any], output_dir: Path) -> dict[str, Any]:
@@ -114,6 +185,9 @@ def format_num(value: Any) -> str:
 
 def render_html(summary: dict[str, Any], rows: list[dict[str, Any]]) -> str:
     best = rows[0] if rows else {}
+    validation = summary.get("validation", {})
+    corr = validation.get("train_test_rank_correlation")
+    overfit = "⚠ 最优参数在验证期低于中位数，疑似过拟合" if validation.get("overfit_warning") else "未见明显过拟合信号"
     body_rows = []
     for row in rows:
         body_rows.append(
@@ -122,10 +196,11 @@ def render_html(summary: dict[str, Any], rows: list[dict[str, Any]]) -> str:
             f"<td>{row.get('entry_threshold')}</td>"
             f"<td>{row.get('exit_threshold')}</td>"
             f"<td>{row.get('order_size')}</td>"
-            f"<td>{format_pct(row.get('total_return'))}</td>"
-            f"<td>{format_pct(row.get('max_drawdown'))}</td>"
-            f"<td>{row.get('trade_count')}</td>"
-            f"<td>{format_num(row.get('sharpe'))}</td>"
+            f"<td>{format_pct(row.get('train_total_return'))}</td>"
+            f"<td>{format_pct(row.get('test_total_return'))}</td>"
+            f"<td>{format_pct(row.get('test_max_drawdown'))}</td>"
+            f"<td>{row.get('test_trade_count')}</td>"
+            f"<td>{format_num(row.get('test_sharpe'))}</td>"
             "</tr>"
         )
     table_rows = "\n".join(body_rows)
@@ -175,10 +250,13 @@ def render_html(summary: dict[str, Any], rows: list[dict[str, Any]]) -> str:
   </header>
   <main>
     <section class="cards">
-      <div class="card"><span>最佳总收益率</span><strong>{format_pct(best.get('total_return'))}</strong></div>
-      <div class="card"><span>最佳最大回撤</span><strong>{format_pct(best.get('max_drawdown'))}</strong></div>
-      <div class="card"><span>最佳交易次数</span><strong>{best.get('trade_count', '-')}</strong></div>
+      <div class="card"><span>最佳参数 训练期收益</span><strong>{format_pct(best.get('train_total_return'))}</strong></div>
+      <div class="card"><span>最佳参数 验证期收益</span><strong>{format_pct(best.get('test_total_return'))}</strong></div>
+      <div class="card"><span>训练/验证排名相关</span><strong>{format_num(corr)}</strong></div>
       <div class="card"><span>最佳参数</span><strong>{best.get('entry_threshold', '-')}/{best.get('exit_threshold', '-')}</strong></div>
+    </section>
+    <section class="panel"><div class="panel-head"><h2>样本外检验</h2><span class="badge">{validation.get('method', '-')}</span></div>
+      <div style="padding:14px 18px;color:var(--muted)">排名只用训练期；{overfit}。窗口：{'; '.join(w['train_start'] + '~' + w['train_end'] + ' → ' + w['test_start'] + '~' + w['test_end'] for w in validation.get('windows', []))}</div>
     </section>
     <section class="panel">
       <div class="panel-head"><h2>参数排行榜</h2><span class="badge">按目标排序</span></div>
@@ -186,7 +264,7 @@ def render_html(summary: dict[str, Any], rows: list[dict[str, Any]]) -> str:
         <table>
           <thead>
             <tr>
-              <th>排名</th><th>买入阈值</th><th>卖出阈值</th><th>仓位</th><th>总收益率</th><th>最大回撤</th><th>交易次数</th><th>夏普</th>
+              <th>排名(按训练期)</th><th>买入阈值</th><th>卖出阈值</th><th>仓位</th><th>训练期收益</th><th>验证期收益</th><th>验证期回撤</th><th>验证期交易</th><th>验证期夏普</th>
             </tr>
           </thead>
           <tbody>{table_rows}</tbody>
@@ -200,36 +278,108 @@ def render_html(summary: dict[str, Any], rows: list[dict[str, Any]]) -> str:
 
 
 def run_optimization(config_path: Path, output_dir: Path) -> dict[str, Any]:
+    """Grid search ranked on the TRAIN window(s) only; TEST windows report out-of-sample results."""
     config = read_json(config_path)
     base_strategy = read_json(ROOT / config["base_strategy"])
     db_path = ROOT / config["db_path"]
     parameters = config["parameters"]
+    objective = config["objective"]
+    validation = {**DEFAULT_VALIDATION, **config.get("validation", {})}
     candidate_values = combinations(parameters)
-    raw_results: list[dict[str, Any]] = []
 
+    start, end = base_strategy["data"]["start_date"], base_strategy["data"]["end_date"]
+    all_bars = load_bars(db_path, base_strategy, warmup_bars=400)  # loaded once, shared by every candidate
+    context = load_market_context(db_path, base_strategy)
+    windows = split_windows(all_bars, start, end, validation)
+    metric = objective["primary_metric"]
+
+    raw_results: list[dict[str, Any]] = []
     for index, values in enumerate(candidate_values, start=1):
         strategy = apply_params(base_strategy, parameters, values)
         candidate_dir = output_dir / "candidates" / f"candidate_{index:03d}"
         write_json(candidate_dir / "strategy.json", strategy)
-        bars = load_bars(db_path, strategy)
-        report = run_backtest(strategy, bars)
-        write_report(report, candidate_dir)
-        raw_results.append({"params": values, "report": report, "output_dir": candidate_dir})
+        train_metrics, test_metrics = [], []
+        for window in windows:
+            train = run_backtest(with_window(strategy, window["train_start"], window["train_end"]), all_bars, context)
+            test = run_backtest(with_window(strategy, window["test_start"], window["test_end"]), all_bars, context)
+            train_metrics.append(train["metrics"])
+            test_metrics.append(test["metrics"])
+        full = run_backtest(strategy, all_bars, context)
+        write_report(full, candidate_dir)
+        raw_results.append({"params": values, "report": full, "output_dir": candidate_dir,
+                            "train": train_metrics, "test": test_metrics})
 
-    rows = [
-        flatten_result(index, item["params"], item["report"], item["output_dir"])
-        for index, item in enumerate(raw_results, start=1)
-    ]
-    rows.sort(key=lambda row: sort_key(row, config["objective"]))
+    def mean_metric(items: list[dict[str, Any]], key: str) -> float | None:
+        values = [item.get(key) for item in items if isinstance(item.get(key), (int, float))]
+        return round(sum(values) / len(values), 6) if values else None
+
+    metric_keys = [k for k, v in raw_results[0]["train"][0].items() if isinstance(v, (int, float))] if raw_results else []
+    rows = []
+    for item in raw_results:
+        row = flatten_result(0, item["params"], item["report"], item["output_dir"])
+        # Full-period metrics include the test window: keep them under full_* so nothing ranks on them.
+        for key in list(item["report"]["metrics"]):
+            row.pop(key, None)
+            row[f"full_{key}"] = item["report"]["metrics"][key]
+        for key in metric_keys:
+            row[f"train_{key}"] = mean_metric(item["train"], key)
+            row[f"test_{key}"] = mean_metric(item["test"], key)
+        rows.append(row)
+
+    def train_objective_for(prefix_metrics: dict[str, Any]) -> dict[str, Any]:
+        return {**objective, "primary_metric": f"train_{metric}",
+                "tie_breakers": [{**b, "metric": f"train_{b['metric']}"} for b in objective.get("tie_breakers", [])]}
+
+    if metric not in metric_keys:
+        raise ValueError(f"objective metric {metric} is not a numeric backtest metric")
+    train_objective = train_objective_for({})
+    rows.sort(key=lambda row: sort_key(row, train_objective))
     for index, row in enumerate(rows, start=1):
         row["rank"] = index
 
+    # Walk-forward: choose the best parameters on each fold's own train window and score them on
+    # that fold's test window only — the honest out-of-sample estimate.
+    fold_selection = []
+    for fold, window in enumerate(windows):
+        candidates = [
+            {"params": item["params"], f"train_{metric}": item["train"][fold].get(metric),
+             **{f"train_{b['metric']}": item["train"][fold].get(b["metric"]) for b in objective.get("tie_breakers", [])},
+             "test": item["test"][fold]}
+            for item in raw_results
+        ]
+        candidates.sort(key=lambda c: sort_key(c, train_objective))
+        chosen = candidates[0]
+        fold_selection.append({**window, "fold": fold + 1, "params": chosen["params"],
+                               f"train_{metric}": chosen[f"train_{metric}"], f"test_{metric}": chosen["test"].get(metric)})
+
+    test_values = [row.get(f"test_{metric}") for row in rows]
+    known = sorted(v for v in test_values if v is not None)
+    median_test = known[len(known) // 2] if known else None
+    best = rows[0] if rows else None
+    validation_summary = {
+        **validation,
+        "windows": windows,
+        "ranked_on": train_objective["primary_metric"],
+        "train_test_rank_correlation": spearman([r.get(f"train_{metric}") for r in rows], test_values),
+        "fold_selection": fold_selection,
+        "out_of_sample_mean": (round(sum(f[f"test_{metric}"] for f in fold_selection if f[f"test_{metric}"] is not None)
+                                     / max(1, sum(1 for f in fold_selection if f[f"test_{metric}"] is not None)), 6)
+                               if fold_selection else None),
+        "best_test_value": best.get(f"test_{metric}") if best else None,
+        "median_test_value": median_test,
+        "overfit_warning": bool(best and median_test is not None and best.get(f"test_{metric}") is not None
+                                and best[f"test_{metric}"] < median_test),
+        "note": "Ranking uses train windows only (full_* columns include the test window and are for reference). "
+                "out_of_sample_mean scores, per fold, the parameters chosen on that fold's train window. A low or "
+                "negative train/test rank correlation means the in-sample ranking does not carry over.",
+    }
     summary = {
         "optimization_id": config["optimization_id"],
         "name": config["name"],
-        "objective": config["objective"],
+        "objective": objective,
         "candidate_count": len(rows),
-        "best": rows[0] if rows else None,
+        "validation": validation_summary,
+        "best": best,
         "results": rows,
     }
     write_json(output_dir / "summary.json", summary)

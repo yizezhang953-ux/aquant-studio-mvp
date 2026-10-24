@@ -11,6 +11,10 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backtest_module"))
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from market_rules_module import market_rules as mr  # noqa: E402
 
 from backtest_engine import (  # noqa: E402
     Bar,
@@ -120,9 +124,10 @@ def create_order(
     )
 
 
-def create_fill(sequence: int, order: Order, fee_rate: float) -> Fill:
+def create_fill(sequence: int, order: Order, fee_rate: float, fee: float | None = None) -> Fill:
+    """``fee`` (from market rules) wins over the legacy flat ``fee_rate``."""
     amount = order.quantity * order.price
-    fee = amount * fee_rate
+    fee = amount * fee_rate if fee is None else fee
     return Fill(
         fill_id=f"FIL-{sequence:04d}",
         order_id=order.order_id,
@@ -142,8 +147,13 @@ def run_paper_trading(config: dict[str, Any]) -> dict[str, Any]:
     if not bars:
         raise ValueError("no bars available for paper trading simulation")
 
-    symbol = strategy["universe"]["symbols"][0]
-    cache = build_series_cache(bars)
+    symbol = mr.normalize_symbol(strategy["universe"]["symbols"][0])
+    rules = mr.load_rules()
+    market, market_rule = mr.get_market_rule(rules, symbol, strategy.get("market"))
+    if market_rule is None:
+        raise ValueError(f"symbol {symbol} cannot be traded in market {strategy.get('market')}")
+    lot = mr.lot_rule(market_rule, symbol)
+    cache = build_series_cache(bars, strategy.get("data", {}).get("adjustment", "none"))
     initial_cash = float(config["account"].get("initial_cash", strategy["position"]["initial_cash"]))
     cash = initial_cash
     position_qty = 0
@@ -157,7 +167,14 @@ def run_paper_trading(config: dict[str, Any]) -> dict[str, Any]:
     execution = strategy.get("execution", {})
     entry_mode = execution.get("entry_price", "current_close")
     exit_mode = execution.get("exit_price", "current_close")
-    fee_rate = float(execution.get("fee_rate", 0))
+    fee_rate = float(execution.get("fee_rate", 0) or 0)
+    fee_overrides = {"commission_rate": execution.get("commission_rate", execution.get("fee_rate")),
+                     "min_commission": execution.get("min_commission")}
+
+    def market_fee(side: str, amount: float, trade_time: str) -> float:
+        # Fees in the quote currency; this replay keeps the account in the quote currency.
+        return mr.calculate_fee_breakdown(rules, symbol, side, amount, market, trade_time[:10], fee_overrides).total_fee
+
     slippage_rate = float(execution.get("slippage_rate", 0))
     risk = strategy["risk"]
 
@@ -203,7 +220,7 @@ def run_paper_trading(config: dict[str, Any]) -> dict[str, Any]:
                     order_seq += 1
                     order = create_order(order_seq, bars[exec_index].trade_time, symbol, "sell", position_qty, price, exit_reason)
                     fill_seq += 1
-                    fill = create_fill(fill_seq, order, fee_rate)
+                    fill = create_fill(fill_seq, order, fee_rate, market_fee("sell", position_qty * price, order.trade_time))
                     cash += fill.amount - fill.fee
                     position_qty = 0
                     orders.append(order)
@@ -226,12 +243,13 @@ def run_paper_trading(config: dict[str, Any]) -> dict[str, Any]:
             if priced:
                 price, exec_index = priced
                 target_cash = min(cash * order_size_value, initial_cash * max_position_pct)
-                quantity = int(target_cash / (price * (1 + fee_rate)))
+                est_rate = mr.estimated_fee_rate(rules, symbol, "buy", market, bar.trade_time[:10], fee_overrides)
+                quantity = mr.round_buy_quantity(lot, target_cash / (price * (1 + est_rate)))
                 if quantity <= 0:
-                    events.append(make_event(bar.trade_time, "order_rejected", "quantity is zero", {"target_cash": target_cash, "price": price}))
+                    events.append(make_event(bar.trade_time, "order_rejected", f"below one lot ({lot.buy_min_qty} shares)", {"target_cash": target_cash, "price": price}))
                 else:
                     order_cost = quantity * price
-                    fee = order_cost * fee_rate
+                    fee = market_fee("buy", order_cost, bars[exec_index].trade_time)
                     if config.get("risk_controls", {}).get("reject_order_when_cash_insufficient", True) and order_cost + fee > cash:
                         order_seq += 1
                         order = create_order(order_seq, bars[exec_index].trade_time, symbol, "buy", quantity, price, "entry_rule", "rejected")
@@ -241,7 +259,7 @@ def run_paper_trading(config: dict[str, Any]) -> dict[str, Any]:
                         order_seq += 1
                         order = create_order(order_seq, bars[exec_index].trade_time, symbol, "buy", quantity, price, "entry_rule")
                         fill_seq += 1
-                        fill = create_fill(fill_seq, order, fee_rate)
+                        fill = create_fill(fill_seq, order, fee_rate, fee)
                         cash -= fill.amount + fill.fee
                         position_qty += quantity
                         entry_price = price

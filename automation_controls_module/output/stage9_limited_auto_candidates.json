@@ -1,0 +1,33 @@
+{
+  "ok": true,
+  "mode": "limited_auto_guard",
+  "live_submission_enabled": false,
+  "generated_at": "2026-10-24T00:55:54+00:00",
+  "candidate_orders": [
+    {
+      "client_order_id": "SHADOW-HK-BUY-0001-APPROVED",
+      "strategy_id": "manual_confirmed_shadow_order",
+      "symbol": "00700.HK",
+      "side": "buy",
+      "order_type": "limit",
+      "quantity": 100,
+      "estimated_price": 380.0,
+      "reason": "manual_confirmed_shadow_trade",
+      "source": "manual_confirm_test",
+      "manual_approval": {
+        "approval_id": "APPROVAL-0001",
+        "reviewed_by": "demo_operator",
+        "reviewed_at": "2026-07-19T12:05:00+00:00",
+        "review_note": "Demo approval for shadow trading workflow only."
+      },
+      "automation_mode": "limited_auto_candidate",
+      "automation_checked_at": "2026-10-24T00:55:54+00:00",
+      "estimated_order_value": 38000.0
+    }
+  ],
+  "rejected_orders": [],
+  "usage": {
+    "candidate_count": 1,
+    "candidate_value": 38000.0
+  }
+}

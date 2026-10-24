@@ -4,16 +4,35 @@ import argparse
 import json
 import re
 import sqlite3
+import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from market_rules_module.market_rules import get_market_rule, load_rules, normalize_market, normalize_symbol  # noqa: E402
+
+
+SUPPORTED_MARKETS = {"a_share", "hk_stock", "hk_connect"}
+SYMBOL_HINT = {
+    "a_share": "6-digit code + .SH / .SZ / .BJ, e.g. 600519.SH",
+    "hk_stock": "5-digit code + .HK, e.g. 00700.HK",
+    "hk_connect": "5-digit code + .HK, e.g. 00700.HK (traded via 港股通)",
+}
+SUPPORTED_EXECUTION_MODES = {"next_open", "current_close"}
+MACD_OUTPUTS = {"macd", "signal", "hist"}
+BOLL_OUTPUTS = {"upper", "middle", "lower"}
+CoverageFn = Callable[[str, str, str, str], tuple[int, str | None, str | None]]
 
 
 SUPPORTED_INDICATORS = {"MA", "EMA", "MACD", "RSI", "BOLL", "VOLUME_MA", "RETURN", "VOLATILITY"}
 SUPPORTED_OPERATORS = {"gt", "lt", "eq", "gte", "lte", "cross_above", "cross_below"}
 SUPPORTED_FREQUENCIES = {"1d", "60m", "30m", "15m"}
 SUPPORTED_PRICE_FIELDS = {"open", "high", "low", "close", "volume", "amount"}
-SYMBOL_PATTERN = re.compile(r"^[0-9]{6}\.(SH|SZ)$")
+SYMBOL_PATTERN = re.compile(r"^[0-9]{6}\.(SH|SZ|BJ)$|^[0-9]{5}\.HK$")
 
 
 @dataclass
@@ -30,7 +49,10 @@ def load_strategy(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def validate_strategy(strategy: dict[str, Any], db_path: Path | None = None) -> ValidationResult:
+def validate_strategy(
+    strategy: dict[str, Any], db_path: Path | None = None, coverage: CoverageFn | None = None
+) -> ValidationResult:
+    """Validate the DSL. Data coverage is checked against ``coverage`` (callable) or ``db_path``."""
     errors: list[str] = []
     warnings: list[str] = []
 
@@ -50,18 +72,21 @@ def validate_strategy(strategy: dict[str, Any], db_path: Path | None = None) -> 
 
     if strategy["schema_version"] != "1.0":
         errors.append("schema_version must be 1.0")
-    if strategy["market"] != "a_share":
-        errors.append("market must be a_share for MVP")
+    market = normalize_market(strategy["market"])
+    if market not in SUPPORTED_MARKETS:
+        errors.append("market must be one of a_share, hk_stock, hk_connect (港股通)")
+        market = None
 
-    validate_universe(strategy["universe"], errors)
+    validate_universe(strategy["universe"], market, errors)
     validate_data(strategy["data"], errors)
     validate_rule_group("entry", strategy["entry"], errors)
     validate_rule_group("exit", strategy["exit"], errors)
     validate_position(strategy["position"], errors)
     validate_risk(strategy["risk"], warnings, errors)
+    validate_execution(strategy.get("execution", {}), warnings, errors)
 
-    if not errors and db_path:
-        validate_data_coverage(strategy, db_path, warnings, errors)
+    if not errors and (coverage or db_path):
+        validate_data_coverage(strategy, db_path, warnings, errors, coverage)
 
     return ValidationResult(not errors, errors, warnings)
 
@@ -71,16 +96,19 @@ def require(obj: dict[str, Any], key: str, errors: list[str]) -> None:
         errors.append(f"missing required field: {key}")
 
 
-def validate_universe(universe: dict[str, Any], errors: list[str]) -> None:
+def validate_universe(universe: dict[str, Any], market: str | None, errors: list[str]) -> None:
     if universe.get("type") != "single":
         errors.append("universe.type must be single in MVP")
     symbols = universe.get("symbols")
     if not isinstance(symbols, list) or len(symbols) != 1:
-        errors.append("universe.symbols must contain exactly one A-share symbol")
+        errors.append("universe.symbols must contain exactly one symbol")
         return
     symbol = symbols[0]
-    if not isinstance(symbol, str) or not SYMBOL_PATTERN.match(symbol):
-        errors.append(f"invalid A-share symbol: {symbol}")
+    if not isinstance(symbol, str) or not SYMBOL_PATTERN.match(normalize_symbol(symbol)):
+        errors.append(f"invalid symbol: {symbol} (expected {SYMBOL_HINT.get(market or 'a_share')})")
+        return
+    if market and get_market_rule(load_rules(), normalize_symbol(symbol), market)[0] is None:
+        errors.append(f"symbol {symbol} cannot be traded in market {market} ({SYMBOL_HINT[market]})")
 
 
 def validate_data(data: dict[str, Any], errors: list[str]) -> None:
@@ -157,6 +185,10 @@ def validate_indicator_params(path: str, name: str, params: dict[str, Any], erro
             value = params.get(key)
             if value is not None and (not isinstance(value, (int, float)) or value <= 0):
                 errors.append(f"{path}.params.{key} must be positive for MACD")
+        if params.get("output", "macd") not in MACD_OUTPUTS:
+            errors.append(f"{path}.params.output must be one of {sorted(MACD_OUTPUTS)} for MACD")
+        if params.get("field", "close") not in SUPPORTED_PRICE_FIELDS:
+            errors.append(f"{path}.params.field is unsupported: {params.get('field')}")
     if name == "BOLL":
         period = params.get("period")
         std = params.get("std")
@@ -164,6 +196,10 @@ def validate_indicator_params(path: str, name: str, params: dict[str, Any], erro
             errors.append(f"{path}.params.period must be positive for BOLL")
         if std is not None and (not isinstance(std, (int, float)) or std <= 0):
             errors.append(f"{path}.params.std must be positive for BOLL")
+        if params.get("output", "middle") not in BOLL_OUTPUTS:
+            errors.append(f"{path}.params.output must be one of {sorted(BOLL_OUTPUTS)} for BOLL")
+        if params.get("field", "close") not in SUPPORTED_PRICE_FIELDS:
+            errors.append(f"{path}.params.field is unsupported: {params.get('field')}")
 
 
 def validate_position(position: dict[str, Any], errors: list[str]) -> None:
@@ -197,30 +233,62 @@ def validate_risk(risk: dict[str, Any], warnings: list[str], errors: list[str]) 
         errors.append("risk.max_holding_bars must be a positive integer or null")
 
 
-def validate_data_coverage(strategy: dict[str, Any], db_path: Path, warnings: list[str], errors: list[str]) -> None:
-    symbol = strategy["universe"]["symbols"][0]
+def validate_execution(execution: dict[str, Any], warnings: list[str], errors: list[str]) -> None:
+    for key in ("entry_price", "exit_price"):
+        mode = execution.get(key, "next_open")
+        if mode not in SUPPORTED_EXECUTION_MODES:
+            errors.append(f"execution.{key} must be next_open or current_close")
+        elif mode == "current_close":
+            warnings.append(f"execution.{key}=current_close fills at the signal bar's close (closing-auction assumption)")
+    for key in ("fee_rate", "commission_rate", "min_commission", "slippage_rate", "fx_spread", "fx_rate"):
+        value = execution.get(key)
+        if value is not None and (not isinstance(value, (int, float)) or value < 0):
+            errors.append(f"execution.{key} must be a non-negative number")
+    if execution.get("fee_rate") is not None and execution.get("commission_rate") is None:
+        warnings.append("execution.fee_rate is treated as the broker commission rate; stamp duty and exchange fees come from market rules")
+
+
+def coverage_from_sqlite(db_path: Path) -> CoverageFn:
+    def coverage(symbol: str, frequency: str, start_date: str, end_date: str) -> tuple[int, str | None, str | None]:
+        with sqlite3.connect(db_path) as conn:
+            row = conn.execute(
+                """
+                SELECT COUNT(*) AS rows, MIN(trade_time) AS start_time, MAX(trade_time) AS end_time
+                FROM bars
+                WHERE symbol = ? AND frequency = ? AND trade_time >= ? AND trade_time <= ?
+                """,
+                (symbol, frequency, start_date, end_date if len(end_date) > 10 else f"{end_date} 23:59:59"),
+            ).fetchone()
+        return int(row[0]), row[1], row[2]
+
+    return coverage
+
+
+def validate_data_coverage(
+    strategy: dict[str, Any],
+    db_path: Path | None,
+    warnings: list[str],
+    errors: list[str],
+    coverage: CoverageFn | None = None,
+) -> None:
+    symbol = normalize_symbol(strategy["universe"]["symbols"][0])
     frequency = strategy["data"]["frequency"]
     start_date = strategy["data"]["start_date"]
     end_date = strategy["data"]["end_date"]
 
-    if not db_path.exists():
-        warnings.append(f"data coverage skipped; database does not exist: {db_path}")
-        return
+    if coverage is None:
+        if db_path is None or not Path(db_path).exists():
+            warnings.append(f"data coverage skipped; database does not exist: {db_path}")
+            return
+        coverage = coverage_from_sqlite(Path(db_path))
 
-    with sqlite3.connect(db_path) as conn:
-        row = conn.execute(
-            """
-            SELECT COUNT(*) AS rows, MIN(trade_time) AS start_time, MAX(trade_time) AS end_time
-            FROM bars
-            WHERE symbol = ? AND frequency = ? AND trade_time >= ? AND trade_time <= ?
-            """,
-            (symbol, frequency, start_date, end_date),
-        ).fetchone()
-    rows, start_time, end_time = row
+    rows, start_time, end_time = coverage(symbol, frequency, start_date, end_date)
     if rows == 0:
         errors.append(f"no market data found for {symbol} {frequency} from {start_date} to {end_date}")
     else:
         warnings.append(f"data coverage: {rows} bars from {start_time} to {end_time}")
+        if rows < 120:
+            warnings.append(f"only {rows} bars available; backtest results will not be statistically meaningful")
 
 
 def main() -> None:
