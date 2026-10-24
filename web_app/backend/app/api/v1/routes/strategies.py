@@ -29,8 +29,8 @@ router = APIRouter()
 
 
 @router.post("/validate", response_model=StrategyValidationResponse)
-def validate_strategy(request: StrategyValidationRequest) -> StrategyValidationResponse:
-    result = validate_strategy_payload(request.strategy)
+def validate_strategy(request: StrategyValidationRequest, db: Session = Depends(get_db)) -> StrategyValidationResponse:
+    result = validate_strategy_payload(request.strategy, db)
     return StrategyValidationResponse(**result)
 
 

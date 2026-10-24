@@ -6,21 +6,37 @@
   "market": "a_share",
   "universe": {
     "type": "single",
-    "symbols": ["600519.SH"]
+    "symbols": [
+      "600519.SH"
+    ]
   },
   "data": {
     "frequency": "1d",
     "adjustment": "forward",
-    "start_date": "2024-01-02",
-    "end_date": "2024-01-08"
+    "start_date": "2018-01-01",
+    "end_date": "2025-12-31"
   },
   "entry": {
     "logic": "all",
     "conditions": [
       {
-        "left": { "type": "indicator", "name": "MA", "params": { "period": 5, "field": "close" } },
+        "left": {
+          "type": "indicator",
+          "name": "MA",
+          "params": {
+            "period": 5,
+            "field": "close"
+          }
+        },
         "operator": "cross_above",
-        "right": { "type": "indicator", "name": "MA", "params": { "period": 20, "field": "close" } }
+        "right": {
+          "type": "indicator",
+          "name": "MA",
+          "params": {
+            "period": 20,
+            "field": "close"
+          }
+        }
       }
     ]
   },
@@ -28,14 +44,28 @@
     "logic": "any",
     "conditions": [
       {
-        "left": { "type": "indicator", "name": "MA", "params": { "period": 5, "field": "close" } },
+        "left": {
+          "type": "indicator",
+          "name": "MA",
+          "params": {
+            "period": 5,
+            "field": "close"
+          }
+        },
         "operator": "cross_below",
-        "right": { "type": "indicator", "name": "MA", "params": { "period": 20, "field": "close" } }
+        "right": {
+          "type": "indicator",
+          "name": "MA",
+          "params": {
+            "period": 20,
+            "field": "close"
+          }
+        }
       }
     ]
   },
   "position": {
-    "initial_cash": 100000,
+    "initial_cash": 1000000,
     "order_size_type": "cash_pct",
     "order_size_value": 0.3,
     "max_position_pct": 0.8
@@ -43,7 +73,7 @@
   "execution": {
     "entry_price": "next_open",
     "exit_price": "next_open",
-    "fee_rate": 0.0003,
+    "commission_rate": 0.00025,
     "slippage_rate": 0.0005
   },
   "risk": {
@@ -56,6 +86,6 @@
     "template_id": "tpl_double_ma_trend",
     "created_by": "template_library",
     "created_at": "2026-06-20T00:00:00Z",
-    "updated_at": "2026-06-20T00:00:00Z"
+    "updated_at": "2026-10-24T00:00:00Z"
   }
 }

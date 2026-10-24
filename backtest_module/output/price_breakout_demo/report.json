@@ -2,79 +2,99 @@
   "strategy_id": "strategy_price_breakout_demo_600519",
   "strategy_name": "价格突破演示策略",
   "symbol": "600519.SH",
+  "market": "a_share",
+  "currency": "CNY",
+  "quote_currency": "CNY",
   "frequency": "1d",
   "start_date": "2024-01-02",
   "end_date": "2024-01-08",
+  "adjustment": "forward",
+  "lot_size": 100,
+  "lot_source": "board",
   "metrics": {
     "initial_cash": 100000.0,
-    "final_equity": 99721.522285,
-    "total_return": -0.002785,
-    "annualized_return": -0.131119,
-    "max_drawdown": 0.005415,
-    "win_rate": 0.0,
-    "profit_factor": 0.0,
-    "trade_count": 1,
-    "average_holding_bars": 3.0,
-    "total_fees": 17.091665,
-    "sharpe": -2.912563
+    "final_equity": 100000.0,
+    "total_return": 0.0,
+    "annualized_return": null,
+    "max_drawdown": 0.0,
+    "win_rate": 0,
+    "profit_factor": null,
+    "trade_count": 0,
+    "average_holding_bars": 0,
+    "total_fees": 0.0,
+    "sharpe": null,
+    "bar_count": 5,
+    "calendar_days": 6,
+    "periods_per_year": 242.0,
+    "dividends_net": 0.0,
+    "dividend_tax": 0.0,
+    "benchmark_return": -0.013551,
+    "excess_return": 0.013551,
+    "exposure_pct": 0.0,
+    "blocked_orders": {
+      "insufficient_cash_for_one_lot": 2
+    },
+    "currency": "CNY"
   },
-  "trades": [
+  "warnings": [
+    "current_close execution fills at the signal bar's close (assumes a closing-auction order)",
+    "sample shorter than 60 calendar days; annualized_return not reported",
+    "only 5 bars in the backtest window; results are not statistically meaningful"
+  ],
+  "trades": [],
+  "open_position": null,
+  "blocked_orders": [
     {
-      "symbol": "600519.SH",
-      "entry_time": "2024-01-02",
-      "exit_time": "2024-01-04",
-      "entry_price": 1683.34125,
-      "exit_price": 1667.9656,
-      "quantity": 17,
-      "gross_pnl": -261.38605,
-      "net_pnl": -278.477715,
-      "return_pct": -0.009728,
-      "entry_fee": 8.58504,
-      "exit_fee": 8.506625,
-      "exit_reason": "exit_rule",
-      "holding_bars": 3
+      "trade_time": "2024-01-02",
+      "side": "buy",
+      "reason": "insufficient_cash_for_one_lot"
+    },
+    {
+      "trade_time": "2024-01-03",
+      "side": "buy",
+      "reason": "insufficient_cash_for_one_lot"
     }
   ],
   "equity_curve": [
     {
       "trade_time": "2024-01-02",
-      "cash": 71374.61371,
-      "position_qty": 17,
+      "cash": 100000.0,
+      "position_qty": 0,
       "close": 1682.5,
-      "equity": 99977.11371,
-      "drawdown_pct": 0.000229
+      "equity": 100000.0,
+      "drawdown_pct": 0.0
     },
     {
       "trade_time": "2024-01-03",
-      "cash": 71374.61371,
-      "position_qty": 17,
+      "cash": 100000.0,
+      "position_qty": 0,
       "close": 1699.4,
-      "equity": 100264.41371,
+      "equity": 100000.0,
       "drawdown_pct": 0.0
     },
     {
       "trade_time": "2024-01-04",
-      "cash": 99721.522285,
+      "cash": 100000.0,
       "position_qty": 0,
       "close": 1668.8,
-      "equity": 99721.522285,
-      "drawdown_pct": 0.005415
+      "equity": 100000.0,
+      "drawdown_pct": 0.0
     },
     {
       "trade_time": "2024-01-05",
-      "cash": 99721.522285,
+      "cash": 100000.0,
       "position_qty": 0,
       "close": 1679.2,
-      "equity": 99721.522285,
-      "drawdown_pct": 0.005415
+      "equity": 100000.0,
+      "drawdown_pct": 0.0
     },
     {
       "trade_time": "2024-01-08",
-      "cash": 99721.522285,
+      "cash": 100000.0,
       "position_qty": 0,
       "close": 1659.7,
-      "equity": 99721.522285,
-      "drawdown_pct": 0.005415
+      "equity": 100000.0,
+      "drawdown_pct": 0.0
     }
   ]
 }

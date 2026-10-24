@@ -1,37 +1,102 @@
 {
-  "schema_version": "market_rules.v1",
-  "updated_at": "2026-07-19",
+  "schema_version": "market_rules.v2",
+  "updated_at": "2026-10-24",
   "source_notes": [
-    "A-share fee defaults are configurable and should be confirmed with broker before live use.",
-    "Hong Kong securities fees follow HKEX published fee categories; brokerage remains broker-configurable.",
-    "Hong Kong stock board lots vary by instrument and must be maintained per symbol."
+    "Statutory fees (stamp duty, exchange/levy fees) follow SSE/SZSE/HKEX published schedules; brokerage is broker-specific and must be confirmed with your broker.",
+    "fee_model values are rates on the gross traded amount in the quote currency. 'history' entries override fee_model for trade dates inside [from, until].",
+    "hk_connect = Southbound Stock Connect (港股通): HK-listed stocks bought from a mainland account. Quoted in HKD, settled in CNY.",
+    "HK board lots vary by stock. Keep them in instruments.lot_size (data_module/fetch_market_data.py --board-lots fills them from the HKEX list) or in board_lots below.",
+    "Dividend tax defaults are for PRC-resident individuals and are simplifications; override per symbol in dividend_tax.overrides."
   ],
   "markets": {
     "a_share": {
       "name": "China A-share",
+      "name_zh": "A股",
+      "symbol_pattern": "^[0-9]{6}\\.(SH|SZ|BJ)$",
+      "quote_currency": "CNY",
       "currency": "CNY",
-      "symbol_pattern": "^[0-9]{6}\\.(SH|SZ)$",
+      "calendar": "XSHG",
+      "trading_days_per_year": 242,
+      "session_minutes": 240,
       "allowed_order_types": ["market", "limit"],
-      "buy_lot_size": 100,
-      "sell_lot_size": 1,
-      "allow_odd_lot_sell": true,
       "t_plus_one": true,
+      "allow_odd_lot_buy": false,
+      "allow_odd_lot_sell": true,
+      "boards": [
+        {
+          "board": "star",
+          "name_zh": "科创板",
+          "pattern": "^688[0-9]{3}\\.SH$|^689[0-9]{3}\\.SH$",
+          "price_limit_pct": 0.20,
+          "st_price_limit_pct": 0.20,
+          "buy_min_qty": 200,
+          "buy_step": 1
+        },
+        {
+          "board": "chinext",
+          "name_zh": "创业板",
+          "pattern": "^30[0-9]{4}\\.SZ$",
+          "price_limit_pct": 0.20,
+          "st_price_limit_pct": 0.20,
+          "price_limit_history": [{"until": "2020-08-21", "price_limit_pct": 0.10, "st_price_limit_pct": 0.05}],
+          "buy_min_qty": 100,
+          "buy_step": 100
+        },
+        {
+          "board": "bse",
+          "name_zh": "北交所",
+          "pattern": "\\.BJ$",
+          "price_limit_pct": 0.30,
+          "st_price_limit_pct": 0.30,
+          "buy_min_qty": 100,
+          "buy_step": 1
+        },
+        {
+          "board": "main",
+          "name_zh": "主板",
+          "pattern": ".*",
+          "price_limit_pct": 0.10,
+          "st_price_limit_pct": 0.05,
+          "buy_min_qty": 100,
+          "buy_step": 100
+        }
+      ],
       "price_controls": {
         "daily_price_limit_required": true,
         "require_limit_fields": false
       },
       "fee_model": {
-        "commission_rate": 0.0003,
+        "commission_rate": 0.00025,
         "min_commission": 5.0,
         "transfer_fee_rate": 0.00001,
         "stamp_duty_sell_rate": 0.0005
+      },
+      "history": [
+        {"until": "2023-08-27", "fee_model": {"stamp_duty_sell_rate": 0.001}}
+      ],
+      "dividend_tax": {
+        "mode": "holding_period",
+        "tiers": [
+          {"max_days": 30, "rate": 0.20},
+          {"max_days": 365, "rate": 0.10},
+          {"max_days": null, "rate": 0.0}
+        ],
+        "overrides": {}
       }
     },
     "hk_stock": {
-      "name": "Hong Kong stock",
-      "currency": "HKD",
+      "name": "Hong Kong stock (direct HK account)",
+      "name_zh": "港股（香港券商账户）",
       "symbol_pattern": "^[0-9]{5}\\.HK$",
+      "quote_currency": "HKD",
+      "currency": "HKD",
+      "calendar": "XHKG",
+      "trading_days_per_year": 247,
+      "session_minutes": 330,
       "allowed_order_types": ["limit", "enhanced_limit", "special_limit", "at_auction", "at_auction_limit"],
+      "t_plus_one": false,
+      "allow_odd_lot_buy": false,
+      "allow_odd_lot_sell": true,
       "default_board_lot": 100,
       "board_lots": {
         "00700.HK": 100,
@@ -44,11 +109,63 @@
       },
       "fee_model": {
         "brokerage_rate": 0.0003,
+        "min_brokerage": 0.0,
         "sfc_transaction_levy_rate": 0.000027,
         "afrc_transaction_levy_rate": 0.0000015,
         "trading_fee_rate": 0.0000565,
-        "stamp_duty_rate": 0.001,
-        "transfer_deed_stamp_duty": 5.0
+        "settlement_fee_rate": 0.00002,
+        "min_settlement_fee": 2.0,
+        "max_settlement_fee": 100.0,
+        "stamp_duty_rate": 0.001
+      },
+      "history": [
+        {"from": "2021-08-01", "until": "2023-11-16", "fee_model": {"stamp_duty_rate": 0.0013}}
+      ],
+      "dividend_tax": {
+        "mode": "flat",
+        "rate": 0.0,
+        "overrides": {}
+      }
+    },
+    "hk_connect": {
+      "name": "Southbound Stock Connect",
+      "name_zh": "港股通",
+      "underlying_market": "hk_stock",
+      "symbol_pattern": "^[0-9]{5}\\.HK$",
+      "quote_currency": "HKD",
+      "currency": "CNY",
+      "calendar": "XHKG&XSHG",
+      "trading_days_per_year": 238,
+      "session_minutes": 330,
+      "allowed_order_types": ["limit", "enhanced_limit", "at_auction_limit"],
+      "t_plus_one": false,
+      "allow_odd_lot_buy": false,
+      "allow_odd_lot_sell": true,
+      "eligible_symbols": [],
+      "price_controls": {
+        "require_limit_fields": false
+      },
+      "fx": {
+        "pair": "HKDCNY",
+        "default_rate": 0.92,
+        "spread": 0.0
+      },
+      "fee_model": {
+        "commission_rate": 0.00025,
+        "min_commission": 5.0,
+        "sfc_transaction_levy_rate": 0.000027,
+        "afrc_transaction_levy_rate": 0.0000015,
+        "trading_fee_rate": 0.0000565,
+        "settlement_fee_rate": 0.00002,
+        "stamp_duty_rate": 0.001
+      },
+      "history": [
+        {"from": "2021-08-01", "until": "2023-11-16", "fee_model": {"stamp_duty_rate": 0.0013}}
+      ],
+      "dividend_tax": {
+        "mode": "flat",
+        "rate": 0.20,
+        "overrides": {}
       }
     }
   }

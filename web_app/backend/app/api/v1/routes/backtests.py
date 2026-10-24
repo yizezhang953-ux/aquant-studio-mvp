@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
-from app.models import BacktestRun, User
+from app.models import BacktestRun, User, UserStrategy
 from app.schemas.backtest import (
     BacktestListResponse,
     BacktestRunRequest,
@@ -11,7 +12,7 @@ from app.schemas.backtest import (
 )
 from app.services.auth_service import get_current_user
 from app.services.backtest_service import (
-    get_backtest_report,
+    BacktestInputError,
     get_user_backtest,
     list_user_backtests,
     persist_backtest_report,
@@ -25,24 +26,29 @@ router = APIRouter()
 @router.post("", response_model=BacktestRunResponse)
 def create_backtest(
     request: BacktestRunRequest,
-    authorization: str | None = Header(default=None),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> BacktestRunResponse:
-    result = run_backtest_payload(request.strategy)
-    report = get_backtest_report(result["backtest_id"])
-    if report is not None and authorization:
-        try:
-            current_user = get_current_user(authorization=authorization, db=db)
-            persist_backtest_report(
-                db,
-                result["backtest_id"],
-                report,
-                owner_id=current_user.id,
-                source_strategy_id=request.source_strategy_id,
-            )
-        except HTTPException:
-            pass
-    return BacktestRunResponse(**result)
+    """Run a backtest on the web database's market data and store it for the current user."""
+    if request.source_strategy_id is not None:
+        owned = db.scalar(select(UserStrategy).where(UserStrategy.strategy_id == request.source_strategy_id))
+        if owned is None or (owned.owner_id is not None and owned.owner_id != current_user.id):
+            raise HTTPException(status_code=404, detail="source strategy not found")
+    try:
+        report = run_backtest_payload(db, request.strategy)
+    except BacktestInputError as exc:
+        raise HTTPException(status_code=400, detail={"message": str(exc), "errors": exc.errors}) from exc
+    backtest_id = report["backtest_id"]
+    persist_backtest_report(db, backtest_id, report, owner_id=current_user.id, source_strategy_id=request.source_strategy_id)
+    return BacktestRunResponse(
+        backtest_id=backtest_id,
+        status="completed",
+        metrics=report["metrics"],
+        warnings=report.get("warnings", []),
+        market=report.get("market"),
+        currency=report.get("currency"),
+        report_path=f"/backtests/{backtest_id}",
+    )
 
 
 @router.get("", response_model=BacktestListResponse)
@@ -66,19 +72,24 @@ def get_my_backtest(
 
 
 @router.get("/{backtest_id}")
-def get_backtest(backtest_id: str) -> dict:
-    report = get_backtest_report(backtest_id)
-    if report is None:
+def get_backtest(
+    backtest_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    run = get_user_backtest(db, current_user.id, backtest_id)
+    if run is None:
         raise HTTPException(status_code=404, detail="backtest not found")
-    return report
+    return run.report_json
 
 
 @router.get("/{backtest_id}/report")
-def get_backtest_report_endpoint(backtest_id: str) -> dict:
-    report = get_backtest_report(backtest_id)
-    if report is None:
-        raise HTTPException(status_code=404, detail="backtest report not found")
-    return report
+def get_backtest_report_endpoint(
+    backtest_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    return get_backtest(backtest_id, current_user, db)
 
 
 def _summary(run: BacktestRun) -> BacktestSummary:

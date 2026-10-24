@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -19,15 +19,16 @@ router = APIRouter()
 @router.post("/register", response_model=AuthResponse)
 def register(request: RegisterRequest, db: Session = Depends(get_db)) -> AuthResponse:
     user = create_user(db, request.email, request.password, request.display_name)
-    session = create_session(db, user)
-    return _auth_response(user, session.token, session.expires_at)
+    session, token = create_session(db, user)
+    return _auth_response(user, token, session.expires_at)
 
 
 @router.post("/login", response_model=AuthResponse)
-def login(request: LoginRequest, db: Session = Depends(get_db)) -> AuthResponse:
-    user = authenticate_user(db, request.email, request.password)
-    session = create_session(db, user)
-    return _auth_response(user, session.token, session.expires_at)
+def login(request: LoginRequest, http_request: Request, db: Session = Depends(get_db)) -> AuthResponse:
+    client = http_request.client.host if http_request.client else ""
+    user = authenticate_user(db, request.email, request.password, client)
+    session, token = create_session(db, user)
+    return _auth_response(user, token, session.expires_at)
 
 
 @router.get("/me", response_model=UserResponse)
@@ -58,5 +59,6 @@ def _user_response(user: User) -> UserResponse:
         email=user.email,
         display_name=user.display_name,
         is_active=user.is_active,
+        is_admin=bool(user.is_admin),
         created_at=user.created_at,
     )

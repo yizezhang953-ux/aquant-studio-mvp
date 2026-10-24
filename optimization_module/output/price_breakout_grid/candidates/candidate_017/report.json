@@ -2,22 +2,43 @@
   "strategy_id": "template_price_breakout_entry_threshold_1670_exit_threshold_1680_order_size_0_3",
   "strategy_name": "价格突破策略",
   "symbol": "600519.SH",
+  "market": "a_share",
+  "currency": "CNY",
+  "quote_currency": "CNY",
   "frequency": "1d",
-  "start_date": "2024-01-02",
-  "end_date": "2024-01-08",
+  "start_date": "2018-01-01",
+  "end_date": "2025-12-31",
+  "adjustment": "none",
+  "lot_size": 100,
+  "lot_source": "board",
   "metrics": {
-    "initial_cash": 100000.0,
-    "final_equity": 99344.613195,
-    "total_return": -0.006554,
-    "annualized_return": -0.282084,
-    "max_drawdown": 0.009174,
+    "initial_cash": 1000000.0,
+    "final_equity": 996005.21,
+    "total_return": -0.003995,
+    "annualized_return": null,
+    "max_drawdown": 0.005548,
     "win_rate": 0.0,
     "profit_factor": 0.0,
     "trade_count": 2,
     "average_holding_bars": 2.5,
-    "total_fees": 34.120105,
-    "sharpe": -6.84898
+    "total_fees": 340.28,
+    "sharpe": -6.843997,
+    "bar_count": 5,
+    "calendar_days": 6,
+    "periods_per_year": 242.0,
+    "dividends_net": 0.0,
+    "dividend_tax": 0.0,
+    "benchmark_return": -0.013551,
+    "excess_return": 0.009556,
+    "exposure_pct": 0.6,
+    "blocked_orders": {},
+    "currency": "CNY"
   },
+  "warnings": [
+    "current_close execution fills at the signal bar's close (assumes a closing-auction order)",
+    "sample shorter than 60 calendar days; annualized_return not reported",
+    "only 5 bars in the backtest window; results are not statistically meaningful"
+  ],
   "trades": [
     {
       "symbol": "600519.SH",
@@ -25,14 +46,19 @@
       "exit_time": "2024-01-04",
       "entry_price": 1683.34125,
       "exit_price": 1667.9656,
-      "quantity": 17,
-      "gross_pnl": -261.38605,
-      "net_pnl": -278.477715,
-      "return_pct": -0.009728,
-      "entry_fee": 8.58504,
-      "exit_fee": 8.506625,
+      "quantity": 100,
+      "gross_pnl": -1537.565,
+      "net_pnl": -1708.095,
+      "return_pct": -0.010144,
+      "entry_fee": 43.76,
+      "exit_fee": 126.77,
       "exit_reason": "exit_rule",
-      "holding_bars": 3
+      "holding_bars": 3,
+      "entry_quantity": 100,
+      "dividends_net": 0.0,
+      "dividend_tax": 0.0,
+      "entry_fx": 1.0,
+      "exit_fx": 1.0
     },
     {
       "symbol": "600519.SH",
@@ -40,56 +66,63 @@
       "exit_time": "2024-01-08",
       "entry_price": 1680.0396,
       "exit_price": 1658.87015,
-      "quantity": 17,
-      "gross_pnl": -359.88065,
-      "net_pnl": -376.90909,
-      "return_pct": -0.013193,
-      "entry_fee": 8.568202,
-      "exit_fee": 8.460238,
+      "quantity": 100,
+      "gross_pnl": -2116.945,
+      "net_pnl": -2286.695,
+      "return_pct": -0.013607,
+      "entry_fee": 43.68,
+      "exit_fee": 126.07,
       "exit_reason": "exit_rule",
-      "holding_bars": 2
+      "holding_bars": 2,
+      "entry_quantity": 100,
+      "dividends_net": 0.0,
+      "dividend_tax": 0.0,
+      "entry_fx": 1.0,
+      "exit_fx": 1.0
     }
   ],
+  "open_position": null,
+  "blocked_orders": [],
   "equity_curve": [
     {
       "trade_time": "2024-01-02",
-      "cash": 71374.61371,
-      "position_qty": 17,
+      "cash": 831622.115,
+      "position_qty": 100,
       "close": 1682.5,
-      "equity": 99977.11371,
-      "drawdown_pct": 0.000229
+      "equity": 999872.115,
+      "drawdown_pct": 0.000128
     },
     {
       "trade_time": "2024-01-03",
-      "cash": 71374.61371,
-      "position_qty": 17,
+      "cash": 831622.115,
+      "position_qty": 100,
       "close": 1699.4,
-      "equity": 100264.41371,
+      "equity": 1001562.115,
       "drawdown_pct": 0.0
     },
     {
       "trade_time": "2024-01-04",
-      "cash": 99721.522285,
+      "cash": 998291.905,
       "position_qty": 0,
       "close": 1668.8,
-      "equity": 99721.522285,
-      "drawdown_pct": 0.005415
+      "equity": 998291.905,
+      "drawdown_pct": 0.003265
     },
     {
       "trade_time": "2024-01-05",
-      "cash": 71152.280883,
-      "position_qty": 17,
+      "cash": 830244.265,
+      "position_qty": 100,
       "close": 1679.2,
-      "equity": 99698.680883,
-      "drawdown_pct": 0.005642
+      "equity": 998164.265,
+      "drawdown_pct": 0.003393
     },
     {
       "trade_time": "2024-01-08",
-      "cash": 99344.613195,
+      "cash": 996005.21,
       "position_qty": 0,
       "close": 1659.7,
-      "equity": 99344.613195,
-      "drawdown_pct": 0.009174
+      "equity": 996005.21,
+      "drawdown_pct": 0.005548
     }
   ]
 }

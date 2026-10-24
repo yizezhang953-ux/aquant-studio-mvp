@@ -1,16 +1,25 @@
 # AQuant Studio MVP
 
-AQuant Studio is an A-share quantitative strategy research platform MVP.
+AQuant Studio is a quantitative strategy research platform MVP for **China A-shares, Hong Kong stocks and Southbound Stock Connect (港股通)**.
+
+| `market` | Account | Rules applied in backtests |
+|---|---|---|
+| `a_share` | CNY | 100-share lots (STAR 200+), T+1, board price limits, stamp duty by date, minimum commission, holding-period dividend tax |
+| `hk_stock` | HKD | per-stock board lots, T+0, no daily limit, HK stamp duty and levies |
+| `hk_connect` | CNY | HK rules + daily HKD→CNY conversion, trades only when both HK and the mainland are open, 20% dividend withholding |
+
+See [CHANGES-v0.2-multi-market.md](CHANGES-v0.2-multi-market.md) for what changed in v0.2 (Chinese).
 
 It includes:
 
 - Product requirements and prototype
-- A-share sample market data module
+- Market data module (A-share + HK) with a free real-data loader (Tencent quotes, HKEX board lots, ECB HKD/CNY)
+- Market rules for A-share / HK / 港股通 (`market_rules_module`)
 - Strategy DSL and validator
 - Backtest engine
 - Strategy template library
 - Backtest visualization
-- Parameter optimization
+- Parameter optimization with out-of-sample validation (holdout / walk-forward)
 - Paper trading simulation
 - Sandbox trading gateway
 - Security and compliance checks
@@ -97,7 +106,23 @@ The online backend application work starts in:
 web_app/
 ```
 
-It contains a FastAPI backend skeleton and a React/Vite frontend skeleton.
+It contains a FastAPI backend (Alembic migrations, SQLite or PostgreSQL) and a React/Vite frontend. See [web_app/README.md](web_app/README.md).
+
+## Real Data
+
+The bundled sample database only has 5 A-share daily bars per symbol. Load real history on a machine with internet access:
+
+```bash
+python data_module/fetch_market_data.py --symbols 600519.SH 000001.SZ 00700.HK 00168.HK --start 2016-01-01 --board-lots --fx
+python backtest_module/backtest_engine.py template_module/templates/hk_connect_ma_trend.json --output-dir backtest_module/output/hk_connect_demo
+```
+
+## Tests
+
+```bash
+python -m pytest tests -q                    # market rules, engine, data sources, optimizer
+cd web_app/backend && python -m pytest -q    # API (set TEST_DATABASE_URL to run on PostgreSQL)
+```
 
 ## Run Demo Check
 

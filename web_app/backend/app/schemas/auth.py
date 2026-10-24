@@ -11,7 +11,7 @@ class RegisterRequest(BaseModel):
 
 class LoginRequest(BaseModel):
     email: str = Field(min_length=3, max_length=255, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
-    password: str
+    password: str = Field(min_length=1, max_length=128)
 
 
 class UserResponse(BaseModel):
@@ -19,6 +19,7 @@ class UserResponse(BaseModel):
     email: str
     display_name: str
     is_active: bool
+    is_admin: bool = False
     created_at: datetime | None = None
 
 

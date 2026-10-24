@@ -1,6 +1,6 @@
 {
-  "library_version": "1.0",
-  "market": "a_share",
+  "library_version": "2.0",
+  "market": "multi",
   "templates": [
     {
       "template_id": "tpl_double_ma_trend",
@@ -10,7 +10,8 @@
       "default_symbol": "600519.SH",
       "default_frequency": "1d",
       "file": "double_ma_trend.json",
-      "description": "短周期均线上穿长周期均线买入，下穿卖出，适合趋势跟随。"
+      "description": "短周期均线上穿长周期均线买入，下穿卖出，适合趋势跟随。",
+      "default_market": "a_share"
     },
     {
       "template_id": "tpl_rsi_reversal",
@@ -20,7 +21,8 @@
       "default_symbol": "000001.SZ",
       "default_frequency": "1d",
       "file": "rsi_reversal.json",
-      "description": "RSI 低位买入，高位卖出，适合观察超买超卖。"
+      "description": "RSI 低位买入，高位卖出，适合观察超买超卖。",
+      "default_market": "a_share"
     },
     {
       "template_id": "tpl_price_breakout",
@@ -30,7 +32,8 @@
       "default_symbol": "600519.SH",
       "default_frequency": "1d",
       "file": "price_breakout.json",
-      "description": "收盘价突破阈值买入，跌破阈值卖出，适合演示完整交易闭环。"
+      "description": "收盘价突破阈值买入，跌破阈值卖出，适合演示完整交易闭环。",
+      "default_market": "a_share"
     },
     {
       "template_id": "tpl_volume_breakout",
@@ -40,7 +43,8 @@
       "default_symbol": "000001.SZ",
       "default_frequency": "15m",
       "file": "volume_breakout.json",
-      "description": "价格上涨并伴随成交量放大时买入，适合短线突破观察。"
+      "description": "价格上涨并伴随成交量放大时买入，适合短线突破观察。",
+      "default_market": "a_share"
     },
     {
       "template_id": "tpl_return_momentum",
@@ -50,7 +54,35 @@
       "default_symbol": "300750.SZ",
       "default_frequency": "1d",
       "file": "return_momentum.json",
-      "description": "短期收益率转强时买入，转弱时卖出，适合动量研究。"
+      "description": "短期收益率转强时买入，转弱时卖出，适合动量研究。",
+      "default_market": "a_share"
+    },
+    {
+      "template_id": "tpl_hk_connect_ma_trend",
+      "name": "港股通双均线趋势策略",
+      "category": "trend",
+      "risk_level": "medium",
+      "default_market": "hk_connect",
+      "default_symbol": "00700.HK",
+      "default_frequency": "1d",
+      "file": "hk_connect_ma_trend.json",
+      "description": "人民币账户经港股通买卖港股：MA20/MA60 交叉，按每手股数、港股通交易日和汇率回测。"
+    },
+    {
+      "template_id": "tpl_hk_rsi_pullback",
+      "name": "港股 RSI 回调策略",
+      "category": "mean_reversion",
+      "risk_level": "medium",
+      "default_market": "hk_stock",
+      "default_symbol": "00005.HK",
+      "default_frequency": "1d",
+      "file": "hk_rsi_pullback.json",
+      "description": "港币账户直接交易港股：RSI 超卖买入、超买卖出，T+0、无涨跌停。"
     }
+  ],
+  "markets": [
+    "a_share",
+    "hk_stock",
+    "hk_connect"
   ]
 }

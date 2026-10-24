@@ -1,2 +1,2 @@
-symbol,entry_time,exit_time,entry_price,exit_price,quantity,gross_pnl,net_pnl,return_pct,entry_fee,exit_fee,exit_reason,holding_bars
-600519.SH,2024-01-03,2024-01-04,1700.2497,1667.9656,11,-355.1251,-366.24021,-0.019576,5.610824,5.504286,exit_rule,2
+symbol,entry_time,exit_time,entry_price,exit_price,quantity,gross_pnl,net_pnl,return_pct,entry_fee,exit_fee,exit_reason,holding_bars,entry_quantity,dividends_net,dividend_tax,entry_fx,exit_fx
+600519.SH,2024-01-03,2024-01-04,1700.2497,1667.9656,100,-3228.41,-3399.39,-0.019988,44.21,126.77,exit_rule,2,100,0.0,0.0,1.0,1.0

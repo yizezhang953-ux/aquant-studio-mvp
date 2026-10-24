@@ -3,18 +3,20 @@ services:
     name: aquant-studio-api
     runtime: python
     rootDir: web_app/backend
-    buildCommand: pip install -e .
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips=*
     healthCheckPath: /health
     envVars:
       - key: APP_ENV
         value: production
       - key: LIVE_TRADING_ENABLED
         value: false
-      - key: DATABASE_URL
+      - key: DATABASE_URL        # use a Render PostgreSQL database; the free filesystem is not persistent
         sync: false
-      - key: ALLOWED_ORIGINS
+      - key: ALLOWED_ORIGINS     # e.g. https://aquant-studio-web.onrender.com
         sync: false
+      - key: ALLOW_REGISTRATION  # set false once your account exists; grant admin via the Render shell:
+        value: true              #   python -m app.tasks.database_maintenance make-admin you@example.com
 
   - type: web
     name: aquant-studio-web
@@ -22,6 +24,10 @@ services:
     rootDir: web_app/frontend
     buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build
     staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
     envVars:
-      - key: VITE_API_BASE_URL
+      - key: VITE_API_BASE_URL   # e.g. https://aquant-studio-api.onrender.com/api/v1
         sync: false

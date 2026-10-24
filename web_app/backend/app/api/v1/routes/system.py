@@ -10,7 +10,7 @@ router = APIRouter()
 def get_system_info() -> SystemInfo:
     return SystemInfo(
         name="AQuant Studio",
-        market="a_share",
-        stage="web_app_stage_2_backend_api_mvp",
+        market="a_share,hk_stock,hk_connect",
+        stage="web_app_v0.2_multi_market",
         live_trading_status="blocked_for_live_trading",
     )

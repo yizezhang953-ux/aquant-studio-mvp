@@ -3,16 +3,19 @@ primary_region = "sin"
 
 [build]
   dockerfile = "web_app/deploy/frontend.Dockerfile"
+  [build.args]
+    # Public API URL baked into the static build.
+    VITE_API_BASE_URL = "https://aquant-studio-api.fly.dev/api/v1"
 
 [http_service]
-  internal_port = 80
+  internal_port = 8080
   force_https = true
-  auto_stop_machines = true
+  auto_stop_machines = "stop"
   auto_start_machines = true
   min_machines_running = 0
   processes = ["app"]
 
 [[vm]]
-  memory = "512mb"
+  memory = "256mb"
   cpu_kind = "shared"
   cpus = 1

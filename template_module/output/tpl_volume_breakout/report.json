@@ -2,63 +2,94 @@
   "strategy_id": "template_volume_breakout",
   "strategy_name": "成交量突破策略",
   "symbol": "000001.SZ",
+  "market": "a_share",
+  "currency": "CNY",
+  "quote_currency": "CNY",
   "frequency": "15m",
-  "start_date": "2024-01-02 09:45:00",
-  "end_date": "2024-01-02 10:45:00",
+  "start_date": "2018-01-01",
+  "end_date": "2025-12-31",
+  "adjustment": "none",
+  "lot_size": 100,
+  "lot_source": "board",
   "metrics": {
-    "initial_cash": 100000.0,
-    "final_equity": 99984.012243,
-    "total_return": -0.00016,
-    "annualized_return": -0.008026,
-    "max_drawdown": 0.00016,
+    "initial_cash": 1000000.0,
+    "final_equity": 999848.6225,
+    "total_return": -0.000151,
+    "annualized_return": null,
+    "max_drawdown": 0.000151,
     "win_rate": 0,
     "profit_factor": null,
     "trade_count": 0,
     "average_holding_bars": 0,
-    "total_fees": 0,
-    "sharpe": -7.937254
+    "total_fees": 51.8,
+    "sharpe": -31.112698,
+    "bar_count": 5,
+    "calendar_days": 0,
+    "periods_per_year": 3872.0,
+    "dividends_net": 0.0,
+    "dividend_tax": 0.0,
+    "benchmark_return": 0.003219,
+    "excess_return": -0.00337,
+    "exposure_pct": 0.2,
+    "blocked_orders": {},
+    "currency": "CNY"
   },
+  "warnings": [
+    "no indicator warm-up history before start_date; early signals may be missing",
+    "current_close execution fills at the signal bar's close (assumes a closing-auction order)",
+    "sample shorter than 60 calendar days; annualized_return not reported",
+    "only 5 bars in the backtest window; results are not statistically meaningful"
+  ],
   "trades": [],
+  "open_position": {
+    "entry_time": "2024-01-02 10:45:00",
+    "quantity": 21300,
+    "entry_price": 9.354675,
+    "last_close": 9.35,
+    "market_value": 199155.0,
+    "unrealized_pnl": -151.3775
+  },
+  "blocked_orders": [],
   "equity_curve": [
     {
       "trade_time": "2024-01-02 09:45:00",
-      "cash": 100000.0,
+      "cash": 1000000.0,
       "position_qty": 0,
       "close": 9.32,
-      "equity": 100000.0,
+      "equity": 1000000.0,
       "drawdown_pct": 0.0
     },
     {
       "trade_time": "2024-01-02 10:00:00",
-      "cash": 100000.0,
+      "cash": 1000000.0,
       "position_qty": 0,
       "close": 9.36,
-      "equity": 100000.0,
+      "equity": 1000000.0,
       "drawdown_pct": 0.0
     },
     {
       "trade_time": "2024-01-02 10:15:00",
-      "cash": 100000.0,
+      "cash": 1000000.0,
       "position_qty": 0,
       "close": 9.39,
-      "equity": 100000.0,
+      "equity": 1000000.0,
       "drawdown_pct": 0.0
     },
     {
       "trade_time": "2024-01-02 10:30:00",
-      "cash": 100000.0,
+      "cash": 1000000.0,
       "position_qty": 0,
       "close": 9.31,
-      "equity": 100000.0,
+      "equity": 1000000.0,
       "drawdown_pct": 0.0
     },
     {
       "trade_time": "2024-01-02 10:45:00",
-      "cash": 80003.062243,
-      "position_qty": 2137,
+      "cash": 800693.6225,
+      "position_qty": 21300,
       "close": 9.35,
-      "equity": 99984.012243,
-      "drawdown_pct": 0.00016
+      "equity": 999848.6225,
+      "drawdown_pct": 0.000151
     }
   ]
 }
