@@ -10,6 +10,17 @@ AQuant Studio is a quantitative strategy research platform MVP for **China A-sha
 
 See [CHANGES-v0.2-multi-market.md](CHANGES-v0.2-multi-market.md) for what changed in v0.2 (Chinese).
 
+## Quick start (Windows)
+
+Double-click **`start.bat`** in the repository root. It finds Python 3.11+, creates `web_app/backend/.venv`, installs
+the backend requirements on the first run (falling back to the Tsinghua PyPI mirror), starts the web app and opens
+<http://127.0.0.1:8000/>. Node.js is not needed: the backend serves the pre-built frontend in `web_app/frontend/dist`.
+
+The first account you register locally becomes the administrator (needed to sync market data under 行情数据 → 同步真实日线).
+On macOS/Linux: `cd web_app/backend && pip install -r requirements.txt && uvicorn app.main:app`, then open <http://127.0.0.1:8000/>.
+
+After changing `web_app/frontend/src`, rebuild with `cd web_app/frontend && pnpm install && pnpm build` and commit `dist/`.
+
 It includes:
 
 - Product requirements and prototype
