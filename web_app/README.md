@@ -1,58 +1,57 @@
 # AQuant Studio Web App
 
-This directory is the V2 online web application structure for AQuant Studio.
-
-Stage 1 goal:
-
-- Create a real web app project layout.
-- Separate backend and frontend code.
-- Prepare API, service, schema, task, and database boundaries.
-- Keep the existing MVP modules intact while creating a clean migration target.
-
-## Structure
+FastAPI backend + React/Vite frontend for A-share, HK and Southbound Stock Connect (港股通) strategy research.
 
 ```text
 web_app/
   backend/
-    app/
-      api/
-      core/
-      models/
-      schemas/
-      services/
-      tasks/
-      main.py
-    tests/
-    pyproject.toml
-    .env.example
-  frontend/
-    src/
-    public/
-    package.json
-    index.html
-  docs/
-  scripts/
+    app/            api routes, models, schemas, services, tasks
+    alembic/        database migrations (SQLite and PostgreSQL)
+    tests/          API tests (isolated temporary database)
+    requirements.txt, pyproject.toml, .env.example
+  frontend/         React 18 + Vite
+  deploy/           Dockerfiles, nginx template, Fly / Railway / Render configs
+  docs/             stage-by-stage delivery notes (historical)
 ```
 
-## Stage 1 Status
+## Run locally
 
-This is an engineering skeleton. It is not yet the full online product.
+```bash
+cd web_app/backend
+pip install -r requirements.txt
+uvicorn app.main:app --reload            # migrates the database and seeds templates/sample data on first start
 
-The first backend endpoints are:
-
-```text
-GET /
-GET /health
-GET /api/v1/security/status
-GET /api/v1/templates
-GET /api/v1/templates/{template_id}
-POST /api/v1/strategies/validate
-POST /api/v1/backtests
-GET /api/v1/backtests/{backtest_id}
+cd web_app/frontend
+pnpm install && pnpm dev                 # http://localhost:5173
 ```
 
-The frontend currently renders a static shell that points to the future product areas.
+The first account registered on a local install (`APP_ENV=local`) is an administrator. On a server, register
+and then run `python -m app.tasks.database_maintenance make-admin you@example.com`.
+Administrators write the shared market data (import / sync / corporate actions / FX / board lots); every
+user can run backtests, which are private to their owner.
 
-## Next Stage
+## Market data
 
-Stage 2 wraps the existing MVP modules as synchronous FastAPI endpoints. Stage 3 will introduce the database layer.
+- `POST /api/v1/market/sync` with `provider_id: "tencent"` loads raw daily bars, adj_factor and inferred
+  dividends for A-shares and HK stocks; HK symbols also load HKD→CNY rates for 港股通.
+- `POST /api/v1/market/board-lots/sync` updates HK board lots from the HKEX securities list.
+- `POST /api/v1/market/corporate-actions` and `POST /api/v1/market/fx` accept exact data from other sources.
+- Backtests and strategy validation read these tables directly.
+
+## Maintenance
+
+```bash
+python -m app.tasks.database_maintenance migrate
+python -m app.tasks.database_maintenance status
+python -m app.tasks.database_maintenance backup --output-dir /data/backups
+python -m app.tasks.database_maintenance restore /data/backups/aquant-backup-....json.gz --confirm
+python -m app.tasks.database_maintenance make-admin you@example.com
+```
+
+Backups never contain login sessions (restored users sign in again) but do contain password hashes — keep them private.
+
+## Deploy
+
+- Backend image: `web_app/deploy/backend.Dockerfile` (data on the `/data` volume, runs as a non-root user).
+- Frontend image: `web_app/deploy/frontend.Dockerfile --build-arg VITE_API_BASE_URL=https://<api>/api/v1`.
+- Set `ALLOWED_ORIGINS` on the backend to the frontend origin. For PostgreSQL set `DATABASE_URL`.

@@ -39,3 +39,6 @@ automation_controls_module/output/stage9_*/
 monitoring_module/output/stage10_*/
 audit_module/output/stage11_*/
 live_readiness_module/output/stage12_*/
+
+# Test caches
+.pytest_cache/

@@ -85,25 +85,29 @@
       <header id="overview">
         <div>
           <h1>成交量突破策略</h1>
-          <div class="sub">000001.SZ · 15m · 2024-01-02 09:45:00 至 2024-01-02 10:45:00</div>
+          <div class="sub">000001.SZ · A股 · 15m · 2018-01-01 至 2025-12-31 · 账户币种 CNY</div>
         </div>
         <span class="badge">回测报告 MVP</span>
       </header>
       <section class="content">
         <div class="summary-grid">
           <div class="summary-item"><span>策略 ID</span>template_volume_breakout</div>
-          <div class="summary-item"><span>初始资金</span>100,000.00</div>
+          <div class="summary-item"><span>初始资金</span>1,000,000.00</div>
           <div class="summary-item"><span>平均持仓 K 线</span>0</div>
+          <div class="summary-item"><span>每手股数</span>100（board）</div>
         </div>
+        <div class="summary-item" style="border-color:#f59e0b"><span>回测提示</span><ul style="margin:0;padding-left:18px"><li>no indicator warm-up history before start_date; early signals may be missing</li><li>current_close execution fills at the signal bar&#x27;s close (assumes a closing-auction order)</li><li>sample shorter than 60 calendar days; annualized_return not reported</li><li>only 5 bars in the backtest window; results are not statistically meaningful</li></ul></div>
         <section class="metrics">
-          <div class="metric neutral"><span>最终权益</span><strong>99,984.01</strong></div>
+          <div class="metric neutral"><span>最终权益</span><strong>999,848.62</strong></div>
 <div class="metric bad"><span>总收益率</span><strong>-0.02%</strong></div>
-<div class="metric bad"><span>年化收益</span><strong>-0.80%</strong></div>
+<div class="metric neutral"><span>年化收益</span><strong>-</strong></div>
+<div class="metric good"><span>买入持有收益</span><strong>0.32%</strong></div>
+<div class="metric neutral"><span>税后分红</span><strong>0.00</strong></div>
 <div class="metric bad"><span>最大回撤</span><strong>0.02%</strong></div>
 <div class="metric neutral"><span>胜率</span><strong>0.00%</strong></div>
 <div class="metric neutral"><span>交易次数</span><strong>0</strong></div>
-<div class="metric neutral"><span>夏普比率</span><strong>-7.9373</strong></div>
-<div class="metric neutral"><span>手续费</span><strong>0.00</strong></div>
+<div class="metric neutral"><span>夏普比率</span><strong>-31.1127</strong></div>
+<div class="metric neutral"><span>手续费</span><strong>51.80</strong></div>
         </section>
         <section class="panel" id="chart">
           <div class="panel-head">
@@ -151,11 +155,11 @@
           <div class="table-wrap">
             <table>
               <thead><tr><th>时间</th><th>现金</th><th>持仓</th><th>收盘价</th><th>总权益</th><th>回撤</th></tr></thead>
-              <tbody><tr><td>2024-01-02 09:45:00</td><td>100,000.00</td><td>0</td><td>9.32</td><td>100,000.00</td><td>0.00%</td></tr>
-<tr><td>2024-01-02 10:00:00</td><td>100,000.00</td><td>0</td><td>9.36</td><td>100,000.00</td><td>0.00%</td></tr>
-<tr><td>2024-01-02 10:15:00</td><td>100,000.00</td><td>0</td><td>9.39</td><td>100,000.00</td><td>0.00%</td></tr>
-<tr><td>2024-01-02 10:30:00</td><td>100,000.00</td><td>0</td><td>9.31</td><td>100,000.00</td><td>0.00%</td></tr>
-<tr><td>2024-01-02 10:45:00</td><td>80,003.06</td><td>2137</td><td>9.35</td><td>99,984.01</td><td>0.02%</td></tr></tbody>
+              <tbody><tr><td>2024-01-02 09:45:00</td><td>1,000,000.00</td><td>0</td><td>9.32</td><td>1,000,000.00</td><td>0.00%</td></tr>
+<tr><td>2024-01-02 10:00:00</td><td>1,000,000.00</td><td>0</td><td>9.36</td><td>1,000,000.00</td><td>0.00%</td></tr>
+<tr><td>2024-01-02 10:15:00</td><td>1,000,000.00</td><td>0</td><td>9.39</td><td>1,000,000.00</td><td>0.00%</td></tr>
+<tr><td>2024-01-02 10:30:00</td><td>1,000,000.00</td><td>0</td><td>9.31</td><td>1,000,000.00</td><td>0.00%</td></tr>
+<tr><td>2024-01-02 10:45:00</td><td>800,693.62</td><td>21300</td><td>9.35</td><td>999,848.62</td><td>0.02%</td></tr></tbody>
             </table>
           </div>
         </section>

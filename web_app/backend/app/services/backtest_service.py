@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import sys
 from typing import Any
 from uuid import uuid4
 
@@ -8,41 +7,37 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models import BacktestEquityPoint, BacktestRun, BacktestTrade, StrategyVersion
-from app.services.json_utils import read_json, write_json
-from app.services.legacy_paths import BACKTEST_MODULE, DATA_MODULE, REPO_ROOT
+from app.services.market_data_access import load_engine_bars, load_engine_context
+from app.services.strategy_service import validate_strategy_payload
+
+from backtest_engine import run_backtest  # noqa: E402  (path set up by market_data_access)
 
 
-sys.path.insert(0, str(BACKTEST_MODULE))
-
-from backtest_engine import load_bars, run_backtest, write_report  # noqa: E402
-
-
-DEFAULT_DB_PATH = DATA_MODULE / "market_data.sqlite"
-RUNTIME_DIR = REPO_ROOT / "web_app" / "backend" / "runtime" / "backtests"
+class BacktestInputError(ValueError):
+    def __init__(self, message: str, errors: list[str] | None = None):
+        super().__init__(message)
+        self.errors = errors or [message]
 
 
-def run_backtest_payload(strategy: dict[str, Any]) -> dict[str, Any]:
-    backtest_id = f"bt_{uuid4().hex[:12]}"
-    output_dir = RUNTIME_DIR / backtest_id
-    bars = load_bars(DEFAULT_DB_PATH, strategy)
-    report = run_backtest(strategy, bars)
-    report["backtest_id"] = backtest_id
+def run_backtest_payload(db: Session, strategy: dict[str, Any]) -> dict[str, Any]:
+    """Validate, then backtest against the web database's market data. Returns the full report."""
+    validation = validate_strategy_payload(strategy)
+    if not validation["ok"]:
+        raise BacktestInputError("strategy is invalid", validation["errors"])
+    bars = load_engine_bars(db, strategy)
+    if not any(bar.trade_time[:10] >= strategy["data"]["start_date"] for bar in bars):
+        symbol = strategy["universe"]["symbols"][0]
+        raise BacktestInputError(
+            f"no market data for {symbol} {strategy['data']['frequency']} in the backtest window; "
+            "import or sync it under Market Data first"
+        )
+    try:
+        report = run_backtest(strategy, bars, load_engine_context(db, strategy))
+    except ValueError as exc:
+        raise BacktestInputError(str(exc)) from exc
+    report["backtest_id"] = f"bt_{uuid4().hex[:12]}"
     report["strategy"] = strategy
-    write_report(report, output_dir)
-    write_json(output_dir / "strategy.json", strategy)
-    return {
-        "backtest_id": backtest_id,
-        "status": "completed",
-        "metrics": report["metrics"],
-        "report_path": str(output_dir / "report.json"),
-    }
-
-
-def get_backtest_report(backtest_id: str) -> dict[str, Any] | None:
-    report_path = RUNTIME_DIR / backtest_id / "report.json"
-    if not report_path.exists():
-        return None
-    return read_json(report_path)
+    return report
 
 
 def persist_backtest_report(
@@ -159,9 +154,8 @@ def list_user_backtests(db: Session, owner_id: int) -> list[BacktestRun]:
 
 
 def get_user_backtest(db: Session, owner_id: int, backtest_id: str) -> BacktestRun | None:
-    return db.scalar(
-        select(BacktestRun).where(
-            BacktestRun.owner_id == owner_id,
-            BacktestRun.backtest_id == backtest_id,
-        )
-    )
+    """A run owned by the user (seeded demo runs with no owner are readable by everyone)."""
+    run = db.get(BacktestRun, backtest_id)
+    if run is None or (run.owner_id is not None and run.owner_id != owner_id):
+        return None
+    return run

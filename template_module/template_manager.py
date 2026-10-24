@@ -42,11 +42,23 @@ def instantiate_template(
     symbol: str | None,
     frequency: str | None,
     output_dir: Path,
+    market: str | None = None,
 ) -> Path:
+    """Copy a template for another symbol/frequency/market.
+
+    An HK symbol on an A-share template defaults to 港股通 (hk_connect); an A-share symbol on an
+    HK template defaults to a_share. Pass ``market`` to choose explicitly.
+    """
     meta = get_template_meta(template_dir, template_id)
     strategy = deepcopy(read_json(template_dir / meta["file"]))
-    final_symbol = symbol or meta["default_symbol"]
+    final_symbol = (symbol or meta["default_symbol"]).upper()
     final_frequency = frequency or meta["default_frequency"]
+    final_market = market or strategy.get("market", meta.get("default_market", "a_share"))
+    if market is None and final_symbol.endswith(".HK") and final_market == "a_share":
+        final_market = "hk_connect"
+    if market is None and not final_symbol.endswith(".HK") and final_market in {"hk_stock", "hk_connect"}:
+        final_market = "a_share"
+    strategy["market"] = final_market
     strategy["strategy_id"] = f"{template_id}_{final_symbol.replace('.', '_')}_{final_frequency}"
     strategy["universe"]["symbols"] = [final_symbol]
     strategy["data"]["frequency"] = final_frequency
@@ -140,6 +152,7 @@ def main() -> None:
     create_parser.add_argument("template_id")
     create_parser.add_argument("--symbol")
     create_parser.add_argument("--frequency")
+    create_parser.add_argument("--market", choices=["a_share", "hk_stock", "hk_connect"])
     create_parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
 
     validate_parser = subparsers.add_parser("validate-all")
@@ -161,6 +174,7 @@ def main() -> None:
             args.symbol,
             args.frequency,
             Path(args.output_dir),
+            args.market,
         )
         print(json.dumps({"ok": True, "strategy_path": str(path)}, ensure_ascii=False, indent=2))
     elif args.command == "validate-all":

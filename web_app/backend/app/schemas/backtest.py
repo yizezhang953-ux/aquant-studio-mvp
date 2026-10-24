@@ -12,6 +12,9 @@ class BacktestRunResponse(BaseModel):
     backtest_id: str
     status: str
     metrics: dict[str, Any]
+    warnings: list[str] = []
+    market: str | None = None
+    currency: str | None = None
     report_path: str
 
 

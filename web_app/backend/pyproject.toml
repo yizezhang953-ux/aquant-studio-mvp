@@ -1,16 +1,18 @@
 [project]
 name = "aquant-studio-backend"
-version = "0.1.0"
+version = "0.2.0"
 description = "FastAPI backend for AQuant Studio"
 requires-python = ">=3.11"
 dependencies = [
   "fastapi>=0.115.0",
   "uvicorn[standard]>=0.30.0",
   "pydantic>=2.8.0",
-  "pydantic-settings>=2.4.0",
+  "pydantic-settings>=2.7.0",
   "SQLAlchemy>=2.0.0",
+  "alembic>=1.13.0",
   "psycopg[binary]>=3.2.0",
-  "python-multipart>=0.0.20"
+  "python-multipart>=0.0.20",
+  "exchange_calendars>=4.5.0"
 ]
 
 [project.optional-dependencies]

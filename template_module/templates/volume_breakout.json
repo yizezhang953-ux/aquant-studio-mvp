@@ -6,26 +6,43 @@
   "market": "a_share",
   "universe": {
     "type": "single",
-    "symbols": ["000001.SZ"]
+    "symbols": [
+      "000001.SZ"
+    ]
   },
   "data": {
     "frequency": "15m",
-    "adjustment": "forward",
-    "start_date": "2024-01-02 09:45:00",
-    "end_date": "2024-01-02 10:45:00"
+    "adjustment": "none",
+    "start_date": "2018-01-01",
+    "end_date": "2025-12-31"
   },
   "entry": {
     "logic": "all",
     "conditions": [
       {
-        "left": { "type": "price", "field": "close" },
+        "left": {
+          "type": "price",
+          "field": "close"
+        },
         "operator": "gt",
-        "right": { "type": "constant", "value": 9.34 }
+        "right": {
+          "type": "constant",
+          "value": 9.34
+        }
       },
       {
-        "left": { "type": "price", "field": "volume" },
+        "left": {
+          "type": "price",
+          "field": "volume"
+        },
         "operator": "gt",
-        "right": { "type": "indicator", "name": "VOLUME_MA", "params": { "period": 3 } }
+        "right": {
+          "type": "indicator",
+          "name": "VOLUME_MA",
+          "params": {
+            "period": 3
+          }
+        }
       }
     ]
   },
@@ -33,14 +50,20 @@
     "logic": "any",
     "conditions": [
       {
-        "left": { "type": "price", "field": "close" },
+        "left": {
+          "type": "price",
+          "field": "close"
+        },
         "operator": "lt",
-        "right": { "type": "constant", "value": 9.32 }
+        "right": {
+          "type": "constant",
+          "value": 9.32
+        }
       }
     ]
   },
   "position": {
-    "initial_cash": 100000,
+    "initial_cash": 1000000,
     "order_size_type": "cash_pct",
     "order_size_value": 0.2,
     "max_position_pct": 0.6
@@ -48,7 +71,7 @@
   "execution": {
     "entry_price": "current_close",
     "exit_price": "current_close",
-    "fee_rate": 0.0003,
+    "commission_rate": 0.00025,
     "slippage_rate": 0.0005
   },
   "risk": {
@@ -61,6 +84,6 @@
     "template_id": "tpl_volume_breakout",
     "created_by": "template_library",
     "created_at": "2026-06-20T00:00:00Z",
-    "updated_at": "2026-06-20T00:00:00Z"
+    "updated_at": "2026-10-24T00:00:00Z"
   }
 }

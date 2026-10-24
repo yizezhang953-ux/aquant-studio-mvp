@@ -1,0 +1,92 @@
+{
+  "schema_version": "1.0",
+  "strategy_id": "template_hk_connect_ma_trend",
+  "name": "港股通双均线趋势策略",
+  "description": "港股通（人民币账户）交易港股：MA20 上穿 MA60 买入，下穿卖出。按每手股数下单，汇率与港股通交易日历自动处理。",
+  "market": "hk_connect",
+  "universe": {
+    "type": "single",
+    "symbols": [
+      "00700.HK"
+    ]
+  },
+  "data": {
+    "frequency": "1d",
+    "adjustment": "forward",
+    "start_date": "2018-01-01",
+    "end_date": "2025-12-31"
+  },
+  "entry": {
+    "logic": "all",
+    "conditions": [
+      {
+        "left": {
+          "type": "indicator",
+          "name": "MA",
+          "params": {
+            "period": 20,
+            "field": "close"
+          }
+        },
+        "operator": "cross_above",
+        "right": {
+          "type": "indicator",
+          "name": "MA",
+          "params": {
+            "period": 60,
+            "field": "close"
+          }
+        }
+      }
+    ]
+  },
+  "exit": {
+    "logic": "any",
+    "conditions": [
+      {
+        "left": {
+          "type": "indicator",
+          "name": "MA",
+          "params": {
+            "period": 20,
+            "field": "close"
+          }
+        },
+        "operator": "cross_below",
+        "right": {
+          "type": "indicator",
+          "name": "MA",
+          "params": {
+            "period": 60,
+            "field": "close"
+          }
+        }
+      }
+    ]
+  },
+  "position": {
+    "initial_cash": 1000000,
+    "order_size_type": "cash_pct",
+    "order_size_value": 0.3,
+    "max_position_pct": 0.8
+  },
+  "execution": {
+    "entry_price": "next_open",
+    "exit_price": "next_open",
+    "commission_rate": 0.00025,
+    "min_commission": 5,
+    "slippage_rate": 0.001
+  },
+  "risk": {
+    "stop_loss_pct": 0.12,
+    "take_profit_pct": null,
+    "max_drawdown_pct": 0.25,
+    "max_holding_bars": null
+  },
+  "metadata": {
+    "template_id": "tpl_hk_connect_ma_trend",
+    "created_by": "template_library",
+    "created_at": "2026-10-24T00:00:00Z",
+    "updated_at": "2026-10-24T00:00:00Z"
+  }
+}

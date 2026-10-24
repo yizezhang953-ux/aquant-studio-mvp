@@ -47,22 +47,22 @@
 <tr><td>AUDIT_ENABLED</td><td>pass</td><td>high</td><td>必须启用审计日志</td><td>write_audit_log=True</td></tr>
 <tr><td>ACCOUNT_STATE_ENABLED</td><td>pass</td><td>high</td><td>必须写入账户状态</td><td>write_account_state=True</td></tr>
 <tr><td>SHORT_SELL_REJECTED</td><td>pass</td><td>high</td><td>必须禁止裸卖空</td><td>reject_short_sell=True</td></tr>
-<tr><td>MAX_ORDER_VALUE_SET</td><td>pass</td><td>high</td><td>必须设置单笔最大订单金额</td><td>max_order_value=30000</td></tr>
+<tr><td>MAX_ORDER_VALUE_SET</td><td>pass</td><td>high</td><td>必须设置单笔最大订单金额</td><td>max_order_value=200000</td></tr>
 <tr><td>DAILY_ORDER_LIMIT_SET</td><td>pass</td><td>medium</td><td>必须设置每日订单数量限制</td><td>daily_order_limit=20</td></tr>
-<tr><td>SYMBOL_WHITELIST_SET</td><td>pass</td><td>medium</td><td>必须设置可交易标的白名单</td><td>allowed_symbols=['600519.SH', '000001.SZ', '300750.SZ']</td></tr>
-<tr><td>AUDIT_LOG_EXISTS</td><td>pass</td><td>high</td><td>审计日志文件必须存在且非空</td><td>trading_gateway_module\output\sandbox\audit_log.csv</td></tr>
-<tr><td>ACCOUNT_STATE_EXISTS</td><td>pass</td><td>high</td><td>账户状态文件必须存在且非空</td><td>trading_gateway_module\output\sandbox\account_state.json</td></tr>
-<tr><td>ORDER_LOG_EXISTS</td><td>pass</td><td>medium</td><td>订单记录必须存在</td><td>trading_gateway_module\output\sandbox\orders.csv</td></tr>
-<tr><td>FILL_LOG_EXISTS</td><td>pass</td><td>medium</td><td>成交记录必须存在</td><td>trading_gateway_module\output\sandbox\fills.csv</td></tr>
+<tr><td>SYMBOL_WHITELIST_SET</td><td>pass</td><td>medium</td><td>必须设置可交易标的白名单</td><td>allowed_symbols=['600519.SH', '000001.SZ', '300750.SZ', '00700.HK', '00005.HK', '09988.HK']</td></tr>
+<tr><td>AUDIT_LOG_EXISTS</td><td>pass</td><td>high</td><td>审计日志文件必须存在且非空</td><td>trading_gateway_module/output/sandbox/audit_log.csv</td></tr>
+<tr><td>ACCOUNT_STATE_EXISTS</td><td>pass</td><td>high</td><td>账户状态文件必须存在且非空</td><td>trading_gateway_module/output/sandbox/account_state.json</td></tr>
+<tr><td>ORDER_LOG_EXISTS</td><td>pass</td><td>medium</td><td>订单记录必须存在</td><td>trading_gateway_module/output/sandbox/orders.csv</td></tr>
+<tr><td>FILL_LOG_EXISTS</td><td>pass</td><td>medium</td><td>成交记录必须存在</td><td>trading_gateway_module/output/sandbox/fills.csv</td></tr>
 <tr><td>AUDIT_EVENT_ORDER_RECEIVED</td><td>pass</td><td>medium</td><td>审计日志必须包含 order_received</td><td>present_events=['order_filled', 'order_received', 'risk_check']</td></tr>
 <tr><td>AUDIT_EVENT_RISK_CHECK</td><td>pass</td><td>medium</td><td>审计日志必须包含 risk_check</td><td>present_events=['order_filled', 'order_received', 'risk_check']</td></tr>
 <tr><td>REJECTION_AUDITED</td><td>pass</td><td>medium</td><td>必须至少验证并审计一条风控拒单</td><td>rejected_orders=1</td></tr>
-<tr><td>DISCLOSURE_BACKTEST_NOT_FUTURE_PERFORMANCE</td><td>pass</td><td>medium</td><td>风险披露必须包含：历史表现不代表未来收益</td><td>security_compliance_module\disclosures\risk_disclosure_zh.md</td></tr>
-<tr><td>DISCLOSURE_NOT_INVESTMENT_ADVICE</td><td>pass</td><td>medium</td><td>风险披露必须包含：不构成任何投资建议</td><td>security_compliance_module\disclosures\risk_disclosure_zh.md</td></tr>
-<tr><td>DISCLOSURE_USER_BEARS_TRADING_RISK</td><td>pass</td><td>medium</td><td>风险披露必须包含：自行承担</td><td>security_compliance_module\disclosures\risk_disclosure_zh.md</td></tr>
-<tr><td>DISCLOSURE_SANDBOX_NOT_REAL_TRADING</td><td>pass</td><td>medium</td><td>风险披露必须包含：不连接真实券商</td><td>security_compliance_module\disclosures\risk_disclosure_zh.md</td></tr>
-<tr><td>DISCLOSURE_LIVE_TRADING_REQUIRES_SEPARATE_APPROVAL</td><td>pass</td><td>medium</td><td>风险披露必须包含：单独审批</td><td>security_compliance_module\disclosures\risk_disclosure_zh.md</td></tr>
-<tr><td>LIVE_CHECKLIST_EXISTS</td><td>pass</td><td>high</td><td>必须存在实盘上线前检查清单并明确当前不得实盘</td><td>security_compliance_module\live-readiness-checklist.md</td></tr></tbody></table></div>
+<tr><td>DISCLOSURE_BACKTEST_NOT_FUTURE_PERFORMANCE</td><td>pass</td><td>medium</td><td>风险披露必须包含：历史表现不代表未来收益</td><td>security_compliance_module/disclosures/risk_disclosure_zh.md</td></tr>
+<tr><td>DISCLOSURE_NOT_INVESTMENT_ADVICE</td><td>pass</td><td>medium</td><td>风险披露必须包含：不构成任何投资建议</td><td>security_compliance_module/disclosures/risk_disclosure_zh.md</td></tr>
+<tr><td>DISCLOSURE_USER_BEARS_TRADING_RISK</td><td>pass</td><td>medium</td><td>风险披露必须包含：自行承担</td><td>security_compliance_module/disclosures/risk_disclosure_zh.md</td></tr>
+<tr><td>DISCLOSURE_SANDBOX_NOT_REAL_TRADING</td><td>pass</td><td>medium</td><td>风险披露必须包含：不连接真实券商</td><td>security_compliance_module/disclosures/risk_disclosure_zh.md</td></tr>
+<tr><td>DISCLOSURE_LIVE_TRADING_REQUIRES_SEPARATE_APPROVAL</td><td>pass</td><td>medium</td><td>风险披露必须包含：单独审批</td><td>security_compliance_module/disclosures/risk_disclosure_zh.md</td></tr>
+<tr><td>LIVE_CHECKLIST_EXISTS</td><td>pass</td><td>high</td><td>必须存在实盘上线前检查清单并明确当前不得实盘</td><td>security_compliance_module/live-readiness-checklist.md</td></tr></tbody></table></div>
     </section>
   </main>
 </body>

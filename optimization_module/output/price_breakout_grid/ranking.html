@@ -44,10 +44,13 @@
   </header>
   <main>
     <section class="cards">
-      <div class="card"><span>最佳总收益率</span><strong>-0.18%</strong></div>
-      <div class="card"><span>最佳最大回撤</span><strong>0.35%</strong></div>
-      <div class="card"><span>最佳交易次数</span><strong>1</strong></div>
-      <div class="card"><span>最佳参数</span><strong>1680/1670</strong></div>
+      <div class="card"><span>最佳参数 训练期收益</span><strong>-0.15%</strong></div>
+      <div class="card"><span>最佳参数 验证期收益</span><strong>-0.23%</strong></div>
+      <div class="card"><span>训练/验证排名相关</span><strong>-0.0649</strong></div>
+      <div class="card"><span>最佳参数</span><strong>1660/1660</strong></div>
+    </section>
+    <section class="panel"><div class="panel-head"><h2>样本外检验</h2><span class="badge">holdout</span></div>
+      <div style="padding:14px 18px;color:var(--muted)">排名只用训练期；⚠ 最优参数在验证期低于中位数，疑似过拟合。窗口：2024-01-02~2024-01-04 → 2024-01-05~2024-01-08</div>
     </section>
     <section class="panel">
       <div class="panel-head"><h2>参数排行榜</h2><span class="badge">按目标排序</span></div>
@@ -55,45 +58,45 @@
         <table>
           <thead>
             <tr>
-              <th>排名</th><th>买入阈值</th><th>卖出阈值</th><th>仓位</th><th>总收益率</th><th>最大回撤</th><th>交易次数</th><th>夏普</th>
+              <th>排名(按训练期)</th><th>买入阈值</th><th>卖出阈值</th><th>仓位</th><th>训练期收益</th><th>验证期收益</th><th>验证期回撤</th><th>验证期交易</th><th>验证期夏普</th>
             </tr>
           </thead>
-          <tbody><tr><td>1</td><td>1680</td><td>1670</td><td>0.2</td><td>-0.18%</td><td>0.35%</td><td>1</td><td>-2.9167</td></tr>
-<tr><td>2</td><td>1680</td><td>1680</td><td>0.2</td><td>-0.18%</td><td>0.35%</td><td>1</td><td>-2.9167</td></tr>
-<tr><td>3</td><td>1680</td><td>1670</td><td>0.3</td><td>-0.28%</td><td>0.54%</td><td>1</td><td>-2.9126</td></tr>
-<tr><td>4</td><td>1680</td><td>1680</td><td>0.3</td><td>-0.28%</td><td>0.54%</td><td>1</td><td>-2.9126</td></tr>
-<tr><td>5</td><td>1660</td><td>1660</td><td>0.2</td><td>-0.28%</td><td>0.45%</td><td>1</td><td>-4.1141</td></tr>
-<tr><td>6</td><td>1670</td><td>1660</td><td>0.2</td><td>-0.28%</td><td>0.45%</td><td>1</td><td>-4.1141</td></tr>
-<tr><td>7</td><td>1680</td><td>1660</td><td>0.2</td><td>-0.28%</td><td>0.45%</td><td>1</td><td>-4.1141</td></tr>
-<tr><td>8</td><td>1660</td><td>1670</td><td>0.2</td><td>-0.31%</td><td>0.48%</td><td>2</td><td>-4.3890</td></tr>
-<tr><td>9</td><td>1660</td><td>1680</td><td>0.2</td><td>-0.34%</td><td>0.51%</td><td>3</td><td>-4.9557</td></tr>
-<tr><td>10</td><td>1690</td><td>1670</td><td>0.2</td><td>-0.37%</td><td>0.37%</td><td>1</td><td>-8.3873</td></tr>
-<tr><td>11</td><td>1690</td><td>1680</td><td>0.2</td><td>-0.37%</td><td>0.37%</td><td>1</td><td>-8.3873</td></tr>
-<tr><td>12</td><td>1680</td><td>1670</td><td>0.4</td><td>-0.38%</td><td>0.73%</td><td>1</td><td>-2.9084</td></tr>
-<tr><td>13</td><td>1680</td><td>1680</td><td>0.4</td><td>-0.38%</td><td>0.73%</td><td>1</td><td>-2.9084</td></tr>
-<tr><td>14</td><td>1670</td><td>1670</td><td>0.2</td><td>-0.42%</td><td>0.59%</td><td>2</td><td>-6.8485</td></tr>
-<tr><td>15</td><td>1670</td><td>1680</td><td>0.2</td><td>-0.42%</td><td>0.59%</td><td>2</td><td>-6.8485</td></tr>
-<tr><td>16</td><td>1660</td><td>1660</td><td>0.3</td><td>-0.43%</td><td>0.70%</td><td>1</td><td>-4.1095</td></tr>
-<tr><td>17</td><td>1670</td><td>1660</td><td>0.3</td><td>-0.43%</td><td>0.70%</td><td>1</td><td>-4.1095</td></tr>
-<tr><td>18</td><td>1680</td><td>1660</td><td>0.3</td><td>-0.43%</td><td>0.70%</td><td>1</td><td>-4.1095</td></tr>
-<tr><td>19</td><td>1690</td><td>1660</td><td>0.2</td><td>-0.47%</td><td>0.47%</td><td>1</td><td>-9.0659</td></tr>
-<tr><td>20</td><td>1660</td><td>1670</td><td>0.3</td><td>-0.48%</td><td>0.74%</td><td>2</td><td>-4.3845</td></tr>
-<tr><td>21</td><td>1660</td><td>1680</td><td>0.3</td><td>-0.52%</td><td>0.79%</td><td>3</td><td>-4.9524</td></tr>
-<tr><td>22</td><td>1690</td><td>1670</td><td>0.3</td><td>-0.57%</td><td>0.57%</td><td>1</td><td>-8.3873</td></tr>
-<tr><td>23</td><td>1690</td><td>1680</td><td>0.3</td><td>-0.57%</td><td>0.57%</td><td>1</td><td>-8.3873</td></tr>
-<tr><td>24</td><td>1660</td><td>1660</td><td>0.4</td><td>-0.59%</td><td>0.94%</td><td>1</td><td>-4.1049</td></tr>
-<tr><td>25</td><td>1670</td><td>1660</td><td>0.4</td><td>-0.59%</td><td>0.94%</td><td>1</td><td>-4.1049</td></tr>
-<tr><td>26</td><td>1680</td><td>1660</td><td>0.4</td><td>-0.59%</td><td>0.94%</td><td>1</td><td>-4.1049</td></tr>
-<tr><td>27</td><td>1660</td><td>1670</td><td>0.4</td><td>-0.65%</td><td>1.00%</td><td>2</td><td>-4.3801</td></tr>
-<tr><td>28</td><td>1670</td><td>1670</td><td>0.3</td><td>-0.66%</td><td>0.92%</td><td>2</td><td>-6.8490</td></tr>
-<tr><td>29</td><td>1670</td><td>1680</td><td>0.3</td><td>-0.66%</td><td>0.92%</td><td>2</td><td>-6.8490</td></tr>
-<tr><td>30</td><td>1660</td><td>1680</td><td>0.4</td><td>-0.71%</td><td>1.06%</td><td>3</td><td>-4.9491</td></tr>
-<tr><td>31</td><td>1690</td><td>1660</td><td>0.3</td><td>-0.72%</td><td>0.72%</td><td>1</td><td>-9.0614</td></tr>
-<tr><td>32</td><td>1690</td><td>1670</td><td>0.4</td><td>-0.77%</td><td>0.77%</td><td>1</td><td>-8.3873</td></tr>
-<tr><td>33</td><td>1690</td><td>1680</td><td>0.4</td><td>-0.77%</td><td>0.77%</td><td>1</td><td>-8.3873</td></tr>
-<tr><td>34</td><td>1670</td><td>1670</td><td>0.4</td><td>-0.89%</td><td>1.24%</td><td>2</td><td>-6.8495</td></tr>
-<tr><td>35</td><td>1670</td><td>1680</td><td>0.4</td><td>-0.89%</td><td>1.24%</td><td>2</td><td>-6.8495</td></tr>
-<tr><td>36</td><td>1690</td><td>1660</td><td>0.4</td><td>-0.97%</td><td>0.97%</td><td>1</td><td>-9.0568</td></tr></tbody>
+          <tbody><tr><td>1</td><td>1660</td><td>1660</td><td>0.2</td><td>-0.15%</td><td>-0.23%</td><td>0.23%</td><td>1.0</td><td>-</td></tr>
+<tr><td>2</td><td>1660</td><td>1660</td><td>0.3</td><td>-0.15%</td><td>-0.23%</td><td>0.23%</td><td>1.0</td><td>-</td></tr>
+<tr><td>3</td><td>1670</td><td>1660</td><td>0.2</td><td>-0.15%</td><td>-0.23%</td><td>0.23%</td><td>1.0</td><td>-</td></tr>
+<tr><td>4</td><td>1670</td><td>1660</td><td>0.3</td><td>-0.15%</td><td>-0.23%</td><td>0.23%</td><td>1.0</td><td>-</td></tr>
+<tr><td>5</td><td>1680</td><td>1660</td><td>0.2</td><td>-0.15%</td><td>0.00%</td><td>0.00%</td><td>0.0</td><td>-</td></tr>
+<tr><td>6</td><td>1680</td><td>1660</td><td>0.3</td><td>-0.15%</td><td>0.00%</td><td>0.00%</td><td>0.0</td><td>-</td></tr>
+<tr><td>7</td><td>1670</td><td>1670</td><td>0.2</td><td>-0.17%</td><td>-0.23%</td><td>0.23%</td><td>1.0</td><td>-</td></tr>
+<tr><td>8</td><td>1670</td><td>1670</td><td>0.3</td><td>-0.17%</td><td>-0.23%</td><td>0.23%</td><td>1.0</td><td>-</td></tr>
+<tr><td>9</td><td>1670</td><td>1680</td><td>0.2</td><td>-0.17%</td><td>-0.23%</td><td>0.23%</td><td>1.0</td><td>-</td></tr>
+<tr><td>10</td><td>1670</td><td>1680</td><td>0.3</td><td>-0.17%</td><td>-0.23%</td><td>0.23%</td><td>1.0</td><td>-</td></tr>
+<tr><td>11</td><td>1680</td><td>1670</td><td>0.2</td><td>-0.17%</td><td>0.00%</td><td>0.00%</td><td>0.0</td><td>-</td></tr>
+<tr><td>12</td><td>1680</td><td>1670</td><td>0.3</td><td>-0.17%</td><td>0.00%</td><td>0.00%</td><td>0.0</td><td>-</td></tr>
+<tr><td>13</td><td>1680</td><td>1680</td><td>0.2</td><td>-0.17%</td><td>0.00%</td><td>0.00%</td><td>0.0</td><td>-</td></tr>
+<tr><td>14</td><td>1680</td><td>1680</td><td>0.3</td><td>-0.17%</td><td>0.00%</td><td>0.00%</td><td>0.0</td><td>-</td></tr>
+<tr><td>15</td><td>1660</td><td>1670</td><td>0.2</td><td>-0.18%</td><td>-0.23%</td><td>0.23%</td><td>1.0</td><td>-</td></tr>
+<tr><td>16</td><td>1660</td><td>1670</td><td>0.3</td><td>-0.18%</td><td>-0.23%</td><td>0.23%</td><td>1.0</td><td>-</td></tr>
+<tr><td>17</td><td>1660</td><td>1680</td><td>0.2</td><td>-0.18%</td><td>-0.23%</td><td>0.23%</td><td>1.0</td><td>-</td></tr>
+<tr><td>18</td><td>1660</td><td>1680</td><td>0.3</td><td>-0.18%</td><td>-0.23%</td><td>0.23%</td><td>1.0</td><td>-</td></tr>
+<tr><td>19</td><td>1660</td><td>1660</td><td>0.4</td><td>-0.30%</td><td>-0.46%</td><td>0.46%</td><td>1.0</td><td>-</td></tr>
+<tr><td>20</td><td>1670</td><td>1660</td><td>0.4</td><td>-0.30%</td><td>-0.46%</td><td>0.46%</td><td>1.0</td><td>-</td></tr>
+<tr><td>21</td><td>1680</td><td>1660</td><td>0.4</td><td>-0.30%</td><td>0.00%</td><td>0.00%</td><td>0.0</td><td>-</td></tr>
+<tr><td>22</td><td>1690</td><td>1660</td><td>0.2</td><td>-0.32%</td><td>0.00%</td><td>0.00%</td><td>0.0</td><td>-</td></tr>
+<tr><td>23</td><td>1690</td><td>1660</td><td>0.3</td><td>-0.32%</td><td>0.00%</td><td>0.00%</td><td>0.0</td><td>-</td></tr>
+<tr><td>24</td><td>1690</td><td>1670</td><td>0.2</td><td>-0.34%</td><td>0.00%</td><td>0.00%</td><td>0.0</td><td>-</td></tr>
+<tr><td>25</td><td>1690</td><td>1670</td><td>0.3</td><td>-0.34%</td><td>0.00%</td><td>0.00%</td><td>0.0</td><td>-</td></tr>
+<tr><td>26</td><td>1690</td><td>1680</td><td>0.2</td><td>-0.34%</td><td>0.00%</td><td>0.00%</td><td>0.0</td><td>-</td></tr>
+<tr><td>27</td><td>1690</td><td>1680</td><td>0.3</td><td>-0.34%</td><td>0.00%</td><td>0.00%</td><td>0.0</td><td>-</td></tr>
+<tr><td>28</td><td>1670</td><td>1670</td><td>0.4</td><td>-0.34%</td><td>-0.46%</td><td>0.46%</td><td>1.0</td><td>-</td></tr>
+<tr><td>29</td><td>1670</td><td>1680</td><td>0.4</td><td>-0.34%</td><td>-0.46%</td><td>0.46%</td><td>1.0</td><td>-</td></tr>
+<tr><td>30</td><td>1680</td><td>1670</td><td>0.4</td><td>-0.34%</td><td>0.00%</td><td>0.00%</td><td>0.0</td><td>-</td></tr>
+<tr><td>31</td><td>1680</td><td>1680</td><td>0.4</td><td>-0.34%</td><td>0.00%</td><td>0.00%</td><td>0.0</td><td>-</td></tr>
+<tr><td>32</td><td>1660</td><td>1670</td><td>0.4</td><td>-0.37%</td><td>-0.46%</td><td>0.46%</td><td>1.0</td><td>-</td></tr>
+<tr><td>33</td><td>1660</td><td>1680</td><td>0.4</td><td>-0.37%</td><td>-0.46%</td><td>0.46%</td><td>1.0</td><td>-</td></tr>
+<tr><td>34</td><td>1690</td><td>1660</td><td>0.4</td><td>-0.64%</td><td>0.00%</td><td>0.00%</td><td>0.0</td><td>-</td></tr>
+<tr><td>35</td><td>1690</td><td>1670</td><td>0.4</td><td>-0.68%</td><td>0.00%</td><td>0.00%</td><td>0.0</td><td>-</td></tr>
+<tr><td>36</td><td>1690</td><td>1680</td><td>0.4</td><td>-0.68%</td><td>0.00%</td><td>0.00%</td><td>0.0</td><td>-</td></tr></tbody>
         </table>
       </div>
     </section>

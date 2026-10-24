@@ -1,40 +1,44 @@
-from datetime import date, timedelta
+"""Trading calendars for data-quality checks (A-share XSHG, HK XHKG, 港股通 = both open).
+
+Delegates to market_rules_module.trading_calendar (exchange_calendars when installed; otherwise a
+weekday fallback that the calendar label reports).
+"""
+from __future__ import annotations
+
+import sys
+from datetime import date
+
+from app.services.legacy_paths import REPO_ROOT
+
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from market_rules_module import trading_calendar as _cal  # noqa: E402
 
 
-CALENDAR_NAME = "a_share_builtin_2024"
-
-HOLIDAYS_2024 = {
-    date(2024, 1, 1),
-    *{date(2024, 2, day) for day in range(9, 18)},
-    date(2024, 4, 4),
-    date(2024, 4, 5),
-    *{date(2024, 5, day) for day in range(1, 6)},
-    date(2024, 6, 10),
-    date(2024, 9, 16),
-    date(2024, 9, 17),
-    *{date(2024, 10, day) for day in range(1, 8)},
-}
+def calendar_label(market: str | None) -> str:
+    if market is None:
+        return "per_instrument"
+    source = "exchange_calendars" if _cal.calendar_available() else "weekday_fallback"
+    return f"{_cal.calendar_name(market)}:{source}"
 
 
+def is_trading_day(market: str, day: date) -> bool:
+    return _cal.is_trading_day(market, day)
+
+
+def expected_trading_days(market: str, start: date, end: date) -> list[date]:
+    return _cal.expected_trading_days(market, start, end)
+
+
+def missing_trading_days(market: str, previous_day: date, current_day: date) -> list[date]:
+    return _cal.missing_trading_days(market, previous_day, current_day)
+
+
+# Backwards-compatible A-share helpers.
 def is_a_share_trading_day(day: date) -> bool:
-    if day.year != 2024:
-        return day.weekday() < 5
-    return day.weekday() < 5 and day not in HOLIDAYS_2024
-
-
-def expected_a_share_trading_days(start: date, end: date) -> list[date]:
-    if end < start:
-        return []
-    days = []
-    current = start
-    while current <= end:
-        if is_a_share_trading_day(current):
-            days.append(current)
-        current += timedelta(days=1)
-    return days
+    return is_trading_day("a_share", day)
 
 
 def missing_a_share_trading_days(previous_day: date, current_day: date) -> list[date]:
-    if current_day <= previous_day:
-        return []
-    return expected_a_share_trading_days(previous_day + timedelta(days=1), current_day - timedelta(days=1))
+    return missing_trading_days("a_share", previous_day, current_day)

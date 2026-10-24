@@ -1,0 +1,83 @@
+{
+  "schema_version": "1.0",
+  "strategy_id": "template_hk_rsi_pullback",
+  "name": "港股 RSI 回调策略",
+  "description": "香港账户（港币）交易港股：RSI 低位买入、高位卖出。按该股每手股数下单，无涨跌停、T+0。",
+  "market": "hk_stock",
+  "universe": {
+    "type": "single",
+    "symbols": [
+      "00005.HK"
+    ]
+  },
+  "data": {
+    "frequency": "1d",
+    "adjustment": "forward",
+    "start_date": "2018-01-01",
+    "end_date": "2025-12-31"
+  },
+  "entry": {
+    "logic": "all",
+    "conditions": [
+      {
+        "left": {
+          "type": "indicator",
+          "name": "RSI",
+          "params": {
+            "period": 14,
+            "field": "close"
+          }
+        },
+        "operator": "lt",
+        "right": {
+          "type": "constant",
+          "value": 30
+        }
+      }
+    ]
+  },
+  "exit": {
+    "logic": "any",
+    "conditions": [
+      {
+        "left": {
+          "type": "indicator",
+          "name": "RSI",
+          "params": {
+            "period": 14,
+            "field": "close"
+          }
+        },
+        "operator": "gt",
+        "right": {
+          "type": "constant",
+          "value": 70
+        }
+      }
+    ]
+  },
+  "position": {
+    "initial_cash": 1000000,
+    "order_size_type": "cash_pct",
+    "order_size_value": 0.25,
+    "max_position_pct": 0.6
+  },
+  "execution": {
+    "entry_price": "next_open",
+    "exit_price": "next_open",
+    "commission_rate": 0.0003,
+    "slippage_rate": 0.001
+  },
+  "risk": {
+    "stop_loss_pct": 0.06,
+    "take_profit_pct": 0.15,
+    "max_drawdown_pct": 0.12,
+    "max_holding_bars": 20
+  },
+  "metadata": {
+    "template_id": "tpl_hk_rsi_pullback",
+    "created_by": "template_library",
+    "created_at": "2026-10-24T00:00:00Z",
+    "updated_at": "2026-10-24T00:00:00Z"
+  }
+}
