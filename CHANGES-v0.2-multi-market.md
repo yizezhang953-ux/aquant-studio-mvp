@@ -90,6 +90,16 @@
 
 ## 三、怎么用
 
+**Windows 最简单的方式：双击仓库根目录的 `start.bat`。**
+
+- 第一次运行会自动找 Python 3.11 以上版本、创建虚拟环境并安装依赖（默认源失败会改用清华镜像），大约 1 到 3 分钟。
+- 启动后自动打开 <http://127.0.0.1:8000/>。网页由后端直接提供，不需要安装 Node.js。
+- 第一个注册的账户自动成为管理员，可以在“行情数据”里同步真实日线。
+- 关闭黑色命令行窗口即停止程序。数据保存在 `web_app/backend/aquant_web_app.db`。
+- 找不到 Python 时，把 python.exe 的完整路径写进 `web_app/backend/runtime/python_path.txt` 再双击。
+
+命令行方式：
+
 ```bash
 # 1. 安装依赖（Windows 用 python）
 pip install -r web_app/backend/requirements.txt

@@ -1,8 +1,9 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 
 from app.api.v1.router import api_router
 from app.core.config import settings
@@ -10,6 +11,7 @@ from app.db.session import SessionLocal
 from app.services.database_service import create_database, initialize_database, is_seeded
 
 MAX_REQUEST_BYTES_SLACK = 1024 * 1024
+FRONTEND_DIST = (Path(__file__).resolve().parents[2] / "frontend" / "dist").resolve()
 
 
 class BodySizeLimitMiddleware:
@@ -91,18 +93,31 @@ def create_app() -> FastAPI:
     app.add_middleware(BodySizeLimitMiddleware)
     app.include_router(api_router, prefix=settings.api_v1_prefix)
 
-    @app.get("/")
-    def root() -> dict[str, str]:
-        return {
-            "name": settings.app_name,
-            "status": "online",
-            "docs": "/docs",
-            "api": settings.api_v1_prefix,
-        }
-
     @app.get("/health")
     def health() -> dict[str, str]:
         return {"status": "ok", "environment": settings.app_env}
+
+    if (FRONTEND_DIST / "index.html").exists():
+        # Serve the built React app from the same origin (used by start.bat): no CORS, one port.
+        index_html = FRONTEND_DIST / "index.html"
+
+        @app.get("/{full_path:path}", include_in_schema=False)
+        def frontend(full_path: str):
+            if full_path.startswith(("api/", "docs", "redoc", "openapi.json")):
+                raise HTTPException(status_code=404, detail="Not Found")
+            candidate = (FRONTEND_DIST / full_path).resolve()
+            if full_path and candidate.is_file() and FRONTEND_DIST in candidate.parents:
+                return FileResponse(candidate)
+            return FileResponse(index_html)
+    else:
+        @app.get("/")
+        def root() -> dict[str, str]:
+            return {
+                "name": settings.app_name,
+                "status": "online",
+                "docs": "/docs",
+                "api": settings.api_v1_prefix,
+            }
 
     return app
 

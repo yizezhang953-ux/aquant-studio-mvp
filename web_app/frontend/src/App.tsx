@@ -1,6 +1,9 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1";
+// Same origin when the backend serves the built app (start.bat); the Vite dev server (5173) talks to :8000.
+const API_BASE =
+  import.meta.env.VITE_API_BASE_URL ||
+  (window.location.port === "5173" ? "http://localhost:8000/api/v1" : `${window.location.origin}/api/v1`);
 
 type AuthMode = "login" | "register";
 type EditorMode = "form" | "json";
@@ -610,6 +613,29 @@ function strategyFromForm(base: StrategyJson, name: string, form: StrategyForm):
   };
 }
 
+const FIELD_LABELS: Record<string, string> = { email: "邮箱", password: "密码", display_name: "显示名称" };
+
+function errorMessage(response: Response, body: any): string {
+  const detail = body?.detail;
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail) && detail.length) {
+    // FastAPI validation errors: [{loc: ["body", "password"], type: "string_too_short", ctx: {min_length: 8}}]
+    return detail
+      .map((item: any) => {
+        const field = String(item?.loc?.[item.loc.length - 1] ?? "");
+        const label = FIELD_LABELS[field] || field || "输入";
+        if (item?.type === "string_too_short") {
+          return item?.ctx?.min_length > 1 ? `${label}至少 ${item.ctx.min_length} 个字符` : `请填写${label}`;
+        }
+        if (item?.type === "string_pattern_mismatch") return `${label}格式不正确`;
+        if (item?.type === "missing") return `请填写${label}`;
+        return `${label}：${item?.msg ?? "格式不正确"}`;
+      })
+      .join("；");
+  }
+  return detail?.message || `HTTP ${response.status}: ${response.statusText}`;
+}
+
 async function request<T>(path: string, options: RequestInit = {}, token = ""): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
     ...options,
@@ -620,13 +646,7 @@ async function request<T>(path: string, options: RequestInit = {}, token = ""): 
     },
   });
   if (!response.ok) {
-    const body = await response.json().catch(() => null);
-    const detail = body?.detail;
-    const message =
-      typeof detail === "string"
-        ? detail
-        : detail?.message || `HTTP ${response.status}: ${response.statusText}`;
-    throw new Error(message);
+    throw new Error(errorMessage(response, await response.json().catch(() => null)));
   }
   if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
@@ -641,13 +661,7 @@ async function requestFormData<T>(path: string, formData: FormData, token = ""):
     body: formData,
   });
   if (!response.ok) {
-    const body = await response.json().catch(() => null);
-    const detail = body?.detail;
-    const message =
-      typeof detail === "string"
-        ? detail
-        : detail?.message || `HTTP ${response.status}: ${response.statusText}`;
-    throw new Error(message);
+    throw new Error(errorMessage(response, await response.json().catch(() => null)));
   }
   return response.json() as Promise<T>;
 }
