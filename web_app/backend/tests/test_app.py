@@ -184,6 +184,14 @@ def test_backtest_reads_bars_imported_through_the_web_app(client, admin_headers)
     invalid = dict(strategy, market="nasdaq")
     assert client.post("/api/v1/backtests", headers=user, json={"strategy": invalid}).status_code == 400
 
+    # missing data explains what to change, in Chinese
+    wrong_freq = dict(strategy, data=dict(strategy["data"], frequency="15m"))
+    detail = str(client.post("/api/v1/backtests", headers=user, json={"strategy": wrong_freq}).json())
+    assert f"没有 {symbol} 的 15m 行情" in detail and "「周期」改成 1d" in detail
+    other = dict(strategy, universe={"type": "single", "symbols": ["09999.HK"]}, market="hk_stock")
+    detail = str(client.post("/api/v1/backtests", headers=user, json={"strategy": other}).json())
+    assert "同步真实日线" in detail and f"{symbol} 1d" in detail
+
 
 def test_hk_connect_sync_and_backtest_in_cny(client, admin_headers, monkeypatch) -> None:
     import datetime as dt

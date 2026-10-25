@@ -7,7 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models import BacktestEquityPoint, BacktestRun, BacktestTrade, StrategyVersion
-from app.services.market_data_access import load_engine_bars, load_engine_context
+from app.services.market_data_access import available_data, load_engine_bars, load_engine_context
 from app.services.strategy_service import validate_strategy_payload
 
 from backtest_engine import run_backtest  # noqa: E402  (path set up by market_data_access)
@@ -19,6 +19,31 @@ class BacktestInputError(ValueError):
         self.errors = errors or [message]
 
 
+def no_data_message(db: Session, strategy: dict[str, Any]) -> str:
+    """Explain, in the UI's language, why there is nothing to backtest and what to change."""
+    symbol = str(strategy["universe"]["symbols"][0]).strip().upper()
+    frequency = strategy["data"]["frequency"]
+    start, end = strategy["data"]["start_date"], strategy["data"]["end_date"]
+    held = available_data(db, limit=50)
+    same_symbol = [d for d in held if d["symbol"] == symbol]
+    parts = [f"没有 {symbol} 的 {frequency} 行情（回测区间 {start} 至 {end}）。"]
+    exact = next((d for d in same_symbol if d["frequency"] == frequency), None)
+    if exact:
+        parts.append(f"已有数据在 {exact['start']} 至 {exact['end']}，请把策略的开始/结束日期调到这个范围内。")
+    elif same_symbol:
+        other = "、".join(f"{d['frequency']}（{d['start']} 至 {d['end']}）" for d in same_symbol)
+        parts.append(f"这只股票已有：{other}。请把策略编辑器里的「周期」改成 {same_symbol[0]['frequency']}，保存后再回测。")
+    else:
+        parts.append(f"请先到「行情数据」→「同步真实日线」同步 {symbol}，或把策略的「代码」改成已有数据的股票。")
+        real = [d for d in held if d["bars"] > 20]
+        if real:
+            parts.append("已有：" + "、".join(f"{d['symbol']} {d['frequency']}（{d['start']} 至 {d['end']}）"
+                                           for d in real[:5]) + "。")
+    if frequency != "1d" and not exact:
+        parts.append("腾讯行情只能同步日线（1d），分钟线只能用 CSV 导入。")
+    return "".join(parts)
+
+
 def run_backtest_payload(db: Session, strategy: dict[str, Any]) -> dict[str, Any]:
     """Validate, then backtest against the web database's market data. Returns the full report."""
     validation = validate_strategy_payload(strategy)
@@ -26,11 +51,7 @@ def run_backtest_payload(db: Session, strategy: dict[str, Any]) -> dict[str, Any
         raise BacktestInputError("strategy is invalid", validation["errors"])
     bars = load_engine_bars(db, strategy)
     if not any(bar.trade_time[:10] >= strategy["data"]["start_date"] for bar in bars):
-        symbol = strategy["universe"]["symbols"][0]
-        raise BacktestInputError(
-            f"no market data for {symbol} {strategy['data']['frequency']} in the backtest window; "
-            "import or sync it under Market Data first"
-        )
+        raise BacktestInputError(no_data_message(db, strategy))
     try:
         report = run_backtest(strategy, bars, load_engine_context(db, strategy))
     except ValueError as exc:

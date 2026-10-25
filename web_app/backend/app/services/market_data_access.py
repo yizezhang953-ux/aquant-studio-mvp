@@ -53,6 +53,19 @@ def load_engine_bars(db: Session, strategy: dict[str, Any], warmup_bars: int | N
     return [_to_bar(r) for r in reversed(history)] + [_to_bar(r) for r in rows]
 
 
+def available_data(db: Session, limit: int = 8) -> list[dict[str, Any]]:
+    """What bars the database holds, per symbol and frequency (for actionable "no data" messages)."""
+    rows = db.execute(
+        select(MarketBar.symbol, MarketBar.frequency, func.count(), func.min(MarketBar.trade_time),
+               func.max(MarketBar.trade_time))
+        .group_by(MarketBar.symbol, MarketBar.frequency)
+        .order_by(func.count().desc())
+        .limit(limit)
+    ).all()
+    return [{"symbol": r[0], "frequency": r[1], "bars": r[2], "start": str(r[3])[:10], "end": str(r[4])[:10]}
+            for r in rows]
+
+
 def load_engine_context(db: Session, strategy: dict[str, Any]) -> MarketContext:
     symbol = normalize_symbol(strategy["universe"]["symbols"][0])
     context = MarketContext()
