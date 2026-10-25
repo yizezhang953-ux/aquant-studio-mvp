@@ -1675,7 +1675,7 @@ function MarketDataPanel({
     name: selectedInstrument?.name || "贵州茅台",
     exchange: selectedInstrument?.exchange || "SH",
     frequency,
-    csvText: "trade_time,open,high,low,close,volume,amount\n2024-02-01,1660,1680,1650,1672,1000,1672000",
+    csvText: "",
   });
   const [fileDraft, setFileDraft] = useState<MarketFileImportDraft>({
     symbol: selectedSymbol || "600519.SH",
@@ -1964,6 +1964,7 @@ function MarketDataPanel({
               <textarea
                 className="csv-editor"
                 value={csvDraft.csvText}
+                placeholder={"示例格式（请粘贴真实数据，不要直接导入示例）：\ntrade_time,open,high,low,close,volume,amount\n2024-02-01,44.35,46.65,43.85,45.50,6074764,276000000"}
                 onChange={(event) => updateCsvDraft("csvText", event.target.value)}
                 spellCheck={false}
               />
