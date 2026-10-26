@@ -13,15 +13,17 @@ import {
 } from "./api";
 import { BatchPage } from "./BatchPage";
 import { OptimizePage } from "./OptimizePage";
+import { SignalsPage } from "./SignalsPage";
 import { HistoryPage } from "./HistoryPage";
 import { MarketPage } from "./MarketPage";
 import { StrategyPage } from "./StrategyPage";
 
-type Page = "strategy" | "batch" | "optimize" | "history" | "market";
+type Page = "strategy" | "batch" | "optimize" | "signals" | "history" | "market";
 const PAGES: [Page, string][] = [
   ["strategy", "策略研究"],
   ["batch", "批量回测"],
   ["optimize", "参数优化"],
+  ["signals", "每日信号"],
   ["history", "回测记录"],
   ["market", "行情数据"],
 ];
@@ -45,7 +47,7 @@ function storeToken(token: string) {
 
 function initialPage(): Page {
   const hash = window.location.hash.replace("#", "");
-  return hash === "batch" || hash === "optimize" || hash === "history" || hash === "market" ? hash : "strategy";
+  return hash === "batch" || hash === "optimize" || hash === "signals" || hash === "history" || hash === "market" ? hash : "strategy";
 }
 
 export default function App() {
@@ -243,6 +245,15 @@ export default function App() {
             strategies={strategies}
             reloadStrategies={() => reloadStrategies()}
             onBacktestSaved={() => reloadHistory()}
+            notify={notify}
+          />
+        ) : page === "signals" ? (
+          <SignalsPage
+            token={token}
+            isAdmin={Boolean(user.is_admin)}
+            strategies={strategies}
+            instruments={instruments}
+            syncSymbol={(symbol, start, end) => syncSymbol(symbol, start, end)}
             notify={notify}
           />
         ) : page === "history" ? (
