@@ -78,3 +78,16 @@ class MarketFxRate(Base):
     rate_date: Mapped[str] = mapped_column(String(20), index=True)
     rate: Mapped[float] = mapped_column(Float)
     source: Mapped[str] = mapped_column(String(80), default="manual")
+
+
+class MarketIndexBar(Base):
+    """Daily close of a benchmark index (沪深300, 恒生指数) for report comparisons; price index, no dividends."""
+
+    __tablename__ = "market_index_bars"
+    __table_args__ = (UniqueConstraint("index_code", "trade_date", name="uq_index_bar_identity"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    index_code: Mapped[str] = mapped_column(String(20), index=True)
+    trade_date: Mapped[str] = mapped_column(String(10), index=True)
+    close: Mapped[float] = mapped_column(Float)
+    source: Mapped[str] = mapped_column(String(40), default="tencent")

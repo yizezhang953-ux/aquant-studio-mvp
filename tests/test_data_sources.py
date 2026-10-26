@@ -65,6 +65,20 @@ def test_tencent_hk_bars_use_turnover_and_kline_endpoint():
     assert abs(bars[0]["amount"] - 6_962_383_860) < 1
 
 
+def test_tencent_index_closes_use_the_index_code():
+    calls = []
+
+    def fetch(url, params):
+        calls.append((url, params["param"]))
+        code = params["param"].split(",")[0]
+        return {"data": {code: {"day": [["2024-01-02", "1", "16788.5", "1", "1", "0"], ["2024-01-03", "1", "16645.9", "1", "1", "0"]]}}}
+
+    assert tencent.fetch_index_daily("hkHSI", "2024-01-01", "2024-01-05", fetch) == {"2024-01-02": 16788.5, "2024-01-03": 16645.9}
+    assert calls[0] == (tencent.KLINE_HK_RAW, "hkHSI,day,2024-01-01,2024-01-05,400")
+    tencent.fetch_index_daily("sh000300", "2023-12-01", "2024-01-05", fetch)
+    assert [c[0] for c in calls[1:]] == [tencent.KLINE_A, tencent.KLINE_A]  # one request per calendar year
+
+
 def test_fx_parser():
     payload = {"base": "HKD", "rates": {"2024-01-02": {"CNY": 0.9125}, "2024-01-03": {"CNY": 0.9131}}}
     rates = fx.fetch_rates("HKD", "CNY", "2024-01-01", "2024-01-03", fetch=lambda url, params: payload)

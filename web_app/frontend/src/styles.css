@@ -1887,3 +1887,139 @@ p.sync-bar {
   width: auto;
   max-width: 260px;
 }
+
+.line.bench-HSI {
+  stroke: #b7791f;
+  stroke-width: 1.3;
+}
+
+.line.bench-CSI300 {
+  stroke: #7c5cc4;
+  stroke-width: 1.3;
+}
+
+.chart-legend .bench-HSI::before {
+  border-color: #b7791f;
+}
+
+.chart-legend .bench-CSI300::before {
+  border-color: #7c5cc4;
+}
+
+.analysis {
+  display: grid;
+  gap: 18px;
+  margin: 18px 0;
+}
+
+.analysis-block h4 {
+  margin: 0 0 8px;
+}
+
+.analysis-block p {
+  margin: 6px 0 0;
+}
+
+.bench-table {
+  max-width: 640px;
+}
+
+.swatch {
+  display: inline-block;
+  width: 14px;
+  height: 0;
+  margin-right: 6px;
+  vertical-align: middle;
+  border-top: 2px solid;
+}
+
+.swatch.bench-HSI {
+  border-color: #b7791f;
+}
+
+.swatch.bench-CSI300 {
+  border-color: #7c5cc4;
+}
+
+.dd-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.dd-card {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.dd-card .kpi-value {
+  font-size: 20px;
+}
+
+.heatmap {
+  border-collapse: separate;
+  border-spacing: 2px;
+  font: 12.5px var(--num);
+  width: 100%;
+  min-width: 760px;
+}
+
+.heatmap th {
+  color: var(--muted);
+  font-weight: 500;
+  padding: 4px 6px;
+}
+
+.heatmap tbody th {
+  text-align: right;
+}
+
+.heatmap td {
+  text-align: center;
+  padding: 7px 4px;
+  border-radius: 3px;
+  background: var(--surface-2);
+  color: var(--ink);
+}
+
+.heatmap td.year {
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .dd-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+.index-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 13.5px;
+}
+
+.index-bar .index-sync {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.index-bar .index-sync input {
+  width: 150px;
+}
+
+.index-bar .full {
+  flex-basis: 100%;
+}

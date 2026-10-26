@@ -38,11 +38,14 @@ export function EquityChart({
   trades,
   initialCash,
   currency,
+  benchmarks = [],
 }: {
   points: EquityPoint[];
   trades: BacktestTrade[];
   initialCash: number;
   currency: string;
+  /** Index lines in equity units, aligned with points. */
+  benchmarks?: { code: string; name: string; values: number[] }[];
 }) {
   const H = 220;
   const DD = 56;
@@ -50,7 +53,7 @@ export function EquityChart({
   const firstClose = points.find((p) => (p.close ?? 0) > 0)?.close;
   const hold = firstClose ? points.map((p) => (initialCash * (p.close ?? NaN)) / firstClose) : [];
   const drawdown = points.map((p) => p.drawdown_pct);
-  const { y, lo, hi } = useMemo(() => scale([...equity, ...hold, initialCash], H), [points]);
+  const { y, lo, hi } = useMemo(() => scale([...equity, ...hold, ...benchmarks.flatMap((b) => b.values), initialCash], H), [points, benchmarks]);
   const ddMax = Math.max(...drawdown, 0.01);
   const x = (i: number) => (points.length <= 1 ? 0 : (i / (points.length - 1)) * W);
   const hover = useHover(points.length);
@@ -70,6 +73,11 @@ export function EquityChart({
       <div className="chart-legend">
         <span className="key strategy">策略权益</span>
         {hold.length > 0 && <span className="key hold">买入持有（按价格）</span>}
+        {benchmarks.map((b) => (
+          <span key={b.code} className={`key bench-${b.code}`}>
+            {b.name}
+          </span>
+        ))}
         <span className="key dd">回撤</span>
       </div>
       <div className="chart-body">
@@ -80,6 +88,9 @@ export function EquityChart({
         <svg viewBox={`0 0 ${W} ${H + DD + 8}`} style={{ height: H + DD + 8 }} preserveAspectRatio="none" role="img" aria-label="权益曲线">
           <line x1="0" x2={W} y1={baseY} y2={baseY} className="baseline" vectorEffect="non-scaling-stroke" />
           {hold.length > 0 && <path d={path(hold, x, y)} className="line hold" vectorEffect="non-scaling-stroke" />}
+          {benchmarks.map((b) => (
+            <path key={b.code} d={path(b.values, x, y)} className={`line bench-${b.code}`} vectorEffect="non-scaling-stroke" />
+          ))}
           <path d={path(equity, x, y)} className="line strategy" vectorEffect="non-scaling-stroke" />
           {markers.map((m, k) =>
             m.i == null ? null : (
@@ -116,6 +127,11 @@ export function EquityChart({
             策略 {formatMoney(point.equity)} {currency}
           </span>
           {hold.length > 0 && <span>持有 {formatMoney(hold[h])}</span>}
+          {benchmarks.map((b) => (
+            <span key={b.code}>
+              {b.name} {formatPercent(b.values[h] / initialCash - 1, true)}
+            </span>
+          ))}
           <span>回撤 {formatPercent(point.drawdown_pct)}</span>
         </div>
       )}

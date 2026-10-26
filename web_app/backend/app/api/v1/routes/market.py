@@ -6,6 +6,7 @@ from app.core.config import settings
 from app.db.session import get_db
 from app.models import User
 from app.schemas.market import (
+    IndexSyncRequest,
     BoardLotSyncResponse,
     CorporateActionImportRequest,
     CorporateActionListResponse,
@@ -30,6 +31,7 @@ from app.schemas.market import (
     MarketQualityResponse,
 )
 from app.services.auth_service import get_current_admin, get_current_user
+from app.services.benchmark_service import index_status, sync_indices
 from app.services.market_data_source_service import (
     fetch_hk_board_lots,
     list_market_data_sources,
@@ -178,6 +180,25 @@ def sync_data_source(
         fx_rates=rates,
         message="market data synchronized",
     )
+
+
+@router.get("/indices")
+def list_indices(db: Session = Depends(get_db)) -> dict:
+    """Benchmark indices (恒生指数, 沪深300) held for report comparisons."""
+    return {"indices": index_status(db)}
+
+
+@router.post("/indices/sync")
+def sync_index_data(
+    request: IndexSyncRequest,
+    current_user: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+) -> dict:
+    try:
+        results = sync_indices(db, request.start_date, request.end_date, request.provider_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"results": results, "indices": index_status(db)}
 
 
 @router.post("/board-lots/sync", response_model=BoardLotSyncResponse)

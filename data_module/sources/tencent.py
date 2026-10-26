@@ -101,6 +101,18 @@ def fetch_daily_with_actions(symbol: str, start: str, end: str, fetch: Fetcher |
     return merge_raw_and_adjusted(symbol, raw, qfq)
 
 
+def fetch_index_daily(code: str, start: str, end: str, fetch: Fetcher | None = None) -> dict[str, float]:
+    """{date: close} for an index by Tencent code, e.g. 'sh000300' (沪深300) or 'hkHSI' (恒生指数)."""
+    fetch = fetch or (lambda url, params: get_json(url, params))
+    url = KLINE_HK_RAW if code.startswith("hk") else KLINE_A
+    closes: dict[str, float] = {}
+    for a, b in _year_ranges(start, end):
+        suffix = "" if code.startswith("hk") else ","
+        rows = _rows(fetch(url, {"param": f"{code},day,{a},{b},400{suffix}"}), code, "day")
+        closes.update({day: bar["close"] for day, bar in _parse(rows, 1.0).items() if bar["close"] > 0})
+    return closes
+
+
 DIFF_TOLERANCE = 0.0025  # Tencent prices have 3 decimals; smaller moves in (raw - qfq) are rounding
 
 

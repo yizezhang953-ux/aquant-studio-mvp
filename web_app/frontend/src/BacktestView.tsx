@@ -9,6 +9,7 @@ import {
   trendClass,
 } from "./api";
 import { EquityChart } from "./charts";
+import { ReportAnalysis, benchmarkLines } from "./ReportAnalysis";
 
 const BLOCKED_LABELS: Record<string, string> = {
   suspended_or_market_closed: "停牌或休市",
@@ -93,7 +94,9 @@ export function BacktestView({ report }: { report: BacktestReport }) {
         <Kpi label="胜率" value={formatPercent(m.win_rate)} sub={`${formatNumber(m.trade_count, 0)} 笔交易`} />
       </div>
 
-      <EquityChart points={report.equity_curve || []} trades={report.trades || []} initialCash={m.initial_cash || report.equity_curve?.[0]?.equity || 0} currency={currency} />
+      <EquityChart points={report.equity_curve || []} trades={report.trades || []} initialCash={m.initial_cash || report.equity_curve?.[0]?.equity || 0} currency={currency} benchmarks={benchmarkLines(report)} />
+
+      <ReportAnalysis report={report} />
 
       <div className="tabs" role="tablist">
         <button role="tab" aria-selected={tab === "trades"} className={tab === "trades" ? "active" : ""} onClick={() => setTab("trades")}>

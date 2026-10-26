@@ -18,6 +18,7 @@ from app.schemas.backtest import (
 )
 from app.services.auth_service import get_current_user
 from app.services.market_service import normalize_symbol
+from app.services.benchmark_service import report_analysis
 from app.services.optimization_service import optimize_strategy
 from app.services.backtest_service import (
     BacktestInputError,
@@ -149,7 +150,7 @@ def get_my_backtest(
     run = get_user_backtest(db, current_user.id, backtest_id)
     if run is None:
         raise HTTPException(status_code=404, detail="backtest not found")
-    return run.report_json
+    return {**run.report_json, "analysis": report_analysis(db, run.report_json)}
 
 
 @router.get("/{backtest_id}")
@@ -161,7 +162,7 @@ def get_backtest(
     run = get_user_backtest(db, current_user.id, backtest_id)
     if run is None:
         raise HTTPException(status_code=404, detail="backtest not found")
-    return run.report_json
+    return {**run.report_json, "analysis": report_analysis(db, run.report_json)}
 
 
 @router.get("/{backtest_id}/report")
