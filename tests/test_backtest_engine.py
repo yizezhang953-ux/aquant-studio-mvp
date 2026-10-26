@@ -185,3 +185,31 @@ def test_zero_fx_rates_are_ignored():
     report = run_backtest(strategy("00700.HK", "hk_connect", gt(102), lt(1), "2024-03-01", "2024-12-31"), bars, ctx)
     assert report["open_position"] is not None
     assert any("default rate" in w for w in report["warnings"])
+
+
+def test_highest_and_lowest_look_at_previous_bars_only():
+    from indicators import prior_extreme
+
+    values = [3, 1, 4, 1, 5, 9, 2, 6]
+    assert prior_extreme(values, 3, highest=True) == [None, None, None, 4, 4, 5, 9, 9]
+    assert prior_extreme(values, 3, highest=False) == [None, None, None, 1, 1, 1, 1, 2]
+
+
+@pytest.mark.parametrize("name", ["connors_rsi2", "boll_reversion", "myquant_macd_zero", "turtle_donchian"])
+def test_open_source_templates_validate_and_trade(name):
+    import json
+    import math
+    from pathlib import Path
+
+    from strategy_validator import validate_strategy
+
+    template = json.loads((Path(__file__).resolve().parents[1] / "template_module" / "templates" / f"{name}.json").read_text("utf-8"))
+    assert validate_strategy(template).ok
+    # uptrend with regular pullbacks; the MACD template only buys crosses above zero, so give it a steeper trend
+    drift, swing = (1.002, 0.02) if name == "myquant_macd_zero" else (1.0006, 0.06)
+    closes = [round(100 * drift ** i * (1 + swing * math.sin(2 * math.pi * i / 30)), 2) for i in range(900)]
+    symbol = template["universe"]["symbols"][0]
+    bars = make_bars(symbol, closes, start="2020-01-02")
+    template["data"].update(start_date=bars[0].trade_time, end_date=bars[-1].trade_time, adjustment="none")
+    report = run_backtest(template, bars)
+    assert len(report["trades"]) >= 3, name

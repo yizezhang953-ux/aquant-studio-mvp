@@ -149,7 +149,7 @@ def required_warmup_bars(strategy: dict[str, Any]) -> int:
         elif name == "BOLL":
             need = int(params.get("period", 20))
         else:
-            need = int(params.get("period", 14)) + (1 if name in {"RSI", "RETURN", "VOLATILITY"} else 0)
+            need = int(params.get("period", 14)) + (1 if name in {"RSI", "RETURN", "VOLATILITY", "HIGHEST", "LOWEST"} else 0)
         longest = max(longest, need)
 
     for group_name in ("entry", "exit"):
