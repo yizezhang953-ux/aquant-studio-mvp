@@ -9,6 +9,7 @@ from app.schemas.backtest import (
     BacktestBatchResponse,
     BacktestDeleteRequest,
     BacktestDeleteResponse,
+    BacktestOptimizeRequest,
     BacktestListResponse,
     BacktestRenameRequest,
     BacktestRunRequest,
@@ -17,6 +18,7 @@ from app.schemas.backtest import (
 )
 from app.services.auth_service import get_current_user
 from app.services.market_service import normalize_symbol
+from app.services.optimization_service import optimize_strategy
 from app.services.backtest_service import (
     BacktestInputError,
     backtest_name,
@@ -100,6 +102,23 @@ def create_batch_backtest(
     if len(symbols) * len(periods) > 120:
         raise HTTPException(status_code=400, detail="一次最多 120 组（股票数 × 时间段数）")
     return BacktestBatchResponse(**run_batch_backtests(db, request.strategy, symbols, periods))
+
+
+@router.post("/optimize")
+def optimize_backtest(
+    request: BacktestOptimizeRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Try every parameter combination, rank on the train window only, report the unseen test window."""
+    validation = request.validation.model_dump(exclude_none=True)
+    parameters = [p.model_dump() for p in request.parameters]
+    for param in parameters:  # whole numbers stay ints so periods remain valid indicator lengths
+        param["values"] = [int(v) if float(v).is_integer() else v for v in param["values"]]
+    try:
+        return optimize_strategy(db, request.strategy, parameters, request.metric, validation)
+    except BacktestInputError as exc:
+        raise HTTPException(status_code=400, detail={"message": str(exc), "errors": exc.errors}) from exc
 
 
 @router.post("/delete", response_model=BacktestDeleteResponse)
