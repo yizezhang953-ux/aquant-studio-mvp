@@ -3,11 +3,12 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
-from app.models import BacktestRun, User, UserStrategy
+from app.models import BacktestRun, MarketInstrument, User, UserStrategy
 from app.schemas.backtest import (
     BacktestDeleteRequest,
     BacktestDeleteResponse,
     BacktestListResponse,
+    BacktestRenameRequest,
     BacktestRunRequest,
     BacktestRunResponse,
     BacktestSummary,
@@ -15,10 +16,12 @@ from app.schemas.backtest import (
 from app.services.auth_service import get_current_user
 from app.services.backtest_service import (
     BacktestInputError,
+    backtest_name,
     delete_user_backtests,
     get_user_backtest,
     list_user_backtests,
     persist_backtest_report,
+    rename_user_backtest,
     run_backtest_payload,
 )
 
@@ -59,7 +62,24 @@ def list_backtests(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> BacktestListResponse:
-    return BacktestListResponse(backtests=[_summary(run) for run in list_user_backtests(db, current_user.id)])
+    runs = list_user_backtests(db, current_user.id)
+    symbols = {run.symbol for run in runs}
+    names = {i.symbol: i.name for i in db.scalars(select(MarketInstrument).where(MarketInstrument.symbol.in_(symbols)))}
+    return BacktestListResponse(backtests=[_summary(run, backtest_name(db, run, names)) for run in runs])
+
+
+@router.patch("/{backtest_id}", response_model=BacktestSummary)
+def rename_backtest(
+    backtest_id: str,
+    request: BacktestRenameRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> BacktestSummary:
+    """Rename a saved run; an empty name restores the generated one."""
+    run = rename_user_backtest(db, current_user.id, backtest_id, request.display_name)
+    if run is None:
+        raise HTTPException(status_code=404, detail="backtest not found")
+    return _summary(run, backtest_name(db, run))
 
 
 @router.post("/delete", response_model=BacktestDeleteResponse)
@@ -114,9 +134,10 @@ def get_backtest_report_endpoint(
     return get_backtest(backtest_id, current_user, db)
 
 
-def _summary(run: BacktestRun) -> BacktestSummary:
+def _summary(run: BacktestRun, name: str) -> BacktestSummary:
     return BacktestSummary(
         backtest_id=run.backtest_id,
+        display_name=name,
         strategy_id=run.strategy_id,
         source_strategy_id=run.source_strategy_id,
         strategy_version=run.strategy_version,

@@ -64,6 +64,7 @@ export type BacktestHistoryItem = {
   source_strategy_id: string | null;
   strategy_version: number | null;
   strategy_name: string;
+  display_name: string;
   symbol: string;
   frequency: string;
   status: string;

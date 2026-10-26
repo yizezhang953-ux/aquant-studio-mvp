@@ -15,6 +15,7 @@ class BacktestRun(Base):
     source_strategy_id: Mapped[str | None] = mapped_column(String(120), nullable=True, index=True)
     strategy_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
     strategy_name: Mapped[str] = mapped_column(String(200))
+    display_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
     symbol: Mapped[str] = mapped_column(String(40), index=True)
     frequency: Mapped[str] = mapped_column(String(20))
     status: Mapped[str] = mapped_column(String(40), default="completed")

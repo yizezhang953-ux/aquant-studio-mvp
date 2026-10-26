@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import re
 from typing import Any
 from uuid import uuid4
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import BacktestEquityPoint, BacktestRun, BacktestTrade, StrategyVersion
+from app.models import BacktestEquityPoint, BacktestRun, BacktestTrade, MarketInstrument, StrategyVersion
 from app.services.market_data_access import available_data, load_engine_bars, load_engine_context
 from app.services.strategy_service import validate_strategy_payload
 
@@ -61,6 +62,51 @@ def run_backtest_payload(db: Session, strategy: dict[str, Any]) -> dict[str, Any
     return report
 
 
+MARKET_NAMES = {"a_share": "A股", "hk_stock": "港股", "hk_connect": "港股通"}
+NAME_SUFFIX = re.compile(r"\s*-\s*我的策略$")
+
+
+def _month(day: str | None) -> str:
+    return day[:7].replace("-", ".") if day else "?"
+
+
+def default_backtest_name(market: str | None, strategy_name: str, stock_name: str | None, symbol: str,
+                          start_date: str | None, end_date: str | None) -> str:
+    """e.g. 港股 RSI 回调策略 百胜中国 2021.01-2025.12"""
+    label = MARKET_NAMES.get(market or "", "")
+    strategy = NAME_SUFFIX.sub("", strategy_name.strip())
+    for prefix in ("港股通", "港股", "A股"):
+        if strategy.startswith(prefix):
+            strategy = strategy[len(prefix):].strip()
+            break
+    if not strategy.endswith("策略"):
+        strategy += "策略"
+    parts = [label, strategy, stock_name or symbol, f"{_month(start_date)}-{_month(end_date)}"]
+    return " ".join(part for part in parts if part)[:200]
+
+
+def backtest_name(db: Session, run: BacktestRun, stock_names: dict[str, str] | None = None) -> str:
+    """The user's own name for a run, or the generated one for runs never renamed."""
+    if run.display_name:
+        return run.display_name
+    if stock_names is None:
+        instrument = db.get(MarketInstrument, run.symbol)
+        stock_names = {run.symbol: instrument.name} if instrument else {}
+    market = (run.report_json or {}).get("market")
+    return default_backtest_name(market, run.strategy_name, stock_names.get(run.symbol), run.symbol,
+                                 run.start_date, run.end_date)
+
+
+def rename_user_backtest(db: Session, owner_id: int, backtest_id: str, name: str | None) -> BacktestRun | None:
+    """Empty name goes back to the generated one."""
+    run = db.get(BacktestRun, backtest_id)
+    if run is None or run.owner_id != owner_id:
+        return None
+    run.display_name = (name or "").strip()[:200] or None
+    db.commit()
+    return run
+
+
 def persist_backtest_report(
     db: Session,
     backtest_id: str,
@@ -71,6 +117,7 @@ def persist_backtest_report(
     run = db.get(BacktestRun, backtest_id)
     strategy_version = get_latest_strategy_version(db, source_strategy_id)
     parameter_snapshot = build_parameter_snapshot(report)
+    instrument = db.get(MarketInstrument, report["symbol"])
     payload = {
         "backtest_id": backtest_id,
         "owner_id": owner_id,
@@ -78,6 +125,9 @@ def persist_backtest_report(
         "source_strategy_id": source_strategy_id,
         "strategy_version": strategy_version,
         "strategy_name": report["strategy_name"],
+        "display_name": default_backtest_name(report.get("market"), report["strategy_name"],
+                                              instrument.name if instrument else None, report["symbol"],
+                                              report.get("start_date"), report.get("end_date")),
         "symbol": report["symbol"],
         "frequency": report["frequency"],
         "status": "completed",

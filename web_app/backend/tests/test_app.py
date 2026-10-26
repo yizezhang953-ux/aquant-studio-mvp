@@ -282,6 +282,14 @@ def test_admin_market_data_import_flow(client, admin_headers) -> None:
     assert client.post("/api/v1/market/import", headers=admin_headers, json=bad_symbol).status_code == 400
 
 
+def test_default_backtest_name() -> None:
+    from app.services.backtest_service import default_backtest_name
+    assert default_backtest_name("hk_stock", "港股 RSI 回调", "百胜中国", "09987.HK", "2021-01-01", "2025-12-31") == \
+        "港股 RSI 回调策略 百胜中国 2021.01-2025.12"
+    assert default_backtest_name("hk_connect", "港股通双均线趋势策略 - 我的策略", None, "00168.HK", "2018-01-01", "2025-12-31") == \
+        "港股通 双均线趋势策略 00168.HK 2018.01-2025.12"
+
+
 def test_admin_can_delete_market_data(client, admin_headers) -> None:
     symbol = a_symbol()
     payload = {"instrument": {"symbol": symbol, "name": "待删除"},
@@ -490,7 +498,13 @@ def test_user_account_and_strategy_persistence_flow(client) -> None:
     assert mine["strategy"]["strategy_id"] == strategy["strategy_id"]
     assert client.delete(f"/api/v1/strategies/{created['strategy_id']}", headers=headers).status_code == 204
 
+    assert stored["display_name"] == "A股 价格突破策略 贵州茅台 2018.01-2025.12"
+    renamed = client.patch(f"/api/v1/backtests/{backtest_id}", headers=headers, json={"display_name": " 茅台突破 "})
+    assert renamed.status_code == 200 and renamed.json()["display_name"] == "茅台突破"
+    reset = client.patch(f"/api/v1/backtests/{backtest_id}", headers=headers, json={"display_name": ""}).json()
+    assert reset["display_name"] == stored["display_name"]
     other, _ = register(client, "stranger")
+    assert client.patch(f"/api/v1/backtests/{backtest_id}", headers=other, json={"display_name": "x"}).status_code == 404
     assert client.delete(f"/api/v1/backtests/{backtest_id}", headers=other).status_code == 404
     second = client.post("/api/v1/backtests", headers=headers, json={"strategy": strategy}).json()["backtest_id"]
     deleted = client.post("/api/v1/backtests/delete", headers=headers, json={"backtest_ids": [backtest_id, second, "nope"]})

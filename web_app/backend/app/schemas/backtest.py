@@ -24,6 +24,7 @@ class BacktestSummary(BaseModel):
     source_strategy_id: str | None = None
     strategy_version: int | None = None
     strategy_name: str
+    display_name: str
     symbol: str
     frequency: str
     status: str
@@ -44,3 +45,7 @@ class BacktestDeleteRequest(BaseModel):
 
 class BacktestDeleteResponse(BaseModel):
     deleted: int
+
+
+class BacktestRenameRequest(BaseModel):
+    display_name: str = Field(default="", max_length=200)
