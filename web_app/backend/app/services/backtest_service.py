@@ -174,6 +174,17 @@ def list_user_backtests(db: Session, owner_id: int) -> list[BacktestRun]:
     )
 
 
+def delete_user_backtests(db: Session, owner_id: int, backtest_ids: list[str]) -> int:
+    """Delete the user's own runs (with their trades and equity points); seeded demo runs are left alone."""
+    runs = db.scalars(
+        select(BacktestRun).where(BacktestRun.owner_id == owner_id, BacktestRun.backtest_id.in_(backtest_ids))
+    ).all()
+    for run in runs:
+        db.delete(run)
+    db.commit()
+    return len(runs)
+
+
 def get_user_backtest(db: Session, owner_id: int, backtest_id: str) -> BacktestRun | None:
     """A run owned by the user (seeded demo runs with no owner are readable by everyone)."""
     run = db.get(BacktestRun, backtest_id)

@@ -237,3 +237,11 @@ class MarketQualityResponse(BaseModel):
     missing_trading_days: list[str] = []
     issue_summary: dict[str, int] = {}
     issues: list[MarketQualityIssue]
+
+
+class MarketDataDeleteResponse(BaseModel):
+    symbol: str
+    frequency: str | None = None
+    deleted_bars: int
+    remaining_bars: int
+    removed_instrument: bool

@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
 from app.models import BacktestRun, User, UserStrategy
 from app.schemas.backtest import (
+    BacktestDeleteRequest,
+    BacktestDeleteResponse,
     BacktestListResponse,
     BacktestRunRequest,
     BacktestRunResponse,
@@ -13,6 +15,7 @@ from app.schemas.backtest import (
 from app.services.auth_service import get_current_user
 from app.services.backtest_service import (
     BacktestInputError,
+    delete_user_backtests,
     get_user_backtest,
     list_user_backtests,
     persist_backtest_report,
@@ -57,6 +60,25 @@ def list_backtests(
     db: Session = Depends(get_db),
 ) -> BacktestListResponse:
     return BacktestListResponse(backtests=[_summary(run) for run in list_user_backtests(db, current_user.id)])
+
+
+@router.post("/delete", response_model=BacktestDeleteResponse)
+def delete_backtests(
+    request: BacktestDeleteRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> BacktestDeleteResponse:
+    return BacktestDeleteResponse(deleted=delete_user_backtests(db, current_user.id, request.backtest_ids))
+
+
+@router.delete("/{backtest_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_backtest(
+    backtest_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> None:
+    if delete_user_backtests(db, current_user.id, [backtest_id]) == 0:
+        raise HTTPException(status_code=404, detail="backtest not found")
 
 
 @router.get("/mine/{backtest_id}")

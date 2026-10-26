@@ -220,7 +220,7 @@ export default function App() {
             notify={notify}
           />
         ) : page === "history" ? (
-          <HistoryPage token={token} history={history} notify={notify} />
+          <HistoryPage token={token} history={history} notify={notify} onChanged={() => reloadHistory()} />
         ) : (
           <MarketPage
             token={token}
