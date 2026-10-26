@@ -282,6 +282,43 @@ def test_admin_market_data_import_flow(client, admin_headers) -> None:
     assert client.post("/api/v1/market/import", headers=admin_headers, json=bad_symbol).status_code == 400
 
 
+def test_batch_backtest_runs_every_stock_and_period(client, admin_headers) -> None:
+    import datetime as dt
+
+    days = [d for d in (f"2024-{m:02d}-{x:02d}" for m in range(1, 13) for x in range(1, 29))
+            if dt.date.fromisoformat(d).weekday() < 5]
+    a, hk = a_symbol("SZ"), a_symbol("HK")
+    for symbol, base in ((a, 10), (hk, 40)):
+        payload = {"instrument": {"symbol": symbol, "name": f"批量{base}"},
+                   "bars": [bar(symbol, d, base + (i % 20) * 0.3) for i, d in enumerate(days)]}
+        assert client.post("/api/v1/market/import", headers=admin_headers, json=payload).status_code == 200
+    strategy = read_json(TEMPLATE_MODULE / "templates" / "rsi_reversal.json")
+    user, _ = register(client, "batch")
+    periods = [{"start_date": "2024-01-01", "end_date": "2024-06-30"},
+               {"start_date": "2024-07-01", "end_date": "2024-12-31"},
+               {"start_date": "2019-01-01", "end_date": "2019-12-31"}]
+    response = client.post("/api/v1/backtests/batch", headers=user, json={
+        "strategy": strategy, "symbols": [a, hk.lower(), a], "periods": periods})
+    assert response.status_code == 200, response.text
+    body = response.json()
+    rows = body["rows"]
+    assert len(rows) == 6  # duplicate symbol dropped, 2 stocks x 3 periods
+    assert {r["market"] for r in rows if r["symbol"] == hk} == {"hk_stock"}  # A-share strategy on a .HK stock
+    missing = [r for r in rows if r["start_date"] == "2019-01-01"]
+    assert all(not r["ok"] and r["missing_data"] and "同步" in r["error"] for r in missing)
+    done = [r for r in rows if r["ok"]]
+    assert len(done) == 4 and all("total_return" in r["metrics"] for r in done)
+    summary = body["summary"]
+    assert summary["runs"] == 6 and summary["completed"] == 4 and summary["failed"] == 2
+    assert summary["worst_return"] <= summary["median_return"] <= summary["best_return"]
+    assert client.get("/api/v1/backtests", headers=user).json()["backtests"] == []  # nothing saved
+
+    bad = client.post("/api/v1/backtests/batch", headers=user, json={
+        "strategy": strategy, "symbols": [a], "periods": [{"start_date": "2024-12-31", "end_date": "2024-01-01"}]})
+    assert bad.status_code == 400
+    assert client.post("/api/v1/backtests/batch", json={"strategy": strategy, "symbols": [a], "periods": periods}).status_code == 401
+
+
 def test_default_backtest_name() -> None:
     from app.services.backtest_service import default_backtest_name
     assert default_backtest_name("hk_stock", "港股 RSI 回调", "百胜中国", "09987.HK", "2021-01-01", "2025-12-31") == \

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import copy
 import re
+from statistics import median
 from typing import Any
 from uuid import uuid4
 
@@ -60,6 +62,81 @@ def run_backtest_payload(db: Session, strategy: dict[str, Any]) -> dict[str, Any
     report["backtest_id"] = f"bt_{uuid4().hex[:12]}"
     report["strategy"] = strategy
     return report
+
+
+BATCH_METRICS = ("total_return", "benchmark_return", "annualized_return", "max_drawdown", "sharpe",
+                 "win_rate", "trade_count", "profit_factor")
+
+
+def batch_market(strategy_market: str, symbol: str) -> str:
+    """Keep the strategy's market when the stock fits it; otherwise use the stock's own market
+    (an A-share strategy run on a .HK stock uses 港股 rules, and the other way round)."""
+    is_hk = symbol.endswith(".HK")
+    if is_hk and strategy_market == "a_share":
+        return "hk_stock"
+    if not is_hk and strategy_market in ("hk_stock", "hk_connect"):
+        return "a_share"
+    return strategy_market
+
+
+def batch_strategy(strategy: dict[str, Any], symbol: str, start: str, end: str) -> dict[str, Any]:
+    """The strategy as it runs for one stock and one period."""
+    run = copy.deepcopy(strategy)
+    run["market"] = batch_market(str(run.get("market", "a_share")), symbol)
+    run["universe"] = dict(run.get("universe") or {}, type="single", symbols=[symbol])
+    run["data"] = dict(run.get("data") or {}, start_date=start, end_date=end)
+    return run
+
+
+def run_batch_backtests(db: Session, strategy: dict[str, Any], symbols: list[str],
+                        periods: list[tuple[str, str]]) -> dict[str, Any]:
+    """Run one strategy over every stock x period. Nothing is saved; failed runs say why."""
+    names = {i.symbol: i.name for i in db.scalars(select(MarketInstrument).where(MarketInstrument.symbol.in_(symbols)))}
+    rows: list[dict[str, Any]] = []
+    for symbol in symbols:
+        for start, end in periods:
+            run = batch_strategy(strategy, symbol, start, end)
+            row: dict[str, Any] = {"symbol": symbol, "name": names.get(symbol, symbol), "market": run["market"],
+                                   "start_date": start, "end_date": end, "ok": False, "missing_data": False,
+                                   "error": None, "metrics": {}, "warning_count": 0}
+            try:
+                report = run_backtest_payload(db, run)
+            except BacktestInputError as exc:
+                row["missing_data"] = str(exc).startswith("没有 ")
+                row["error"] = (f"没有 {start} 至 {end} 的行情，先到「行情数据」同步。" if row["missing_data"]
+                                else "；".join(exc.errors))
+            else:
+                metrics = report.get("metrics", {})
+                row.update(ok=True, metrics={key: metrics.get(key) for key in BATCH_METRICS},
+                           warning_count=len(report.get("warnings", [])))
+            rows.append(row)
+    return {"rows": rows, "summary": batch_summary(rows)}
+
+
+def batch_summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    done = [row["metrics"] for row in rows if row["ok"]]
+    returns = [m["total_return"] for m in done if m.get("total_return") is not None]
+    excess = [m["total_return"] - m["benchmark_return"] for m in done
+              if m.get("total_return") is not None and m.get("benchmark_return") is not None]
+    drawdowns = [m["max_drawdown"] for m in done if m.get("max_drawdown") is not None]
+
+    def mean(values: list[float]) -> float | None:
+        return round(sum(values) / len(values), 6) if values else None
+
+    return {
+        "runs": len(rows),
+        "completed": len(done),
+        "failed": len(rows) - len(done),
+        "profitable": sum(1 for r in returns if r > 0),
+        "beat_buy_hold": sum(1 for e in excess if e > 0),
+        "mean_return": mean(returns),
+        "median_return": round(median(returns), 6) if returns else None,
+        "best_return": max(returns) if returns else None,
+        "worst_return": min(returns) if returns else None,
+        "mean_excess": mean(excess),
+        "mean_max_drawdown": mean(drawdowns),
+        "worst_max_drawdown": max(drawdowns) if drawdowns else None,
+    }
 
 
 MARKET_NAMES = {"a_share": "A股", "hk_stock": "港股", "hk_connect": "港股通"}
