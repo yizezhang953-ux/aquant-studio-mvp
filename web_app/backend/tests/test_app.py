@@ -1,3 +1,4 @@
+import copy
 import gzip
 import json
 import random
@@ -420,6 +421,76 @@ def test_drawdown_episodes_measure_duration_and_recovery() -> None:
     assert round(deepest["depth"], 4) == 0.2
     assert longest["start"] == "2024-03-01" and not longest["recovered"] and longest["days"] == 70
     assert monthly_returns(days, 100)[0]["months"][:5] == [-0.1, -0.111111, 0.2375, None, round(95 / 99 - 1, 6)]
+
+
+def _oscillating(client, admin_headers, symbol, start_year=2023, years=2, base=30.0):
+    import datetime as dt
+    import math
+
+    days = [d for d in (f"{y}-{m:02d}-{x:02d}" for y in range(start_year, start_year + years) for m in range(1, 13)
+                        for x in range(1, 29)) if dt.date.fromisoformat(d).weekday() < 5]
+    payload = {"instrument": {"symbol": symbol, "name": f"信号{symbol[:3]}"},
+               "bars": [bar(symbol, d, base + 4 * math.sin(i / 7)) for i, d in enumerate(days)]}
+    assert client.post("/api/v1/market/import", headers=admin_headers, json=payload).status_code == 200
+    return days
+
+
+def test_signal_scan_reports_rules_on_the_latest_close(client, admin_headers) -> None:
+    a, b = a_symbol("SZ"), a_symbol("SZ")
+    days = _oscillating(client, admin_headers, a)
+    strategy = read_json(TEMPLATE_MODULE / "templates" / "rsi_reversal.json")
+    always_buy = copy.deepcopy(strategy)
+    always_buy["entry"]["conditions"][0]["right"]["value"] = 101  # RSI is always below 101
+    user, _ = register(client, "signals")
+    body = client.post("/api/v1/signals/scan", headers=user, json={
+        "strategies": [{"strategy_id": "s1", "name": "RSI", "strategy": strategy},
+                       {"strategy_id": "s2", "name": "总是买", "strategy": always_buy}],
+        "symbols": [a, b]}).json()
+    rows = body["rows"]
+    assert len(rows) == 4 and body["latest_date"] == days[-1]
+    missing = [r for r in rows if r["symbol"] == b]
+    assert all(r["error"] and r["signal"] is None for r in missing)
+    buy = next(r for r in rows if r["symbol"] == a and r["strategy_id"] == "s2")
+    assert buy["signal"] == "buy" and buy["date"][:10] == days[-1]
+    assert buy["entry_conditions"][0]["met"] and buy["entry_conditions"][0]["right_value"] == 101
+    assert 0 <= buy["entry_conditions"][0]["left_value"] <= 100
+    assert body["buy"] >= 1
+
+
+def test_paper_account_follows_strategy_from_start_date(client, admin_headers) -> None:
+    a, c = a_symbol("SZ"), a_symbol("SZ")
+    _oscillating(client, admin_headers, a)
+    _oscillating(client, admin_headers, c, base=50.0)
+    strategy = read_json(TEMPLATE_MODULE / "templates" / "rsi_reversal.json")
+    user, _ = register(client, "paper")
+    other, _ = register(client, "paper2")
+    bad = client.post("/api/v1/paper", headers=user, json={
+        "name": "x", "strategy": strategy, "symbols": [a, "00700.HK"], "initial_cash": 100000, "start_date": "2024-01-01"})
+    assert bad.status_code == 400 and "00700.HK" in bad.json()["detail"]
+    created = client.post("/api/v1/paper", headers=user, json={
+        "name": "RSI 模拟盘", "strategy": strategy, "source_strategy_id": None, "symbols": [a, c, a],
+        "initial_cash": 200000, "start_date": "2024-01-01"})
+    assert created.status_code == 200, created.text
+    account = created.json()
+    assert account["symbols"] == [a, c] and account["start_date"] == "2024-01-01"
+    assert account["curve"][0]["trade_time"] >= "2024-01-01"
+    assert account["summary"]["last_date"] == "2024-12-27"
+    assert account["summary"]["trades"] > 0 and all(t["symbol"] in (a, c) for t in account["trades"])
+    assert all(s["status"] == "ok" for s in account["sleeves"])
+    total = sum(s["equity"] for s in account["sleeves"])
+    assert abs(total - account["summary"]["equity"]) < 1  # the account is the sum of its sleeves
+    assert abs(account["summary"]["total_return"] - (total / 200000 - 1)) < 1e-4
+
+    listed = client.get("/api/v1/paper", headers=user).json()["accounts"]
+    assert [x["account_id"] for x in listed] == [account["account_id"]] and "curve" not in listed[0]
+    assert client.get("/api/v1/paper", headers=other).json()["accounts"] == []
+    assert client.get(f"/api/v1/paper/{account['account_id']}", headers=other).status_code == 404
+
+    waiting = client.post("/api/v1/paper", headers=user, json={
+        "name": "明天开始", "strategy": strategy, "symbols": [a], "initial_cash": 50000, "start_date": "2025-06-01"}).json()
+    assert waiting["summary"]["equity"] == 50000 and waiting["sleeves"][0]["status"] == "waiting"
+    assert client.delete(f"/api/v1/paper/{waiting['account_id']}", headers=user).status_code == 200
+    assert len(client.get("/api/v1/paper", headers=user).json()["accounts"]) == 1
 
 
 def test_default_backtest_name() -> None:
