@@ -319,6 +319,53 @@ def test_batch_backtest_runs_every_stock_and_period(client, admin_headers) -> No
     assert client.post("/api/v1/backtests/batch", json={"strategy": strategy, "symbols": [a], "periods": periods}).status_code == 401
 
 
+def test_optimize_ranks_on_train_and_checks_on_unseen_window(client, admin_headers) -> None:
+    import datetime as dt
+    import math
+
+    days = [d for d in (f"{y}-{m:02d}-{x:02d}" for y in (2023, 2024) for m in range(1, 13) for x in range(1, 29))
+            if dt.date.fromisoformat(d).weekday() < 5]
+    symbol = a_symbol("SZ")
+    payload = {"instrument": {"symbol": symbol, "name": "优化"},
+               "bars": [bar(symbol, d, 20 + 3 * math.sin(i / 6) + i * 0.01) for i, d in enumerate(days)]}
+    assert client.post("/api/v1/market/import", headers=admin_headers, json=payload).status_code == 200
+    strategy = read_json(TEMPLATE_MODULE / "templates" / "rsi_reversal.json")
+    strategy["universe"]["symbols"] = [symbol]
+    strategy["data"].update(start_date="2023-03-01", end_date="2024-12-31")
+    user, _ = register(client, "optim")
+    params = [{"path": "entry.conditions.0.left.params.period", "label": "买入 RSI 周期", "values": [6, 14]},
+              {"path": "entry.conditions.0.right.value", "label": "买入阈值", "values": [25, 30, 35]}]
+    response = client.post("/api/v1/backtests/optimize", headers=user, json={
+        "strategy": strategy, "parameters": params, "metric": "total_return",
+        "validation": {"method": "holdout", "train_ratio": 0.7}})
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["candidate_count"] == 6 and len(body["rows"]) == 6
+    (window,) = body["windows"]
+    assert window["train_end"] < window["test_start"]  # the test window is never used to rank
+    ranked = [r for r in body["rows"] if r["ok"]]
+    train = [r["train"]["total_return"] for r in ranked]
+    assert train == sorted(train, reverse=True) and [r["rank"] for r in ranked] == list(range(1, 7))
+    assert body["best"]["values"] == ranked[0]["values"]
+    assert body["current"]["values"] == [14, 30]
+    assert body["verdict"]["level"] in ("good", "caution", "overfit") and body["verdict"]["reasons"]
+    assert sum(r["test"]["trade_count"] for r in ranked) > 0
+
+    walk = client.post("/api/v1/backtests/optimize", headers=user, json={
+        "strategy": strategy, "parameters": params[:1], "validation": {"method": "walk_forward", "folds": 3}}).json()
+    assert len(walk["windows"]) == 3 and len(walk["fold_selection"]) == 3
+    assert all(w["train_end"] < w["test_start"] for w in walk["windows"])
+
+    bad = client.post("/api/v1/backtests/optimize", headers=user, json={
+        "strategy": strategy, "parameters": [{"path": "entry.conditions.9.right.value", "label": "x", "values": [1]}]})
+    assert bad.status_code == 400
+    too_many = [{"path": "entry.conditions.0.right.value", "label": "a", "values": list(range(1, 21))},
+                {"path": "exit.conditions.0.right.value", "label": "b", "values": list(range(60, 80))}]
+    assert client.post("/api/v1/backtests/optimize", headers=user,
+                       json={"strategy": strategy, "parameters": too_many}).status_code == 400
+    assert client.get("/api/v1/backtests", headers=user).json()["backtests"] == []  # nothing saved
+
+
 def test_default_backtest_name() -> None:
     from app.services.backtest_service import default_backtest_name
     assert default_backtest_name("hk_stock", "港股 RSI 回调", "百胜中国", "09987.HK", "2021-01-01", "2025-12-31") == \

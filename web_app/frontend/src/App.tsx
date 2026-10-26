@@ -12,14 +12,16 @@ import {
   today,
 } from "./api";
 import { BatchPage } from "./BatchPage";
+import { OptimizePage } from "./OptimizePage";
 import { HistoryPage } from "./HistoryPage";
 import { MarketPage } from "./MarketPage";
 import { StrategyPage } from "./StrategyPage";
 
-type Page = "strategy" | "batch" | "history" | "market";
+type Page = "strategy" | "batch" | "optimize" | "history" | "market";
 const PAGES: [Page, string][] = [
   ["strategy", "策略研究"],
   ["batch", "批量回测"],
+  ["optimize", "参数优化"],
   ["history", "回测记录"],
   ["market", "行情数据"],
 ];
@@ -43,7 +45,7 @@ function storeToken(token: string) {
 
 function initialPage(): Page {
   const hash = window.location.hash.replace("#", "");
-  return hash === "batch" || hash === "history" || hash === "market" ? hash : "strategy";
+  return hash === "batch" || hash === "optimize" || hash === "history" || hash === "market" ? hash : "strategy";
 }
 
 export default function App() {
@@ -228,6 +230,14 @@ export default function App() {
             strategies={strategies}
             instruments={instruments}
             syncSymbol={(symbol, start, end) => syncSymbol(symbol, start, end)}
+            onBacktestSaved={() => reloadHistory()}
+            notify={notify}
+          />
+        ) : page === "optimize" ? (
+          <OptimizePage
+            token={token}
+            strategies={strategies}
+            reloadStrategies={() => reloadStrategies()}
             onBacktestSaved={() => reloadHistory()}
             notify={notify}
           />

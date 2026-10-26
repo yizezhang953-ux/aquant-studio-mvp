@@ -78,3 +78,24 @@ class BacktestBatchRow(BaseModel):
 class BacktestBatchResponse(BaseModel):
     rows: list[BacktestBatchRow]
     summary: dict[str, Any]
+
+
+class OptimizeParameter(BaseModel):
+    path: str = Field(min_length=1, max_length=120, pattern=r"^[A-Za-z0-9_.]+$")
+    label: str = Field(min_length=1, max_length=60)
+    values: list[float] = Field(min_length=1, max_length=50)
+
+
+class OptimizeValidation(BaseModel):
+    method: str = Field(default="holdout", pattern=r"^(holdout|walk_forward)$")
+    train_ratio: float = Field(default=0.7, ge=0.3, le=0.9)
+    split_date: str | None = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+    folds: int = Field(default=3, ge=2, le=6)
+    initial_train_ratio: float = Field(default=0.5, ge=0.3, le=0.8)
+
+
+class BacktestOptimizeRequest(BaseModel):
+    strategy: dict[str, Any]
+    parameters: list[OptimizeParameter] = Field(min_length=1, max_length=4)
+    metric: str = "total_return"
+    validation: OptimizeValidation = OptimizeValidation()

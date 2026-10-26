@@ -1782,3 +1782,108 @@ p.sync-bar {
 .batch-field .segmented {
   justify-self: start;
 }
+
+.opt-params {
+  display: grid;
+  gap: 6px;
+}
+
+.opt-param {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.opt-param.on {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.opt-param-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 300px;
+  cursor: pointer;
+}
+
+.opt-param-values {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.opt-param-values input {
+  width: 240px;
+}
+
+.opt-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 32px;
+}
+
+.opt-verdict {
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+}
+
+.opt-verdict strong {
+  font-size: 16px;
+}
+
+.opt-verdict ul {
+  margin: 6px 0 0;
+  padding-left: 20px;
+}
+
+.opt-verdict.good {
+  background: var(--down-soft);
+  border-color: var(--down);
+}
+
+.opt-verdict.good strong {
+  color: var(--down);
+}
+
+.opt-verdict.caution {
+  background: var(--warn-soft);
+  border-color: var(--warn);
+}
+
+.opt-verdict.caution strong {
+  color: var(--warn);
+}
+
+.opt-verdict.overfit {
+  background: var(--up-soft);
+  border-color: var(--up);
+}
+
+.opt-verdict.overfit strong {
+  color: var(--up);
+}
+
+.opt-subhead {
+  margin: 8px 0 0;
+}
+
+.data-table .tag {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 12px;
+}
+
+.optimize .batch-dates select,
+.opt-row select {
+  width: auto;
+  max-width: 260px;
+}
