@@ -11,13 +11,15 @@ import {
   request,
   today,
 } from "./api";
+import { BatchPage } from "./BatchPage";
 import { HistoryPage } from "./HistoryPage";
 import { MarketPage } from "./MarketPage";
 import { StrategyPage } from "./StrategyPage";
 
-type Page = "strategy" | "history" | "market";
+type Page = "strategy" | "batch" | "history" | "market";
 const PAGES: [Page, string][] = [
   ["strategy", "策略研究"],
+  ["batch", "批量回测"],
   ["history", "回测记录"],
   ["market", "行情数据"],
 ];
@@ -41,7 +43,7 @@ function storeToken(token: string) {
 
 function initialPage(): Page {
   const hash = window.location.hash.replace("#", "");
-  return hash === "history" || hash === "market" ? hash : "strategy";
+  return hash === "batch" || hash === "history" || hash === "market" ? hash : "strategy";
 }
 
 export default function App() {
@@ -217,6 +219,16 @@ export default function App() {
             reloadStrategies={() => reloadStrategies()}
             onBacktestSaved={() => reloadHistory()}
             syncSymbol={(symbol, start) => syncSymbol(symbol, start)}
+            notify={notify}
+          />
+        ) : page === "batch" ? (
+          <BatchPage
+            token={token}
+            isAdmin={Boolean(user.is_admin)}
+            strategies={strategies}
+            instruments={instruments}
+            syncSymbol={(symbol, start, end) => syncSymbol(symbol, start, end)}
+            onBacktestSaved={() => reloadHistory()}
             notify={notify}
           />
         ) : page === "history" ? (

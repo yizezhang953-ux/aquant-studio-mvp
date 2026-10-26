@@ -1631,3 +1631,154 @@ p.sync-bar {
   font: inherit;
   font-weight: 600;
 }
+
+/* ---------- batch backtest ---------- */
+
+.batch-setup {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.batch-field {
+  display: grid;
+  gap: 6px;
+}
+
+.field-label {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.batch-field select {
+  max-width: 520px;
+}
+
+.batch-field textarea {
+  width: 100%;
+  font: inherit;
+  padding: 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  resize: vertical;
+}
+
+.batch-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.chip {
+  padding: 3px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.chip.on {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.batch-dates {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.batch-periods {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+}
+
+.batch-run {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.error-text {
+  color: var(--danger);
+}
+
+.batch-results {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+  margin-top: 20px;
+}
+
+.batch-main {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.batch-kpis {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.kpi-value.small-value {
+  font-size: 18px;
+}
+
+.batch-missing {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+.batch-main .table-wrap {
+  background: var(--surface);
+}
+
+.data-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.data-table th.sortable.active {
+  color: var(--ink);
+}
+
+.data-table tr.failed td {
+  background: var(--surface-2);
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+.batch-dates input {
+  width: 170px;
+}
+
+.batch-detail {
+  position: static;
+}
+
+@media (max-width: 1100px) {
+  .batch-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.batch-field .segmented {
+  justify-self: start;
+}

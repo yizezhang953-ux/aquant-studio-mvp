@@ -5,6 +5,8 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models import BacktestRun, MarketInstrument, User, UserStrategy
 from app.schemas.backtest import (
+    BacktestBatchRequest,
+    BacktestBatchResponse,
     BacktestDeleteRequest,
     BacktestDeleteResponse,
     BacktestListResponse,
@@ -14,6 +16,7 @@ from app.schemas.backtest import (
     BacktestSummary,
 )
 from app.services.auth_service import get_current_user
+from app.services.market_service import normalize_symbol
 from app.services.backtest_service import (
     BacktestInputError,
     backtest_name,
@@ -22,6 +25,7 @@ from app.services.backtest_service import (
     list_user_backtests,
     persist_backtest_report,
     rename_user_backtest,
+    run_batch_backtests,
     run_backtest_payload,
 )
 
@@ -80,6 +84,22 @@ def rename_backtest(
     if run is None:
         raise HTTPException(status_code=404, detail="backtest not found")
     return _summary(run, backtest_name(db, run))
+
+
+@router.post("/batch", response_model=BacktestBatchResponse)
+def create_batch_backtest(
+    request: BacktestBatchRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> BacktestBatchResponse:
+    """Run one strategy on several stocks and periods; results are returned, not saved."""
+    symbols = list(dict.fromkeys(normalize_symbol(s) for s in request.symbols if s.strip()))
+    periods = [(p.start_date, p.end_date) for p in request.periods]
+    if any(start > end for start, end in periods):
+        raise HTTPException(status_code=400, detail="开始日期不能晚于结束日期")
+    if len(symbols) * len(periods) > 120:
+        raise HTTPException(status_code=400, detail="一次最多 120 组（股票数 × 时间段数）")
+    return BacktestBatchResponse(**run_batch_backtests(db, request.strategy, symbols, periods))
 
 
 @router.post("/delete", response_model=BacktestDeleteResponse)
