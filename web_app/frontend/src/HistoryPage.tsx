@@ -74,10 +74,12 @@ export function HistoryPage({
   const [openId, setOpenId] = useState("");
   const [report, setReport] = useState<BacktestReport | null>(null);
   const [filter, setFilter] = useState("");
+  const [editing, setEditing] = useState("");
+  const [draftName, setDraftName] = useState("");
 
   const visible = history.filter((item) => {
     const q = filter.trim().toUpperCase();
-    return !q || item.symbol.includes(q) || item.strategy_name.toUpperCase().includes(q);
+    return !q || item.symbol.includes(q) || item.strategy_name.toUpperCase().includes(q) || item.display_name.toUpperCase().includes(q);
   });
   const compared = history.filter((item) => compare.includes(item.backtest_id));
   const changed = diffFields.filter((field) => compared.length > 1 && differs(compared, field));
@@ -94,6 +96,24 @@ export function HistoryPage({
 
   function toggle(id: string) {
     setCompare((current) => (current.includes(id) ? current.filter((x) => x !== id) : [...current, id]));
+  }
+
+  function startRename(item: BacktestHistoryItem) {
+    setEditing(item.backtest_id);
+    setDraftName(item.display_name);
+  }
+
+  async function saveRename(item: BacktestHistoryItem) {
+    const name = draftName.trim();
+    setEditing("");
+    if (name === item.display_name) return;
+    try {
+      await request(`/backtests/${item.backtest_id}`, { method: "PATCH", body: JSON.stringify({ display_name: name }) }, token);
+      await onChanged();
+      notify("success", name ? `已重命名为「${name}」。` : "已恢复为自动生成的名称。");
+    } catch (error) {
+      notify("error", `重命名失败：${getErrorMessage(error)}`);
+    }
   }
 
   function selectDuplicates() {
@@ -116,7 +136,7 @@ export function HistoryPage({
   async function remove(ids: string[]) {
     if (ids.length === 0) return;
     const names = history.filter((item) => ids.includes(item.backtest_id));
-    const label = ids.length === 1 && names[0] ? `「${names[0].strategy_name} · ${names[0].symbol}」这条回测记录` : `选中的 ${ids.length} 条回测记录`;
+    const label = ids.length === 1 && names[0] ? `「${names[0].display_name}」这条回测记录` : `选中的 ${ids.length} 条回测记录`;
     if (!window.confirm(`确定删除${label}吗？删除后无法恢复，但不影响策略本身和行情数据。`)) return;
     try {
       const result = await request<{ deleted: number }>("/backtests/delete", {
@@ -140,6 +160,7 @@ export function HistoryPage({
     const others = compare.filter((id) => id !== item.backtest_id);
     const items = [
       { label: "查看报告", onClick: () => open(item.backtest_id) },
+      { label: "重命名", onClick: () => startRename(item) },
       {
         label: compare.includes(item.backtest_id) ? "取消勾选" : "勾选",
         onClick: () => toggle(item.backtest_id),
@@ -168,8 +189,8 @@ export function HistoryPage({
       <div className="history-main">
         <div className="toolbar">
           <h2>回测记录</h2>
-          <input className="search" placeholder="按股票代码或策略名筛选" value={filter} onChange={(e) => setFilter(e.target.value)} />
-          <span className="muted small">勾选 2 到 4 条可对比；右键一行可删除</span>
+          <input className="search" placeholder="按名称、股票代码或策略筛选" value={filter} onChange={(e) => setFilter(e.target.value)} />
+          <span className="muted small">勾选 2 到 4 条可对比；右键一行可重命名或删除</span>
           <span className="spacer" />
           <button className="text-button" onClick={selectDuplicates}>
             选出重复记录
@@ -208,9 +229,34 @@ export function HistoryPage({
                     />
                   </td>
                   <td>
-                    <strong>{item.strategy_name}</strong> <span className="muted">{formatVersion(item.strategy_version)}</span>
+                    {editing === item.backtest_id ? (
+                      <input
+                        className="rename-input"
+                        autoFocus
+                        value={draftName}
+                        placeholder="留空则恢复自动名称"
+                        maxLength={200}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={(e) => setDraftName(e.target.value)}
+                        onBlur={() => saveRename(item)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") e.currentTarget.blur();
+                          if (e.key === "Escape") setEditing("");
+                        }}
+                      />
+                    ) : (
+                      <strong
+                        title="双击重命名"
+                        onDoubleClick={(e) => {
+                          e.stopPropagation();
+                          startRename(item);
+                        }}
+                      >
+                        {item.display_name}
+                      </strong>
+                    )}
                     <span className="cell-sub">
-                      {item.symbol} · {frequencyLabels[item.frequency] || item.frequency}
+                      {item.strategy_name}{item.strategy_version ? ` ${formatVersion(item.strategy_version)}` : ""} · {item.symbol} · {frequencyLabels[item.frequency] || item.frequency}
                       {item.start_date ? ` · ${item.start_date} 至 ${item.end_date}` : ""}
                     </span>
                   </td>
@@ -247,7 +293,7 @@ export function HistoryPage({
                       <th>参数</th>
                       {compared.map((item) => (
                         <th key={item.backtest_id}>
-                          {item.symbol} {formatVersion(item.strategy_version)}
+                          {item.display_name}
                         </th>
                       ))}
                     </tr>

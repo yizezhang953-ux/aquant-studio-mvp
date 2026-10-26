@@ -1621,3 +1621,13 @@ p.sync-bar {
 .toolbar .text-button {
   white-space: nowrap;
 }
+
+.rename-input {
+  width: 100%;
+  min-width: 220px;
+  padding: 4px 8px;
+  border: 1px solid var(--focus);
+  border-radius: 4px;
+  font: inherit;
+  font-weight: 600;
+}
