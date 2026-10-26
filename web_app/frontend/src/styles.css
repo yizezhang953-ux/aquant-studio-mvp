@@ -2193,3 +2193,11 @@ p.sync-bar {
     grid-template-columns: 1fr;
   }
 }
+
+.fit-hint {
+  margin: 0 0 10px;
+  padding: 6px 10px;
+  border-radius: var(--radius);
+  background: var(--primary-soft);
+  color: var(--muted);
+}

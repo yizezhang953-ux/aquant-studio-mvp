@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BacktestReport,
   BacktestRunResponse,
@@ -29,7 +29,7 @@ import {
   symbolHints,
 } from "./api";
 import { BacktestView } from "./BacktestView";
-import { RuleGroupEditor, describeGroup } from "./RuleEditor";
+import { PriceReference, RuleGroupEditor, describeGroup, fitThresholds, hasLevelThresholds } from "./RuleEditor";
 
 type StrategyForm = {
   market: MarketKey;
@@ -292,6 +292,55 @@ export function StrategyPage({
   }, [strategies.length]);
 
   const instrument = form ? instruments.find((item) => item.symbol === form.symbol.trim().toUpperCase()) : undefined;
+  const [reference, setReference] = useState<PriceReference | null>(null);
+  // the symbol the open strategy was loaded with; thresholds are refitted only after the user changes it
+  const loadedSymbol = useRef("");
+
+  useEffect(() => {
+    loadedSymbol.current = selected?.strategy.universe?.symbols?.[0]?.toUpperCase() || "";
+  }, [selected?.strategy_id]);
+
+  useEffect(() => {
+    const symbol = form?.symbol.trim().toUpperCase() || "";
+    if (!instrument || !form) {
+      setReference(null);
+      return;
+    }
+    let live = true;
+    request<{ bars: { close: number; volume: number }[] }>(`/market/bars?symbol=${encodeURIComponent(symbol)}&frequency=${form.frequency}&limit=1`)
+      .then((r) => {
+        const last = r.bars[r.bars.length - 1];
+        if (!live || !last) return;
+        const ref = { symbol, close: last.close, volume: last.volume };
+        setReference(ref);
+        if (loadedSymbol.current && loadedSymbol.current !== symbol) {
+          loadedSymbol.current = symbol;
+          applyReference(ref, true);
+        }
+      })
+      .catch(() => live && setReference(null));
+    return () => {
+      live = false;
+    };
+  }, [instrument?.symbol, form?.frequency]);
+
+  function applyReference(ref: PriceReference, automatic = false) {
+    setForm((current) => {
+      if (!current) return current;
+      const { groups, changed } = fitThresholds([current.entry, current.exit], ref);
+      if (!changed) return current;
+      window.setTimeout(
+        () =>
+          notify(
+            "info",
+            `${automatic ? "换了股票，" : ""}已按 ${ref.symbol} 最新收盘价 ${ref.close} 重填 ${changed} 个价格阈值（保持原来的相对距离），回测前可以再微调。`,
+          ),
+        0,
+      );
+      setDirty(true);
+      return { ...current, entry: groups[0], exit: groups[1] };
+    });
+  }
 
   async function loadVersions(strategyId: string) {
     try {
@@ -582,8 +631,16 @@ export function StrategyPage({
 
             {tab === "rules" && (
               <div className="tab-body">
-                <RuleGroupEditor title="买入条件" tone="entry" group={form.entry} onChange={(g) => update("entry", g)} />
-                <RuleGroupEditor title="卖出条件" tone="exit" group={form.exit} onChange={(g) => update("exit", g)} />
+                {reference && hasLevelThresholds([form.entry, form.exit]) && (
+                  <p className="fit-hint small">
+                    规则里有固定的价格数值。{reference.symbol} 最新收盘价 {reference.close}。
+                    <button className="text-button strong" onClick={() => applyReference(reference)}>
+                      按最新股价重填
+                    </button>
+                  </p>
+                )}
+                <RuleGroupEditor title="买入条件" tone="entry" group={form.entry} onChange={(g) => update("entry", g)} reference={reference} />
+                <RuleGroupEditor title="卖出条件" tone="exit" group={form.exit} onChange={(g) => update("exit", g)} reference={reference} />
                 <p className="muted small">
                   买入：{describeGroup(form.entry)}。卖出：{describeGroup(form.exit)}。止损、止盈在「仓位与风控」里设置，任一触发都会卖出。
                 </p>
