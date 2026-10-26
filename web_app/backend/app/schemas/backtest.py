@@ -1,6 +1,6 @@
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class BacktestRunRequest(BaseModel):
@@ -36,3 +36,11 @@ class BacktestSummary(BaseModel):
 
 class BacktestListResponse(BaseModel):
     backtests: list[BacktestSummary]
+
+
+class BacktestDeleteRequest(BaseModel):
+    backtest_ids: list[str] = Field(min_length=1, max_length=500)
+
+
+class BacktestDeleteResponse(BaseModel):
+    deleted: int

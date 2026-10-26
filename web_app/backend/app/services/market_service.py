@@ -3,7 +3,7 @@ import re
 from datetime import date
 from io import StringIO
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from app.models import AuditLog, MarketBar, MarketCorporateAction, MarketFxRate, MarketInstrument
@@ -54,6 +54,32 @@ def get_market_instrument(db: Session, symbol: str) -> dict | None:
     if instrument is None:
         return None
     return _instrument_summary(db, instrument)
+
+
+def delete_market_data(db: Session, symbol: str, frequency: str | None = None) -> dict:
+    """Delete one frequency of a symbol's bars, or all of them. When no bars are left the
+    instrument and its corporate actions go too. FX rates are shared and stay; saved backtest
+    reports keep their own copy of the results."""
+    instrument = db.get(MarketInstrument, symbol)
+    if instrument is None:
+        raise ValueError(f"unknown instrument {symbol}")
+    statement = delete(MarketBar).where(MarketBar.symbol == symbol)
+    if frequency:
+        statement = statement.where(MarketBar.frequency == frequency)
+    deleted_bars = db.execute(statement).rowcount or 0
+    remaining = db.scalar(select(func.count()).select_from(MarketBar).where(MarketBar.symbol == symbol)) or 0
+    removed_instrument = remaining == 0
+    if removed_instrument:
+        db.execute(delete(MarketCorporateAction).where(MarketCorporateAction.symbol == symbol))
+        db.execute(delete(MarketInstrument).where(MarketInstrument.symbol == symbol))
+    db.commit()
+    return {
+        "symbol": symbol,
+        "frequency": frequency,
+        "deleted_bars": deleted_bars,
+        "remaining_bars": remaining,
+        "removed_instrument": removed_instrument,
+    }
 
 
 def list_market_bars(db: Session, symbol: str, frequency: str = "1d", limit: int = 120) -> list[MarketBar]:

@@ -16,6 +16,7 @@ from app.schemas.market import (
     MarketCoverageResponse,
     MarketCsvImportRequest,
     MarketCsvImportResponse,
+    MarketDataDeleteResponse,
     MarketDataSourceListResponse,
     MarketDataSourceSummary,
     MarketDataSyncRequest,
@@ -35,6 +36,7 @@ from app.services.market_data_source_service import (
     sync_market_data_from_source,
 )
 from app.services.market_service import (
+    delete_market_data,
     fx_coverage,
     get_market_coverage,
     get_market_import_batch,
@@ -75,6 +77,20 @@ def get_instrument(symbol: str, db: Session = Depends(get_db)) -> MarketInstrume
     if instrument is None:
         raise HTTPException(status_code=404, detail="instrument not found")
     return MarketInstrumentSummary(**instrument)
+
+
+@router.delete("/instruments/{symbol}", response_model=MarketDataDeleteResponse)
+def delete_instrument_data(
+    symbol: str,
+    frequency: str | None = None,
+    current_user: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+) -> MarketDataDeleteResponse:
+    """Delete a symbol's bars (one frequency, or all). Removes the symbol itself once it has no bars."""
+    try:
+        return MarketDataDeleteResponse(**delete_market_data(db, normalize_symbol(symbol), frequency))
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail="instrument not found") from exc
 
 
 @router.get("/bars", response_model=MarketBarListResponse)

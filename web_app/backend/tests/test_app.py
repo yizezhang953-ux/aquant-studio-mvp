@@ -282,6 +282,22 @@ def test_admin_market_data_import_flow(client, admin_headers) -> None:
     assert client.post("/api/v1/market/import", headers=admin_headers, json=bad_symbol).status_code == 400
 
 
+def test_admin_can_delete_market_data(client, admin_headers) -> None:
+    symbol = a_symbol()
+    payload = {"instrument": {"symbol": symbol, "name": "待删除"},
+               "bars": [bar(symbol, "2024-02-01", 10), bar(symbol, "2024-02-01 10:00", 10, frequency="60m")]}
+    assert client.post("/api/v1/market/import", headers=admin_headers, json=payload).status_code == 200
+    user, _ = register(client, "nodel")
+    assert client.delete(f"/api/v1/market/instruments/{symbol}", headers=user).status_code == 403
+    one = client.delete(f"/api/v1/market/instruments/{symbol}?frequency=60m", headers=admin_headers).json()
+    assert one["deleted_bars"] == 1 and one["remaining_bars"] == 1 and not one["removed_instrument"]
+    assert client.get(f"/api/v1/market/instruments/{symbol}").json()["frequencies"] == ["1d"]
+    rest = client.delete(f"/api/v1/market/instruments/{symbol}", headers=admin_headers).json()
+    assert rest["deleted_bars"] == 1 and rest["removed_instrument"]
+    assert client.get(f"/api/v1/market/instruments/{symbol}").status_code == 404
+    assert client.delete(f"/api/v1/market/instruments/{symbol}", headers=admin_headers).status_code == 404
+
+
 def test_hk_instrument_import_keeps_board_lot(client, admin_headers) -> None:
     symbol = a_symbol("HK")
     payload = {"instrument": {"symbol": symbol, "name": "港股", "lot_size": 2000}, "bars": [bar(symbol, "2024-02-01", 40)]}
@@ -473,6 +489,14 @@ def test_user_account_and_strategy_persistence_flow(client) -> None:
     mine = client.get(f"/api/v1/backtests/mine/{backtest_id}", headers=headers).json()
     assert mine["strategy"]["strategy_id"] == strategy["strategy_id"]
     assert client.delete(f"/api/v1/strategies/{created['strategy_id']}", headers=headers).status_code == 204
+
+    other, _ = register(client, "stranger")
+    assert client.delete(f"/api/v1/backtests/{backtest_id}", headers=other).status_code == 404
+    second = client.post("/api/v1/backtests", headers=headers, json={"strategy": strategy}).json()["backtest_id"]
+    deleted = client.post("/api/v1/backtests/delete", headers=headers, json={"backtest_ids": [backtest_id, second, "nope"]})
+    assert deleted.json()["deleted"] == 2
+    assert client.get(f"/api/v1/backtests/mine/{backtest_id}", headers=headers).status_code == 404
+    assert client.delete(f"/api/v1/backtests/{second}", headers=headers).status_code == 404
 
 
 # --------------------------------------------------------------------------- backup / restore

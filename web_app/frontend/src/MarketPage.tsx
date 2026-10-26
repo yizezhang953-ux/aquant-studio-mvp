@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, MouseEvent, useCallback, useEffect, useMemo, useState } from "react";
 import {
   MarketBar,
   MarketCsvImportResponse,
@@ -19,6 +19,7 @@ import {
   trendClass,
 } from "./api";
 import { PriceChart } from "./charts";
+import { ContextMenu, MenuItem, MenuState } from "./ContextMenu";
 
 const IMPORT_TYPES: Record<string, string> = {
   data_source_sync: "同步",
@@ -118,6 +119,8 @@ export function MarketPage({
   const [openImport, setOpenImport] = useState<MarketImportBatchDetail | null>(null);
   const [importTab, setImportTab] = useState<ImportTab>("csv");
   const [busy, setBusy] = useState("");
+  const [menu, setMenu] = useState<MenuState>(null);
+  const closeMenu = useCallback(() => setMenu(null), []);
   const selected = instruments.find((item) => item.symbol === symbol) || null;
 
   useEffect(() => {
@@ -185,6 +188,44 @@ export function MarketPage({
     }
   }
 
+  async function removeData(item: MarketInstrument, freq?: string) {
+    const what = freq ? `的 ${frequencyLabels[freq] || freq} 行情` : "的全部行情";
+    const tail = freq && item.frequencies.length > 1 ? "" : "，这只股票会从列表里移除";
+    if (!window.confirm(`确定删除 ${item.symbol} ${item.name}${what}吗？行情所有账户共用，删除后无法恢复${tail}。已保存的回测记录不受影响，需要时可以重新同步。`)) return;
+    setBusy("delete");
+    try {
+      const query = freq ? `?frequency=${encodeURIComponent(freq)}` : "";
+      const result = await request<{ deleted_bars: number; removed_instrument: boolean }>(
+        `/market/instruments/${encodeURIComponent(item.symbol)}${query}`,
+        { method: "DELETE" },
+        token,
+      );
+      if (result.removed_instrument && item.symbol === symbol) setSymbol("");
+      await reloadInstruments();
+      notify("success", `已删除 ${item.symbol} 的 ${formatNumber(result.deleted_bars, 0)} 根 K 线${result.removed_instrument ? "，并从列表移除" : ""}。`);
+    } catch (error) {
+      notify("error", `删除失败：${getErrorMessage(error)}`);
+    } finally {
+      setBusy("");
+    }
+  }
+
+  function openMenu(event: MouseEvent, item: MarketInstrument) {
+    event.preventDefault();
+    const items: MenuItem[] = [{ label: "查看走势", onClick: () => setSymbol(item.symbol) }];
+    if (isAdmin) {
+      if (item.frequencies.length > 1) {
+        for (const f of item.frequencies) {
+          items.push({ label: `只删除${frequencyLabels[f] || f}数据`, danger: true, onClick: () => removeData(item, f) });
+        }
+      }
+      items.push({ label: "删除这只股票的全部行情", danger: true, disabled: busy !== "", onClick: () => removeData(item) });
+    } else {
+      items.push({ label: "删除行情需要管理员账户", disabled: true, onClick: () => undefined });
+    }
+    setMenu({ x: event.clientX, y: event.clientY, items });
+  }
+
   async function showImport(id: number) {
     try {
       setOpenImport(await request<MarketImportBatchDetail>(`/market/imports/${id}`, {}, token));
@@ -205,12 +246,17 @@ export function MarketPage({
         <aside className="instrument-list">
           <div className="list-head">
             <h2>股票</h2>
-            <span className="muted small">{instruments.length} 只</span>
+            <span className="muted small" title={isAdmin ? "右键一只股票可以删除它的行情" : undefined}>
+              {instruments.length} 只{isAdmin && instruments.length > 0 ? " · 右键可删除" : ""}
+            </span>
           </div>
           <ul>
             {sorted.map((item) => (
               <li key={item.symbol}>
-                <button className={item.symbol === symbol ? "instrument active" : "instrument"} onClick={() => setSymbol(item.symbol)}>
+                <button className={item.symbol === symbol ? "instrument active" : "instrument"}
+                  onClick={() => setSymbol(item.symbol)}
+                  onContextMenu={(event) => openMenu(event, item)}
+                >
                   <span className="sym">{item.symbol}</span>
                   <span className="nm">{item.name}</span>
                   <span className="meta">
@@ -221,6 +267,7 @@ export function MarketPage({
             ))}
           </ul>
         </aside>
+        <ContextMenu menu={menu} onClose={closeMenu} />
 
         <section className="instrument-detail">
           {!selected ? (
@@ -241,6 +288,11 @@ export function MarketPage({
                     {selected.last_trade_time?.slice(0, 10)}，共 {formatNumber(selected.bar_count, 0)} 根
                   </p>
                 </div>
+                {isAdmin && (
+                  <button className="text-button danger push-right" disabled={busy !== ""} onClick={() => removeData(selected)}>
+                    删除行情
+                  </button>
+                )}
                 <div className="price-now">
                   <strong>{formatNumber(selected.latest_close)}</strong>
                   {change !== undefined && <span className={trendClass(change)}>区间 {change > 0 ? "+" : ""}{(change * 100).toFixed(2)}%</span>}
