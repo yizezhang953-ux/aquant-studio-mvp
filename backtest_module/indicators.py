@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import math
+from collections import deque
 from typing import Any, Sequence
 
 
@@ -88,6 +89,22 @@ def period_return(values: Sequence[float], period: int) -> Series:
     for index, value in enumerate(values):
         base = values[index - period] if index >= period else 0
         out.append(value / base - 1 if index >= period and base else None)
+    return out
+
+
+def prior_extreme(values: Sequence[float], period: int, highest: bool) -> Series:
+    """Highest (or lowest) value of the previous ``period`` bars, not counting the current bar,
+    so "close above the 20-day high" can be true on a breakout day (Donchian / Turtle channels)."""
+    period = max(int(period), 1)
+    window: deque[int] = deque()  # indexes with monotonic values; the front is the extreme
+    out: Series = []
+    for index, value in enumerate(values):
+        while window and window[0] < index - period:
+            window.popleft()
+        out.append(values[window[0]] if index >= period else None)
+        while window and (values[window[-1]] <= value if highest else values[window[-1]] >= value):
+            window.pop()
+        window.append(index)
     return out
 
 
@@ -189,6 +206,8 @@ class IndicatorCache:
             return period_return(values, period)
         if name == "VOLATILITY":
             return volatility(values, period)
+        if name in ("HIGHEST", "LOWEST"):
+            return prior_extreme(values, period, highest=name == "HIGHEST")
         if name == "MACD":
             result = macd(values, int(params.get("fast", 12)), int(params.get("slow", 26)), int(params.get("signal", 9)))
             return result[params.get("output", "macd")]

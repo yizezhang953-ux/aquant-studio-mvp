@@ -23,6 +23,8 @@ export type TemplateSummary = {
   default_market?: MarketKey;
   market?: MarketKey;
   description: string;
+  /** Where a strategy from public research / open-source code came from. */
+  source?: { name: string; url: string; license: string };
 };
 
 export type TemplateDetail = { metadata: TemplateSummary; strategy: StrategyJson };

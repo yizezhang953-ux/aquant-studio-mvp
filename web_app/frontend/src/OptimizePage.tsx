@@ -59,7 +59,7 @@ const METRICS: Record<Metric, string> = {
 const VERDICTS = { good: "检验通过", caution: "需要谨慎", overfit: "疑似过拟合" };
 const MAX_CANDIDATES = 200;
 const MAX_PARAMS = 3;
-const INDICATOR_PARAMS: Record<string, string> = { period: "周期", fast: "快线", slow: "慢线", signal: "信号", std: "倍数" };
+const INDICATOR_PARAMS: Record<string, string> = { period: "周期/天数", fast: "快线", slow: "慢线", signal: "信号", std: "倍数" };
 
 /** Every numeric knob in the strategy that can be tuned, labelled the way the editor shows it. */
 export function tunables(strategy: StrategyJson): Tunable[] {

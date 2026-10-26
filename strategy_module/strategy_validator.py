@@ -28,7 +28,7 @@ BOLL_OUTPUTS = {"upper", "middle", "lower"}
 CoverageFn = Callable[[str, str, str, str], tuple[int, str | None, str | None]]
 
 
-SUPPORTED_INDICATORS = {"MA", "EMA", "MACD", "RSI", "BOLL", "VOLUME_MA", "RETURN", "VOLATILITY"}
+SUPPORTED_INDICATORS = {"MA", "EMA", "MACD", "RSI", "BOLL", "VOLUME_MA", "RETURN", "VOLATILITY", "HIGHEST", "LOWEST"}
 SUPPORTED_OPERATORS = {"gt", "lt", "eq", "gte", "lte", "cross_above", "cross_below"}
 SUPPORTED_FREQUENCIES = {"1d", "60m", "30m", "15m"}
 SUPPORTED_PRICE_FIELDS = {"open", "high", "low", "close", "volume", "amount"}
@@ -172,11 +172,11 @@ def validate_expression(path: str, expr: Any, errors: list[str]) -> None:
 
 
 def validate_indicator_params(path: str, name: str, params: dict[str, Any], errors: list[str]) -> None:
-    if name in {"MA", "EMA", "RSI", "VOLUME_MA", "RETURN", "VOLATILITY"}:
+    if name in {"MA", "EMA", "RSI", "VOLUME_MA", "RETURN", "VOLATILITY", "HIGHEST", "LOWEST"}:
         period = params.get("period")
         if not isinstance(period, (int, float)) or period <= 0:
             errors.append(f"{path}.params.period must be positive for {name}")
-    if name in {"MA", "EMA", "RSI", "RETURN", "VOLATILITY"}:
+    if name in {"MA", "EMA", "RSI", "RETURN", "VOLATILITY", "HIGHEST", "LOWEST"}:
         field = params.get("field", "close")
         if field not in SUPPORTED_PRICE_FIELDS:
             errors.append(f"{path}.params.field is unsupported: {field}")

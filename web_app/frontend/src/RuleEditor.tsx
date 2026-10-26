@@ -47,6 +47,20 @@ const INDICATORS: Record<string, { label: string; params: ParamSpec[] }> = {
   VOLUME_MA: { label: "均量", params: [{ key: "period", label: "周期", default: 5 }] },
   RETURN: { label: "N 日涨幅", params: [{ key: "period", label: "天数", default: 3 }] },
   VOLATILITY: { label: "波动率", params: [{ key: "period", label: "周期", default: 20 }] },
+  HIGHEST: {
+    label: "前 N 日最高",
+    params: [
+      { key: "period", label: "天数", default: 20 },
+      { key: "field", label: "取", default: "high", options: [{ value: "high", label: "最高价" }, { value: "close", label: "收盘价" }] },
+    ],
+  },
+  LOWEST: {
+    label: "前 N 日最低",
+    params: [
+      { key: "period", label: "天数", default: 10 },
+      { key: "field", label: "取", default: "low", options: [{ value: "low", label: "最低价" }, { value: "close", label: "收盘价" }] },
+    ],
+  },
 };
 
 const PRICE_FIELDS: Record<string, string> = {
@@ -77,7 +91,7 @@ const PRICE_LEVEL_FIELDS = ["open", "high", "low", "close"];
 function levelOf(operand?: Operand): "price" | "volume" | null {
   if (!operand) return null;
   if (operand.type === "price") return PRICE_LEVEL_FIELDS.includes(operand.field || "close") ? "price" : operand.field === "volume" ? "volume" : null;
-  if (operand.type === "indicator") return ["MA", "EMA", "BOLL"].includes(operand.name || "") ? "price" : operand.name === "VOLUME_MA" ? "volume" : null;
+  if (operand.type === "indicator") return ["MA", "EMA", "BOLL", "HIGHEST", "LOWEST"].includes(operand.name || "") ? "price" : operand.name === "VOLUME_MA" ? "volume" : null;
   return null;
 }
 
@@ -147,7 +161,7 @@ function operandFromKind(kind: string, previous?: Operand): Operand {
   const spec = INDICATORS[name];
   const params: Record<string, number | string> = {};
   for (const param of spec.params) params[param.key] = param.default;
-  if (name !== "VOLUME_MA") params.field = "close";
+  if (name !== "VOLUME_MA" && !("field" in params)) params.field = "close";
   return { type: "indicator", name, params };
 }
 
@@ -161,6 +175,8 @@ export function describeOperand(operand?: Operand): string {
   if (name === "BOLL") return `BOLL${params.period ?? 20}`;
   if (name === "RETURN") return `${params.period ?? 3}日涨幅`;
   if (name === "VOLUME_MA") return `${params.period ?? 5}日均量`;
+  if (name === "HIGHEST") return `前${params.period ?? 20}日最高`;
+  if (name === "LOWEST") return `前${params.period ?? 10}日最低`;
   return `${name}${params.period ?? ""}`;
 }
 

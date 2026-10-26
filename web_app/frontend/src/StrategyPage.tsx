@@ -501,6 +501,11 @@ export function StrategyPage({
                     {market && isMarketKey(market) ? marketLabels[market] : "A股"} · {template.default_symbol} ·{" "}
                     {frequencyLabels[template.default_frequency] || template.default_frequency}
                   </small>
+                  {template.source && (
+                    <small className="template-source" title={template.source.url}>
+                      来源：{template.source.name}（{template.source.license}）
+                    </small>
+                  )}
                 </button>
               );
             })}

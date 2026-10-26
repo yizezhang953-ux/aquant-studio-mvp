@@ -78,6 +78,70 @@
       "default_frequency": "1d",
       "file": "hk_rsi_pullback.json",
       "description": "港币账户直接交易港股：RSI 超卖买入、超买卖出，T+0、无涨跌停。"
+    },
+    {
+      "template_id": "tpl_connors_rsi2",
+      "name": "Connors RSI(2) 回调策略",
+      "category": "mean_reversion",
+      "risk_level": "medium",
+      "default_market": "a_share",
+      "default_symbol": "600519.SH",
+      "default_frequency": "1d",
+      "file": "connors_rsi2.json",
+      "description": "长期上升趋势里（收盘价在 200 日均线上方）等 2 日 RSI 跌到 10 以下的急跌再买，收盘价重新站上 5 日均线就卖。",
+      "source": {
+        "name": "Larry Connors 公开规则（RSI(2) 策略）",
+        "url": "https://www.backtrex.com/en/backtests/connors-rsi-2-sp-500",
+        "license": "公开交易规则"
+      }
+    },
+    {
+      "template_id": "tpl_boll_reversion",
+      "name": "布林带下轨回归策略",
+      "category": "mean_reversion",
+      "risk_level": "medium",
+      "default_market": "a_share",
+      "default_symbol": "000001.SZ",
+      "default_frequency": "1d",
+      "file": "boll_reversion.json",
+      "description": "收盘价跌破布林带下轨（20 日、2 倍标准差）买入，回到中轨上方卖出，赌价格回到均值。",
+      "source": {
+        "name": "John Bollinger 布林带经典用法",
+        "url": "https://www.bollingerbands.com/bollinger-bands",
+        "license": "公开交易规则"
+      }
+    },
+    {
+      "template_id": "tpl_myquant_macd_zero",
+      "name": "MACD 零轴上金叉策略",
+      "category": "trend",
+      "risk_level": "medium",
+      "default_market": "a_share",
+      "default_symbol": "300750.SZ",
+      "default_frequency": "1d",
+      "file": "myquant_macd_zero.json",
+      "description": "DIF、DEA 都在零轴上方时 DIF 上穿 DEA 买入，DIF 下穿 DEA 卖出。只做强势区的金叉，过滤掉下跌途中的假金叉。",
+      "source": {
+        "name": "myquant/strategy · MACD-STOCK",
+        "url": "https://github.com/myquant/strategy/tree/master/MACD-STOCK",
+        "license": "Apache-2.0"
+      }
+    },
+    {
+      "template_id": "tpl_turtle_donchian",
+      "name": "海龟通道突破策略",
+      "category": "breakout",
+      "risk_level": "high",
+      "default_market": "hk_stock",
+      "default_symbol": "00700.HK",
+      "default_frequency": "1d",
+      "file": "turtle_donchian.json",
+      "description": "收盘价突破前 20 日最高价买入，跌破前 10 日最低价卖出（唐奇安通道），亏 10% 止损代替原版的 2 倍 ATR 止损。",
+      "source": {
+        "name": "vnpy/vnpy_ctastrategy · turtle_signal_strategy；myquant/strategy · Turtle",
+        "url": "https://github.com/vnpy/vnpy_ctastrategy/blob/main/vnpy_ctastrategy/strategies/turtle_signal_strategy.py",
+        "license": "MIT / Apache-2.0"
+      }
     }
   ],
   "markets": [

@@ -1,0 +1,144 @@
+{
+  "schema_version": "1.0",
+  "strategy_id": "template_myquant_macd_zero",
+  "name": "MACD 零轴上金叉策略",
+  "description": "DIF、DEA 都在零轴上方时 DIF 上穿 DEA 买入，DIF 下穿 DEA 卖出。只做强势区的金叉，过滤掉下跌途中的假金叉。",
+  "market": "a_share",
+  "universe": {
+    "type": "single",
+    "symbols": [
+      "300750.SZ"
+    ]
+  },
+  "data": {
+    "frequency": "1d",
+    "adjustment": "forward",
+    "start_date": "2016-01-01",
+    "end_date": "2025-12-31"
+  },
+  "entry": {
+    "logic": "all",
+    "conditions": [
+      {
+        "left": {
+          "type": "indicator",
+          "name": "MACD",
+          "params": {
+            "fast": 12,
+            "slow": 26,
+            "signal": 9,
+            "output": "macd",
+            "field": "close"
+          }
+        },
+        "operator": "cross_above",
+        "right": {
+          "type": "indicator",
+          "name": "MACD",
+          "params": {
+            "fast": 12,
+            "slow": 26,
+            "signal": 9,
+            "output": "signal",
+            "field": "close"
+          }
+        }
+      },
+      {
+        "left": {
+          "type": "indicator",
+          "name": "MACD",
+          "params": {
+            "fast": 12,
+            "slow": 26,
+            "signal": 9,
+            "output": "macd",
+            "field": "close"
+          }
+        },
+        "operator": "gt",
+        "right": {
+          "type": "constant",
+          "value": 0
+        }
+      },
+      {
+        "left": {
+          "type": "indicator",
+          "name": "MACD",
+          "params": {
+            "fast": 12,
+            "slow": 26,
+            "signal": 9,
+            "output": "signal",
+            "field": "close"
+          }
+        },
+        "operator": "gt",
+        "right": {
+          "type": "constant",
+          "value": 0
+        }
+      }
+    ]
+  },
+  "exit": {
+    "logic": "any",
+    "conditions": [
+      {
+        "left": {
+          "type": "indicator",
+          "name": "MACD",
+          "params": {
+            "fast": 12,
+            "slow": 26,
+            "signal": 9,
+            "output": "macd",
+            "field": "close"
+          }
+        },
+        "operator": "cross_below",
+        "right": {
+          "type": "indicator",
+          "name": "MACD",
+          "params": {
+            "fast": 12,
+            "slow": 26,
+            "signal": 9,
+            "output": "signal",
+            "field": "close"
+          }
+        }
+      }
+    ]
+  },
+  "position": {
+    "initial_cash": 1000000,
+    "order_size_type": "cash_pct",
+    "order_size_value": 0.9,
+    "max_position_pct": 1.0
+  },
+  "execution": {
+    "entry_price": "next_open",
+    "exit_price": "next_open",
+    "commission_rate": 0.00025,
+    "slippage_rate": 0.0005
+  },
+  "risk": {
+    "stop_loss_pct": 0.08,
+    "take_profit_pct": null,
+    "max_drawdown_pct": null,
+    "max_holding_bars": null
+  },
+  "metadata": {
+    "template_id": "tpl_myquant_macd_zero",
+    "created_by": "template_library",
+    "source": {
+      "name": "myquant/strategy · MACD-STOCK",
+      "url": "https://github.com/myquant/strategy/tree/master/MACD-STOCK",
+      "license": "Apache-2.0"
+    },
+    "created_at": "2026-10-26T00:00:00Z",
+    "updated_at": "2026-10-26T00:00:00Z"
+  }
+}

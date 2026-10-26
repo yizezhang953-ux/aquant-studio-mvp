@@ -1,0 +1,103 @@
+{
+  "schema_version": "1.0",
+  "strategy_id": "template_connors_rsi2",
+  "name": "Connors RSI(2) 回调策略",
+  "description": "长期上升趋势里（收盘价在 200 日均线上方）等 2 日 RSI 跌到 10 以下的急跌再买，收盘价重新站上 5 日均线就卖。",
+  "market": "a_share",
+  "universe": {
+    "type": "single",
+    "symbols": [
+      "600519.SH"
+    ]
+  },
+  "data": {
+    "frequency": "1d",
+    "adjustment": "forward",
+    "start_date": "2016-01-01",
+    "end_date": "2025-12-31"
+  },
+  "entry": {
+    "logic": "all",
+    "conditions": [
+      {
+        "left": {
+          "type": "indicator",
+          "name": "RSI",
+          "params": {
+            "period": 2,
+            "field": "close"
+          }
+        },
+        "operator": "lt",
+        "right": {
+          "type": "constant",
+          "value": 10
+        }
+      },
+      {
+        "left": {
+          "type": "price",
+          "field": "close"
+        },
+        "operator": "gt",
+        "right": {
+          "type": "indicator",
+          "name": "MA",
+          "params": {
+            "period": 200,
+            "field": "close"
+          }
+        }
+      }
+    ]
+  },
+  "exit": {
+    "logic": "any",
+    "conditions": [
+      {
+        "left": {
+          "type": "price",
+          "field": "close"
+        },
+        "operator": "gt",
+        "right": {
+          "type": "indicator",
+          "name": "MA",
+          "params": {
+            "period": 5,
+            "field": "close"
+          }
+        }
+      }
+    ]
+  },
+  "position": {
+    "initial_cash": 1000000,
+    "order_size_type": "cash_pct",
+    "order_size_value": 0.9,
+    "max_position_pct": 1.0
+  },
+  "execution": {
+    "entry_price": "next_open",
+    "exit_price": "next_open",
+    "commission_rate": 0.00025,
+    "slippage_rate": 0.0005
+  },
+  "risk": {
+    "stop_loss_pct": 0.08,
+    "take_profit_pct": null,
+    "max_drawdown_pct": null,
+    "max_holding_bars": 10
+  },
+  "metadata": {
+    "template_id": "tpl_connors_rsi2",
+    "created_by": "template_library",
+    "source": {
+      "name": "Larry Connors 公开规则（RSI(2) 策略）",
+      "url": "https://www.backtrex.com/en/backtests/connors-rsi-2-sp-500",
+      "license": "公开交易规则"
+    },
+    "created_at": "2026-10-26T00:00:00Z",
+    "updated_at": "2026-10-26T00:00:00Z"
+  }
+}
