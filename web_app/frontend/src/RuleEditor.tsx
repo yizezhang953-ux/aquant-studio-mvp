@@ -68,6 +68,71 @@ export const OPERATORS: Record<string, string> = {
   eq: "等于",
 };
 
+/** Latest bar of the strategy's stock, used to fill sensible default thresholds. */
+export type PriceReference = { symbol: string; close: number; volume: number };
+
+const PRICE_LEVEL_FIELDS = ["open", "high", "low", "close"];
+
+/** "price" when the operand moves with the share price, "volume" with volume, otherwise null. */
+function levelOf(operand?: Operand): "price" | "volume" | null {
+  if (!operand) return null;
+  if (operand.type === "price") return PRICE_LEVEL_FIELDS.includes(operand.field || "close") ? "price" : operand.field === "volume" ? "volume" : null;
+  if (operand.type === "indicator") return ["MA", "EMA", "BOLL"].includes(operand.name || "") ? "price" : operand.name === "VOLUME_MA" ? "volume" : null;
+  return null;
+}
+
+function roundPrice(value: number) {
+  if (value >= 1000) return Math.round(value);
+  if (value >= 100) return Math.round(value * 10) / 10;
+  if (value >= 10) return Math.round(value * 100) / 100;
+  return Math.round(value * 1000) / 1000;
+}
+
+/** A starting value for a fixed-number threshold, given what it is compared with. */
+export function suggestConstant(left: Operand | undefined, operator: string | undefined, ref?: PriceReference | null): number {
+  const below = ["lt", "lte", "cross_below"].includes(operator || "");
+  const level = levelOf(left);
+  if (level === "price" && ref) return roundPrice(ref.close);
+  if (level === "volume" && ref) return Math.round(ref.volume);
+  if (left?.type === "indicator") {
+    if (left.name === "RSI") return below ? 30 : 70;
+    if (left.name === "RETURN") return below ? -0.03 : 0.03;
+    if (left.name === "VOLATILITY") return 0.02;
+  }
+  return 0;
+}
+
+/** Rescale every fixed price (and volume) threshold to the stock's latest close, keeping the gaps
+ *  between them: the first one becomes the latest close and the others move in proportion. */
+export function fitThresholds(groups: RuleGroup[], ref: PriceReference): { groups: RuleGroup[]; changed: number } {
+  const anchors: Record<"price" | "volume", number | null> = { price: null, volume: null };
+  for (const group of groups)
+    for (const c of group.conditions || []) {
+      const level = levelOf(c.left);
+      if (level && c.right?.type === "constant" && typeof c.right.value === "number" && c.right.value > 0 && anchors[level] == null) anchors[level] = c.right.value;
+    }
+  const target = { price: ref.close, volume: ref.volume };
+  let changed = 0;
+  const next = groups.map((group) => ({
+    ...group,
+    conditions: (group.conditions || []).map((c) => {
+      const level = levelOf(c.left);
+      const anchor = level ? anchors[level] : null;
+      if (!level || !anchor || c.right?.type !== "constant" || typeof c.right.value !== "number" || !(target[level] > 0)) return c;
+      const value = level === "price" ? roundPrice((c.right.value / anchor) * target.price) : Math.round((c.right.value / anchor) * target.volume);
+      if (value === c.right.value) return c;
+      changed += 1;
+      return { ...c, right: { ...c.right, value } };
+    }),
+  }));
+  return { groups: next, changed };
+}
+
+/** True when some fixed threshold is compared with the price or volume level. */
+export function hasLevelThresholds(groups: RuleGroup[]) {
+  return groups.some((g) => (g.conditions || []).some((c) => levelOf(c.left) && c.right?.type === "constant"));
+}
+
 /** Encodes an operand's kind for the <select>: "price:close", "indicator:MA", "constant". */
 function kindOf(operand?: Operand) {
   if (!operand || operand.type === "constant") return "constant";
@@ -185,11 +250,13 @@ function ConditionRow({
   onChange,
   onRemove,
   removable,
+  reference,
 }: {
   condition: RuleCondition;
   onChange: (next: RuleCondition) => void;
   onRemove: () => void;
   removable: boolean;
+  reference?: PriceReference | null;
 }) {
   const leftIsReturn = condition.left?.type === "indicator" && condition.left.name === "RETURN";
   return (
@@ -207,7 +274,17 @@ function ConditionRow({
           </option>
         ))}
       </select>
-      <OperandInput operand={condition.right} allowConstant onChange={(right) => onChange({ ...condition, right })} />
+      <OperandInput
+        operand={condition.right}
+        allowConstant
+        onChange={(right) =>
+          onChange({
+            ...condition,
+            // switching to a fixed number starts from a sensible value (e.g. the latest close) instead of 0
+            right: right.type === "constant" && condition.right?.type !== "constant" ? { ...right, value: suggestConstant(condition.left, condition.operator, reference) } : right,
+          })
+        }
+      />
       {removable && (
         <button type="button" className="icon-button" onClick={onRemove} aria-label="删除这个条件" title="删除这个条件">
           ×
@@ -223,11 +300,13 @@ export function RuleGroupEditor({
   tone,
   group,
   onChange,
+  reference,
 }: {
   title: string;
   tone: "entry" | "exit";
   group: RuleGroup;
   onChange: (next: RuleGroup) => void;
+  reference?: PriceReference | null;
 }) {
   const conditions = group.conditions?.length ? group.conditions : [];
   const update = (index: number, next: RuleCondition) =>
@@ -253,6 +332,7 @@ export function RuleGroupEditor({
           key={index}
           condition={condition}
           removable={conditions.length > 1}
+          reference={reference}
           onChange={(next) => update(index, next)}
           onRemove={() => onChange({ ...group, conditions: conditions.filter((_, i) => i !== index) })}
         />

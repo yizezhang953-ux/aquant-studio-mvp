@@ -16,6 +16,10 @@ Double-click **`start.bat`** in the repository root. It finds Python 3.11+, crea
 the backend requirements on the first run (falling back to the Tsinghua PyPI mirror), starts the web app and opens
 <http://127.0.0.1:8000/>. Node.js is not needed: the backend serves the pre-built frontend in `web_app/frontend/dist`.
 
+Before starting, `start.bat` pulls the latest version with `git pull --ff-only` (using Git on PATH or the copy bundled
+with GitHub Desktop) and restarts itself if anything changed. It never overwrites local edits; if the pull fails (offline,
+conflicting local change) it starts the current version. Create `web_app/backend/runtime/no_auto_update.txt` to turn it off.
+
 The first account you register locally becomes the administrator (needed to sync market data under 行情数据 → 同步真实日线).
 On macOS/Linux: `cd web_app/backend && pip install -r requirements.txt && uvicorn app.main:app`, then open <http://127.0.0.1:8000/>.
 

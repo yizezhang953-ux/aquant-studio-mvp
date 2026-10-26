@@ -20,6 +20,29 @@ if not errorlevel 1 (
   exit /b 0
 )
 
+:: ---- Pull the latest version from GitHub before starting ----
+:: Fast-forward only, so local edits are never overwritten. Put an empty file named
+:: no_auto_update.txt in web_app\backend\runtime to turn this off.
+set "GIT="
+where git >nul 2>nul && set "GIT=git"
+if not defined GIT for /d %%D in ("%LOCALAPPDATA%\GitHubDesktop\app-*") do if exist "%%D\resources\app\git\cmd\git.exe" set "GIT=%%D\resources\app\git\cmd\git.exe"
+set "GIT_TERMINAL_PROMPT=0"
+:: The whole update runs inside one block: cmd reads a block before running it, so a pull that
+:: rewrites this file can't break the lines being executed. After an update the new copy restarts.
+if not defined AQ_UPDATED if defined GIT if exist "%ROOT%.git" if not exist "%RUNTIME%\no_auto_update.txt" (
+  echo 检查更新 ...
+  "%GIT%" rev-parse HEAD > "%RUNTIME%\head_before.txt" 2>nul
+  "%GIT%" -c http.lowSpeedLimit=1000 -c http.lowSpeedTime=15 -c credential.interactive=never pull --ff-only --quiet
+  if errorlevel 1 echo [提示] 自动更新没有成功（可能没联网，或本地改过同一个文件），继续用现在的版本启动。
+  "%GIT%" rev-parse HEAD > "%RUNTIME%\head_after.txt" 2>nul
+  fc /b "%RUNTIME%\head_before.txt" "%RUNTIME%\head_after.txt" >nul 2>nul || (
+    echo 已更新到最新版本，用新版本重新启动 ...
+    set "AQ_UPDATED=1"
+    "%~f0"
+  )
+)
+if not defined GIT echo [提示] 没有找到 git（安装 GitHub Desktop 或 Git 即可），跳过自动更新。
+
 :: ---- Reuse the virtual environment if it exists ----
 if exist "%VENV%\Scripts\python.exe" (
   set "VPY=%VENV%\Scripts\python.exe"
