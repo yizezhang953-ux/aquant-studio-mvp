@@ -245,3 +245,9 @@ class MarketDataDeleteResponse(BaseModel):
     deleted_bars: int
     remaining_bars: int
     removed_instrument: bool
+
+
+class IndexSyncRequest(BaseModel):
+    provider_id: str = "tencent"
+    start_date: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+    end_date: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")

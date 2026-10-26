@@ -105,6 +105,33 @@ export type BacktestReport = {
   trades: BacktestTrade[];
   equity_curve: EquityPoint[];
   open_position?: { entry_time: string; quantity: number; entry_price: number; unrealized_pnl: number } | null;
+  analysis?: ReportAnalysis;
+};
+
+export type DrawdownEpisode = {
+  start: string;
+  trough: string;
+  end: string;
+  recovered: boolean;
+  depth: number;
+  days: number;
+  fall_days: number;
+  recover_days: number | null;
+};
+
+export type ReportAnalysis = {
+  days: string[];
+  benchmarks: {
+    code: string;
+    name: string;
+    available: boolean;
+    total_return?: number;
+    annualized_return?: number | null;
+    excess_return?: number | null;
+    growth?: number[];
+  }[];
+  monthly_returns: { year: number; months: (number | null)[]; total: number | null }[];
+  drawdown: { longest: DrawdownEpisode | null; deepest: DrawdownEpisode | null; count: number; underwater_pct: number | null } | null;
 };
 
 export type MarketInstrument = {

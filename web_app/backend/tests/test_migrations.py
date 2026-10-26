@@ -16,7 +16,7 @@ def test_fresh_database_is_created_at_head(tmp_path):
     inspector = sa.inspect(engine)
     assert {"market_fx_rates", "market_corporate_actions", "users"} <= set(inspector.get_table_names())
     with engine.connect() as conn:
-        assert conn.execute(sa.text("select version_num from alembic_version")).scalar() == "0003"
+        assert conn.execute(sa.text("select version_num from alembic_version")).scalar() == "0004"
 
 
 def test_unversioned_v01_database_is_stamped_and_upgraded(tmp_path):
@@ -36,7 +36,7 @@ def test_unversioned_v01_database_is_stamped_and_upgraded(tmp_path):
                      {"p": json.dumps({"owner_id": 1, "symbol": "600519.SH"})})
     run_migrations(engine)
     with engine.connect() as conn:
-        assert conn.execute(sa.text("select version_num from alembic_version")).scalar() == "0003"
+        assert conn.execute(sa.text("select version_num from alembic_version")).scalar() == "0004"
         assert conn.execute(sa.text("select is_admin from users where id = 1")).scalar() == 1
         assert conn.execute(sa.text("select revoked_at from user_sessions")).scalar() is not None
         assert conn.execute(sa.text("select owner_id from audit_logs")).scalar() == 1

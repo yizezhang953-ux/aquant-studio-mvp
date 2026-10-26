@@ -366,6 +366,62 @@ def test_optimize_ranks_on_train_and_checks_on_unseen_window(client, admin_heade
     assert client.get("/api/v1/backtests", headers=user).json()["backtests"] == []  # nothing saved
 
 
+def test_report_compares_indices_and_adds_monthly_and_drawdown_analysis(client, admin_headers) -> None:
+    import datetime as dt
+    import math
+
+    days = [d for d in (f"{y}-{m:02d}-{x:02d}" for y in (2023, 2024) for m in range(1, 13) for x in range(1, 29))
+            if dt.date.fromisoformat(d).weekday() < 5]
+    symbol = a_symbol("HK")
+    payload = {"instrument": {"symbol": symbol, "name": "报告"},
+               "bars": [bar(symbol, d, 30 + 4 * math.sin(i / 7)) for i, d in enumerate(days)]}
+    assert client.post("/api/v1/market/import", headers=admin_headers, json=payload).status_code == 200
+    strategy = read_json(TEMPLATE_MODULE / "templates" / "hk_rsi_pullback.json")
+    strategy["universe"]["symbols"] = [symbol]
+    strategy["data"].update(start_date="2023-03-01", end_date="2024-12-31")
+    user, _ = register(client, "report")
+    run = client.post("/api/v1/backtests", headers=user, json={"strategy": strategy}).json()
+    report = client.get(f"/api/v1/backtests/mine/{run['backtest_id']}", headers=user).json()
+    analysis = report["analysis"]
+    assert [b["code"] for b in analysis["benchmarks"]] == ["HSI", "CSI300"]  # HK strategy: 恒指 first
+    assert not any(b["available"] for b in analysis["benchmarks"])  # no index data yet
+
+    assert client.post("/api/v1/market/indices/sync", headers=user,
+                       json={"provider_id": "demo", "start_date": "2023-01-01", "end_date": "2024-12-31"}).status_code == 403
+    synced = client.post("/api/v1/market/indices/sync", headers=admin_headers,
+                         json={"provider_id": "demo", "start_date": "2022-12-01", "end_date": "2024-12-31"}).json()
+    assert all(r["ok"] for r in synced["results"]) and {i["code"] for i in synced["indices"]} == {"HSI", "CSI300"}
+
+    analysis = client.get(f"/api/v1/backtests/mine/{run['backtest_id']}", headers=user).json()["analysis"]
+    hsi = analysis["benchmarks"][0]
+    assert hsi["available"] and len(hsi["growth"]) == len(analysis["days"]) and hsi["growth"][0] == 1.0
+    assert round(hsi["excess_return"], 6) == round(report["metrics"]["total_return"] - hsi["total_return"], 6)
+    years = analysis["monthly_returns"]
+    assert [y["year"] for y in years] == [2023, 2024] and years[0]["months"][0] is None  # starts in March
+    growth = 1.0
+    for y in years:
+        for value in y["months"]:
+            growth *= 1 + (value or 0)
+    assert abs(growth - 1 - report["metrics"]["total_return"]) < 1e-4  # months compound to the total
+    dd = analysis["drawdown"]
+    if dd["longest"]:
+        assert dd["longest"]["days"] >= dd["deepest"]["fall_days"] >= 0
+        assert abs(dd["deepest"]["depth"] - report["metrics"]["max_drawdown"]) < 1e-3
+
+
+def test_drawdown_episodes_measure_duration_and_recovery() -> None:
+    from app.services.benchmark_service import drawdown_summary, monthly_returns
+    days = [("2024-01-01", 100), ("2024-01-10", 90), ("2024-02-01", 80), ("2024-03-01", 101),
+            ("2024-03-05", 99), ("2024-05-10", 95)]
+    dd = drawdown_summary(days)
+    deepest, longest = dd["deepest"], dd["longest"]
+    assert deepest["start"] == "2024-01-01" and deepest["trough"] == "2024-02-01" and deepest["end"] == "2024-03-01"
+    assert deepest["recovered"] and deepest["days"] == 60 and deepest["fall_days"] == 31 and deepest["recover_days"] == 29
+    assert round(deepest["depth"], 4) == 0.2
+    assert longest["start"] == "2024-03-01" and not longest["recovered"] and longest["days"] == 70
+    assert monthly_returns(days, 100)[0]["months"][:5] == [-0.1, -0.111111, 0.2375, None, round(95 / 99 - 1, 6)]
+
+
 def test_default_backtest_name() -> None:
     from app.services.backtest_service import default_backtest_name
     assert default_backtest_name("hk_stock", "港股 RSI 回调", "百胜中国", "09987.HK", "2021-01-01", "2025-12-31") == \

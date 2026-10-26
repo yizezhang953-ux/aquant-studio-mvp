@@ -139,6 +139,10 @@ export default function App() {
         result.fx_rates ? `汇率 ${result.fx_rates} 天` : "",
       ].filter(Boolean);
       notify("success", `已同步 ${result.symbol}：${result.fetched_bars} 根日线${extras.length ? `，${extras.join("，")}` : ""}。`);
+      // keep 恒指/沪深300 covering the same dates so reports can compare against them; failures are silent
+      request("/market/indices/sync", { method: "POST", body: JSON.stringify({ provider_id: provider, start_date: startDate, end_date: endDate }) }, token).catch(
+        () => undefined,
+      );
       return true;
     } catch (error) {
       notify("error", `同步 ${symbol} 失败：${getErrorMessage(error)}`);

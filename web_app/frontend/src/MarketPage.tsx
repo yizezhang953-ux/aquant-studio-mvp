@@ -94,6 +94,62 @@ function SyncBar({
   );
 }
 
+type IndexInfo = { code: string; name: string; start: string | null; end: string | null; bars: number };
+
+/** Benchmark indices for report comparisons: status for everyone, sync for admins. */
+function IndexBar({ token, isAdmin, notify }: { token: string; isAdmin: boolean; notify: Notify }) {
+  const [indices, setIndices] = useState<IndexInfo[]>([]);
+  const [start, setStart] = useState("2010-01-01");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    request<{ indices: IndexInfo[] }>("/market/indices", {}, token)
+      .then((r) => setIndices(r.indices))
+      .catch(() => undefined);
+  }, [token]);
+
+  async function sync() {
+    setBusy(true);
+    try {
+      const r = await request<{ indices: IndexInfo[]; results: { name: string; ok: boolean; bars: number; error: string | null }[] }>(
+        "/market/indices/sync",
+        { method: "POST", body: JSON.stringify({ provider_id: "tencent", start_date: start, end_date: today() }) },
+        token,
+      );
+      setIndices(r.indices);
+      const failed = r.results.filter((x) => !x.ok);
+      if (failed.length) notify("error", failed.map((x) => `${x.name} 同步失败：${x.error}`).join("；"));
+      else notify("success", `已同步 ${r.results.map((x) => `${x.name} ${x.bars} 天`).join("、")}。打开任何回测报告都会和它们对比。`);
+    } catch (error) {
+      notify("error", `指数同步失败：${getErrorMessage(error)}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="index-bar">
+      <strong>指数基准</strong>
+      {indices.map((i) => (
+        <span key={i.code} className={i.bars ? "" : "muted"}>
+          <span className={`swatch bench-${i.code}`} />
+          {i.name}：{i.bars ? `${i.start} 至 ${i.end}` : "未同步"}
+        </span>
+      ))}
+      {isAdmin && (
+        <span className="index-sync">
+          从
+          <input type="date" value={start} onChange={(e) => setStart(e.target.value)} />
+          <button className="button" disabled={busy} onClick={sync}>
+            {busy ? "同步中…" : "同步恒指和沪深300"}
+          </button>
+        </span>
+      )}
+      <span className="muted small full">回测报告会拿策略和这两个指数比收益。同步任何股票时也会顺带补齐这段时间的指数。</span>
+    </div>
+  );
+}
+
 export function MarketPage({
   token,
   isAdmin,
@@ -120,6 +176,7 @@ export function MarketPage({
   const [importTab, setImportTab] = useState<ImportTab>("csv");
   const [busy, setBusy] = useState("");
   const [menu, setMenu] = useState<MenuState>(null);
+  const [indexVersion, setIndexVersion] = useState(0);
   const closeMenu = useCallback(() => setMenu(null), []);
   const selected = instruments.find((item) => item.symbol === symbol) || null;
 
@@ -173,6 +230,7 @@ export function MarketPage({
     const ok = await syncSymbol(target, start, end, provider);
     if (ok) await afterWrite(target);
     setBusy("");
+    window.setTimeout(() => setIndexVersion((v) => v + 1), 4000); // the index top-up runs in the background
   }
 
   async function syncBoardLots() {
@@ -241,6 +299,7 @@ export function MarketPage({
   return (
     <div className="page-pad market">
       <SyncBar isAdmin={isAdmin} busy={busy} onSync={handleSync} onBoardLots={syncBoardLots} />
+      <IndexBar key={indexVersion} token={token} isAdmin={isAdmin} notify={notify} />
 
       <div className="market-body">
         <aside className="instrument-list">
