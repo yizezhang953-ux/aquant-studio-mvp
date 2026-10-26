@@ -102,6 +102,9 @@ def _summary(run: BacktestRun) -> BacktestSummary:
         symbol=run.symbol,
         frequency=run.frequency,
         status=run.status,
+        start_date=run.start_date,
+        end_date=run.end_date,
+        created_at=run.created_at.isoformat() if run.created_at else None,
         metrics=run.metrics_json,
         parameter_snapshot=run.parameter_snapshot,
     )

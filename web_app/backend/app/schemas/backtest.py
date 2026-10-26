@@ -27,6 +27,9 @@ class BacktestSummary(BaseModel):
     symbol: str
     frequency: str
     status: str
+    start_date: str | None = None
+    end_date: str | None = None
+    created_at: str | None = None
     metrics: dict[str, Any]
     parameter_snapshot: dict[str, Any] | None = None
 
