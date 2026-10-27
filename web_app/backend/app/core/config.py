@@ -35,6 +35,9 @@ class Settings(BaseSettings):
     # without outbound internet access.
     market_data_network_enabled: bool = True
 
+    # Background thread that runs each user's daily after-close job (每日自动运行) while the app is open.
+    automation_scheduler_enabled: bool = True
+
     @property
     def first_user_admin_enabled(self) -> bool:
         return self.app_env == "local" if self.first_user_is_admin is None else self.first_user_is_admin

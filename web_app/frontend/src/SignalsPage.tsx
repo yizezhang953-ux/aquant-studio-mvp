@@ -15,6 +15,7 @@ import {
   today,
   trendClass,
 } from "./api";
+import { AutomationPanel } from "./AutomationPanel";
 import { EquityChart } from "./charts";
 import { OPERATORS, describeOperand } from "./RuleEditor";
 
@@ -270,6 +271,7 @@ export function SignalsPage({
       </section>
 
       <PaperSection token={token} strategies={strategies} notify={notify} />
+      <AutomationPanel token={token} isAdmin={isAdmin} notify={notify} />
     </div>
   );
 }

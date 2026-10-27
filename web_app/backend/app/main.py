@@ -8,6 +8,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from app.api.v1.router import api_router
 from app.core.config import settings
 from app.db.session import SessionLocal
+from app.services.automation_service import Scheduler
 from app.services.database_service import create_database, initialize_database, is_seeded
 
 MAX_REQUEST_BYTES_SLACK = 1024 * 1024
@@ -73,7 +74,12 @@ async def lifespan(app: FastAPI):
         with SessionLocal() as db:
             if not is_seeded(db):
                 initialize_database(db, seed=True)
+    scheduler = Scheduler(SessionLocal) if settings.automation_scheduler_enabled else None
+    if scheduler:
+        scheduler.start()
     yield
+    if scheduler:
+        scheduler.stop()
 
 
 def create_app() -> FastAPI:

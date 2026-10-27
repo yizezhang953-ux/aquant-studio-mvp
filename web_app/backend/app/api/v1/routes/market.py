@@ -35,8 +35,8 @@ from app.services.benchmark_service import index_status, sync_indices
 from app.services.market_data_source_service import (
     fetch_hk_board_lots,
     list_market_data_sources,
-    sync_market_data_from_source,
 )
+from app.services.market_sync_service import TooManyBars, sync_symbol
 from app.services.market_service import (
     delete_market_data,
     fx_coverage,
@@ -146,38 +146,24 @@ def sync_data_source(
     db: Session = Depends(get_db),
 ) -> MarketDataSyncResponse:
     try:
-        payload = sync_market_data_from_source(
-            provider_id=request.provider_id,
-            symbol=request.symbol,
-            start_date=request.start_date,
-            end_date=request.end_date,
-            frequency=request.frequency,
-        )
-        _too_many_bars(len(payload.bars))
-        result = import_market_data(db, MarketImportRequest(instrument=payload.instrument, bars=payload.bars))
-        actions = import_corporate_actions(
-            db, result["symbol"], payload.corporate_actions, payload.source,
-            payload.bars[0].trade_time[:10], payload.bars[-1].trade_time[:10],
-        ) if payload.source and payload.bars else 0
-        rates = import_fx_rates(db, payload.fx_pair, payload.fx_rates, "frankfurter_ecb") if payload.fx_rates else 0
+        result = sync_symbol(db, owner_id=current_user.id, provider_id=request.provider_id, symbol=request.symbol,
+                             start_date=request.start_date, end_date=request.end_date, frequency=request.frequency)
+    except TooManyBars as exc:
+        raise HTTPException(status_code=413, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    record_market_import_batch(
-        db, owner_id=current_user.id, import_type="data_source_sync", result=result,
-        frequency=request.frequency, source=request.provider_id,
-    )
     return MarketDataSyncResponse(
         provider_id=request.provider_id,
         symbol=result["symbol"],
         frequency=request.frequency,
         start_date=request.start_date,
         end_date=request.end_date,
-        fetched_bars=len(payload.bars),
+        fetched_bars=result["fetched_bars"],
         inserted_bars=result["inserted_bars"],
         updated_bars=result["updated_bars"],
         total_bars=result["total_bars"],
-        corporate_actions=actions,
-        fx_rates=rates,
+        corporate_actions=result["corporate_actions"],
+        fx_rates=result["fx_rates"],
         message="market data synchronized",
     )
 

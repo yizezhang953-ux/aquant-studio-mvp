@@ -89,6 +89,16 @@ It does not connect to a real broker, does not place real orders, and does not p
 | Audit stage 11 delivery | `audit_module/audit-stage-11-delivery.md` |
 | Final readiness stage 12 delivery | `live_readiness_module/final-readiness-stage-12-delivery.md` |
 
+## Daily automation (每日自动运行)
+
+「每日信号」→「收盘后自动运行」 runs a job on every A-share / HK trading day at the chosen Beijing time (default 16:30):
+
+1. syncs the latest daily bars for every stock in your paper accounts (admins only; 400 days of history the first time) and the 恒指 / 沪深300 indices;
+2. replays every paper account and lists the orders due at the next open;
+3. pushes the summary to PushPlus, Server酱, or an 企业微信 / 钉钉 / 飞书 group-bot webhook.
+
+It only sends messages; it never places orders. The scheduler lives inside the app, so keep the start.bat window open; if the computer was off at the set time, the job runs as soon as the app starts that day. Set `AUTOMATION_SCHEDULER_ENABLED=false` to turn the background thread off.
+
 ## Live Trading Roadmap
 
 Stage 1 has started the controlled live-trading upgrade path by adding an OMS order lifecycle and live-trading policy gate.
