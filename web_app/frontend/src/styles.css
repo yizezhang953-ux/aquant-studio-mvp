@@ -2097,6 +2097,40 @@ p.sync-bar {
   font-size: 12px;
 }
 
+.tag.ok {
+  background: var(--down-soft);
+  color: var(--down);
+}
+
+.tag.bad {
+  background: var(--up-soft);
+  color: var(--danger);
+}
+
+.danger-text {
+  color: var(--danger);
+}
+
+.automation-form .check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.automation-runs .run-detail td {
+  background: var(--surface-2);
+}
+
+.run-message {
+  margin: 0;
+  white-space: pre-wrap;
+  font-family: var(--font);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
 .paper-head {
   display: flex;
   align-items: center;

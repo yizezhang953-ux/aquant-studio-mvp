@@ -7,6 +7,7 @@ _TMP = Path(tempfile.mkdtemp(prefix="aquant-test-"))
 # TEST_DATABASE_URL=postgresql+psycopg://... runs the suite against PostgreSQL (use an empty database).
 os.environ["DATABASE_URL"] = os.environ.get("TEST_DATABASE_URL") or f"sqlite:///{(_TMP / 'test.db').as_posix()}"
 os.environ["PASSWORD_HASH_ITERATIONS"] = "1000"
+os.environ["AUTOMATION_SCHEDULER_ENABLED"] = "false"
 os.environ["BACKUP_DIR"] = str(_TMP / "backups")
 
 import pytest  # noqa: E402
