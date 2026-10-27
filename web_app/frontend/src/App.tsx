@@ -16,6 +16,7 @@ import { OptimizePage } from "./OptimizePage";
 import { SignalsPage } from "./SignalsPage";
 import { HistoryPage } from "./HistoryPage";
 import { MarketPage } from "./MarketPage";
+import { BatchJob } from "./live";
 import { StrategyPage } from "./StrategyPage";
 
 type Page = "strategy" | "batch" | "optimize" | "signals" | "history" | "market";
@@ -152,6 +153,30 @@ export default function App() {
     }
   }
 
+  /** Several stocks at once through the background batch sync; resolves when it has finished. */
+  async function syncSymbols(symbols: string[], startDate: string, endDate = today()) {
+    if (symbols.length <= 1) return symbols.length ? syncSymbol(symbols[0], startDate, endDate) : true;
+    try {
+      let job = await request<BatchJob>(
+        "/market/sync-batch",
+        { method: "POST", body: JSON.stringify({ symbols, start_date: startDate, end_date: endDate, provider_id: "tencent" }) },
+        token,
+      );
+      notify("info", `正在后台同步 ${job.total} 只股票…`);
+      while (job.status === "running") {
+        await new Promise((resolve) => window.setTimeout(resolve, 1000));
+        job = (await request<{ job: BatchJob }>("/market/sync-batch", {}, token)).job;
+      }
+      await reloadInstruments();
+      const failed = job.failed.length ? `，失败 ${job.failed.length} 只：${job.failed.slice(0, 3).map((f) => f.symbol).join("、")}` : "";
+      notify(job.failed.length ? "error" : "success", `已同步 ${job.ok} 只${failed}。`);
+      return job.ok > 0;
+    } catch (error) {
+      notify("error", `批量同步失败：${getErrorMessage(error)}`);
+      return false;
+    }
+  }
+
   async function logout() {
     if (token) await request("/auth/logout", { method: "POST" }, token).catch(() => undefined);
     storeToken("");
@@ -235,7 +260,7 @@ export default function App() {
             isAdmin={Boolean(user.is_admin)}
             strategies={strategies}
             instruments={instruments}
-            syncSymbol={(symbol, start, end) => syncSymbol(symbol, start, end)}
+            syncSymbols={syncSymbols}
             onBacktestSaved={() => reloadHistory()}
             notify={notify}
           />
@@ -253,7 +278,7 @@ export default function App() {
             isAdmin={Boolean(user.is_admin)}
             strategies={strategies}
             instruments={instruments}
-            syncSymbol={(symbol, start, end) => syncSymbol(symbol, start, end)}
+            syncSymbols={syncSymbols}
             notify={notify}
           />
         ) : page === "history" ? (

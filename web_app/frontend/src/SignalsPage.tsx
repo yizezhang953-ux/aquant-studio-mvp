@@ -34,10 +34,11 @@ type SignalRow = {
   signal: "buy" | "sell" | "both" | null;
   error: string | null;
   stale: boolean;
+  live?: boolean;
   entry_conditions?: ConditionValue[];
   exit_conditions?: ConditionValue[];
 };
-type ScanResult = { rows: SignalRow[]; latest_date: string | null; buy: number; sell: number };
+type ScanResult = { rows: SignalRow[]; latest_date: string | null; buy: number; sell: number; live?: boolean };
 
 type PaperSummary = {
   equity: number;
@@ -93,14 +94,14 @@ export function SignalsPage({
   isAdmin,
   strategies,
   instruments,
-  syncSymbol,
+  syncSymbols,
   notify,
 }: {
   token: string;
   isAdmin: boolean;
   strategies: StrategyRecord[];
   instruments: MarketInstrument[];
-  syncSymbol: (symbol: string, startDate: string, endDate?: string) => Promise<boolean>;
+  syncSymbols: (symbols: string[], startDate: string, endDate?: string) => Promise<boolean>;
   notify: Notify;
 }) {
   const withData = instruments.filter((i) => i.bar_count > 20);
@@ -121,19 +122,19 @@ export function SignalsPage({
   const chosen = strategies.filter((s) => picked.includes(s.strategy_id));
   const byId = new Map(strategies.map((s) => [s.strategy_id, s]));
 
-  async function runScan() {
-    setBusy("scan");
+  async function runScan(live = false) {
+    setBusy(live ? "live" : "scan");
     try {
       const result = await request<ScanResult>(
         "/signals/scan",
         {
           method: "POST",
-          body: JSON.stringify({ strategies: chosen.map((s) => ({ strategy_id: s.strategy_id, name: s.name, strategy: s.strategy })), symbols }),
+          body: JSON.stringify({ strategies: chosen.map((s) => ({ strategy_id: s.strategy_id, name: s.name, strategy: s.strategy })), symbols, live }),
         },
         token,
       );
-      setScan(result);
-      notify("success", `扫描完成：${result.buy} 个买入信号，${result.sell} 个卖出信号（最新收盘 ${result.latest_date?.slice(0, 10) || "-"}）。`);
+      setScan({ ...result, live });
+      notify("success", live ? `盘中预判完成：按现在的价格，${result.buy} 个买入信号，${result.sell} 个卖出信号。` : `扫描完成：${result.buy} 个买入信号，${result.sell} 个卖出信号（最新收盘 ${result.latest_date?.slice(0, 10) || "-"}）。`);
     } catch (error) {
       notify("error", `扫描失败：${getErrorMessage(error)}`);
     } finally {
@@ -143,8 +144,8 @@ export function SignalsPage({
 
   async function updateThenScan() {
     setBusy("update");
-    const last = new Map(instruments.map((i) => [i.symbol, i.last_trade_time?.slice(0, 10)]));
-    for (const symbol of symbols) await syncSymbol(symbol, last.get(symbol) || `${Number(today().slice(0, 4)) - 3}-01-01`, today());
+    // stocks already stored are only topped up from their last bar; new ones get three years
+    await syncSymbols(symbols, `${Number(today().slice(0, 4)) - 3}-01-01`, today());
     await runScan();
   }
 
@@ -183,22 +184,32 @@ export function SignalsPage({
           </div>
         </div>
         <div className="batch-run">
-          <button className="button primary" disabled={busy !== "" || !chosen.length || !symbols.length} onClick={runScan}>
+          <button className="button primary" disabled={busy !== "" || !chosen.length || !symbols.length} onClick={() => runScan()}>
             {busy === "scan" ? "扫描中…" : "扫描最新收盘"}
+          </button>
+          <button
+            className="button"
+            disabled={busy !== "" || !chosen.length || !symbols.length}
+            onClick={() => runScan(true)}
+            title="把现在的实时价格当作今天的收盘价来判断，收盘前看看今天会不会出信号"
+          >
+            {busy === "live" ? "读取实时价格…" : "盘中预判（用实时价）"}
           </button>
           {isAdmin && (
             <button className="button" disabled={busy !== "" || !chosen.length || !symbols.length} onClick={updateThenScan}>
               {busy === "update" ? "更新行情中…" : "先把行情更新到今天，再扫描"}
             </button>
           )}
-          <span className="muted small">每天收盘后点一次：看哪些股票在最新收盘价上满足了策略的买入或卖出条件（按规则，第二天开盘成交）。</span>
+          <span className="muted small">
+            每天收盘后点「扫描最新收盘」：看哪些股票满足了策略的买入或卖出条件（按规则，第二天开盘成交）。交易时间里点「盘中预判」，用现在的价格先看一眼今天收盘可能出的信号。
+          </span>
         </div>
 
         {scan && (
           <div className="signal-results">
             <div className="signal-head">
               <strong>
-                最新收盘 {scan.latest_date?.slice(0, 10) || "-"}：<span className="up">{scan.buy} 个买入</span>、<span className="down">{scan.sell} 个卖出</span>
+                {scan.live ? "按实时价格" : "最新收盘"} {scan.latest_date?.slice(0, 10) || "-"}：<span className="up">{scan.buy} 个买入</span>、<span className="down">{scan.sell} 个卖出</span>
               </strong>
               <div className="segmented small">
                 <button className={onlySignals ? "active" : ""} onClick={() => setOnlySignals(true)}>
@@ -219,8 +230,8 @@ export function SignalsPage({
                       <th>信号</th>
                       <th>股票</th>
                       <th>策略</th>
-                      <th>收盘日</th>
-                      <th className="num">收盘价</th>
+                      <th>{scan.live ? "日期" : "收盘日"}</th>
+                      <th className="num">{scan.live ? "价格" : "收盘价"}</th>
                       <th className="num">涨跌</th>
                       <th>条件（当天数值）</th>
                     </tr>
@@ -246,6 +257,7 @@ export function SignalsPage({
                               <td className="nowrap">
                                 {r.date?.slice(0, 10)}
                                 {r.stale && <span className="tag warn" title="这只股票的行情比其他股票旧，先更新行情">行情旧</span>}
+                                {r.live && <span className="tag" title="用实时价格代替今天的收盘价算出来的，收盘前可能变">盘中</span>}
                               </td>
                               <td className="num">{formatNumber(r.close, 3)}</td>
                               <td className={`num ${trendClass(r.change)}`}>{formatPercent(r.change, true)}</td>
