@@ -20,6 +20,17 @@ import {
 } from "./api";
 import { PriceChart } from "./charts";
 import { ContextMenu, MenuItem, MenuState } from "./ContextMenu";
+import { BatchJob, Quote, marketHoursNow, splitCodes, useBatchSync, useLiveQuotes } from "./live";
+
+function LivePrice({ quote }: { quote: Quote }) {
+  if (!quote.traded) return <span className="live-price muted">{formatNumber(quote.price, 2)} · 未成交</span>;
+  return (
+    <span className={`live-price ${trendClass(quote.change_pct)}`}>
+      {formatNumber(quote.price, 2)} {quote.change_pct >= 0 ? "+" : ""}
+      {(quote.change_pct * 100).toFixed(2)}%
+    </span>
+  );
+}
 
 const IMPORT_TYPES: Record<string, string> = {
   data_source_sync: "同步",
@@ -41,18 +52,23 @@ type ImportTab = "csv" | "file" | "single";
 function SyncBar({
   isAdmin,
   busy,
+  known,
   onSync,
+  onUpdateAll,
   onBoardLots,
 }: {
   isAdmin: boolean;
   busy: string;
-  onSync: (provider: string, symbol: string, start: string, end: string) => void;
+  known: number;
+  onSync: (provider: string, symbols: string[], start: string, end: string) => void;
+  onUpdateAll: (provider: string) => void;
   onBoardLots: () => void;
 }) {
   const [provider, setProvider] = useState("tencent");
   const [symbol, setSymbol] = useState("");
   const [start, setStart] = useState("2015-01-01");
   const [end, setEnd] = useState(today());
+  const codes = splitCodes(symbol);
   if (!isAdmin) {
     return <p className="sync-bar muted">行情数据所有账户共用。同步和导入需要管理员账户（本地运行时是第一个注册的账户）。</p>;
   }
@@ -61,12 +77,12 @@ function SyncBar({
       className="sync-bar"
       onSubmit={(event) => {
         event.preventDefault();
-        onSync(provider, symbol.trim().toUpperCase(), start, end);
+        onSync(provider, splitCodes(symbol), start, end);
       }}
     >
       <label>
-        股票代码
-        <input value={symbol} placeholder="600519.SH 或 00700.HK" onChange={(e) => setSymbol(e.target.value.toUpperCase())} />
+        股票代码{codes.length > 1 ? `（${codes.length} 只）` : "（可以一次粘贴多只）"}
+        <input value={symbol} placeholder="600519 000001 00700.HK …" onChange={(e) => setSymbol(e.target.value.toUpperCase())} />
       </label>
       <label>
         从
@@ -83,14 +99,62 @@ function SyncBar({
           <option value="demo">合成演示数据</option>
         </select>
       </label>
-      <button className="button primary" type="submit" disabled={busy !== "" || !symbol.trim()}>
-        {busy === "sync" ? "同步中…" : "同步日线"}
+      <button className="button primary" type="submit" disabled={busy !== "" || !codes.length}>
+        {busy === "sync" ? "同步中…" : codes.length > 1 ? `同步 ${codes.length} 只` : "同步日线"}
+      </button>
+      <button className="button" type="button" disabled={busy !== "" || !known} onClick={() => onUpdateAll(provider)} title="库里每只股票从最后一天补到今天">
+        更新全部 {known} 只
       </button>
       <button className="button" type="button" disabled={busy !== ""} onClick={onBoardLots} title="从港交所下载每只港股的每手股数">
         {busy === "lots" ? "更新中…" : "更新港股每手股数"}
       </button>
-      <p className="muted small full">港股会顺带下载港币兑人民币汇率（港股通回测要用）；分红送股从复权数据推算。已有数据会被更新，不会重复。</p>
+      <p className="muted small full">
+        代码之间用空格、逗号或换行隔开，600519、sz000001、700.hk 这样的写法都认。多只会在后台同时下载（4 只一起），已有的股票只补最近几天，新股票从「从」那天开始。港股会顺带下载港币兑人民币汇率；分红送股从复权数据推算。
+      </p>
     </form>
+  );
+}
+
+function BatchProgress({ job, onCancel, onClose }: { job: BatchJob; onCancel: () => void; onClose: () => void }) {
+  const running = job.status === "running";
+  const pct = job.total ? Math.round((job.done / job.total) * 100) : 0;
+  return (
+    <div className="batch-progress">
+      <div className="batch-progress-head">
+        <strong>
+          {running ? "正在批量同步" : job.status === "cancelled" ? "批量同步已取消" : job.status === "error" ? "批量同步出错" : "批量同步完成"}
+        </strong>
+        <span className="muted small">
+          {job.done}/{job.total} 只 · 成功 {job.ok}
+          {job.failed.length ? ` · 失败 ${job.failed.length}` : ""}
+        </span>
+        {running ? (
+          <button className="button small" onClick={onCancel}>
+            取消
+          </button>
+        ) : (
+          <button className="button small" onClick={onClose}>
+            关闭
+          </button>
+        )}
+      </div>
+      <div className="progress-track">
+        <div className="progress-fill" style={{ width: `${running ? pct : 100}%` }} />
+      </div>
+      {job.error && <p className="danger-text small">{job.error}</p>}
+      {job.failed.length > 0 && (
+        <details>
+          <summary className="small">失败的 {job.failed.length} 只</summary>
+          <ul className="small failed-list">
+            {job.failed.map((f) => (
+              <li key={f.symbol}>
+                <strong>{f.symbol}</strong> {f.error}
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+    </div>
   );
 }
 
@@ -177,6 +241,21 @@ export function MarketPage({
   const [busy, setBusy] = useState("");
   const [menu, setMenu] = useState<MenuState>(null);
   const [indexVersion, setIndexVersion] = useState(0);
+  const [live, setLive] = useState(() => {
+    try {
+      return window.localStorage.getItem("aquant_live_quotes") === "1";
+    } catch {
+      return false;
+    }
+  });
+  const liveQuotes = useLiveQuotes(sorted.map((i) => i.symbol), live);
+  const batch = useBatchSync(token, async (job) => {
+    await reloadInstruments();
+    if (job.symbols.includes(symbol)) await loadBars();
+    await loadImports();
+    setIndexVersion((v) => v + 1);
+    notify(job.failed.length ? "info" : "success", `批量同步结束：成功 ${job.ok} 只${job.failed.length ? `，失败 ${job.failed.length} 只（看进度条下面的列表）` : ""}。`);
+  });
   const closeMenu = useCallback(() => setMenu(null), []);
   const selected = instruments.find((item) => item.symbol === symbol) || null;
 
@@ -225,7 +304,27 @@ export function MarketPage({
     await loadImports();
   }
 
-  async function handleSync(provider: string, target: string, start: string, end: string) {
+  function toggleLive(on: boolean) {
+    setLive(on);
+    try {
+      window.localStorage.setItem("aquant_live_quotes", on ? "1" : "0");
+    } catch {
+      /* private window */
+    }
+  }
+
+  async function startBatch(symbols: string[], start: string, end: string, provider: string) {
+    try {
+      const job = await batch.start(symbols, start, end, provider);
+      notify("info", `开始在后台同步 ${job.total} 只股票，可以先做别的。`);
+    } catch (error) {
+      notify("error", `批量同步没有开始：${getErrorMessage(error)}`);
+    }
+  }
+
+  async function handleSync(provider: string, symbols: string[], start: string, end: string) {
+    if (symbols.length > 1) return startBatch(symbols, start, end, provider);
+    const target = symbols[0];
     setBusy("sync");
     const ok = await syncSymbol(target, start, end, provider);
     if (ok) await afterWrite(target);
@@ -298,7 +397,15 @@ export function MarketPage({
 
   return (
     <div className="page-pad market">
-      <SyncBar isAdmin={isAdmin} busy={busy} onSync={handleSync} onBoardLots={syncBoardLots} />
+      <SyncBar
+        isAdmin={isAdmin}
+        busy={batch.job?.status === "running" ? "batch" : busy}
+        known={instruments.length}
+        onSync={handleSync}
+        onUpdateAll={(provider) => startBatch(instruments.map((i) => i.symbol), "2015-01-01", today(), provider)}
+        onBoardLots={syncBoardLots}
+      />
+      {batch.job && <BatchProgress job={batch.job} onCancel={batch.cancel} onClose={batch.dismiss} />}
       <IndexBar key={indexVersion} token={token} isAdmin={isAdmin} notify={notify} />
 
       <div className="market-body">
@@ -308,7 +415,20 @@ export function MarketPage({
             <span className="muted small" title={isAdmin ? "右键一只股票可以删除它的行情" : undefined}>
               {instruments.length} 只{isAdmin && instruments.length > 0 ? " · 右键可删除" : ""}
             </span>
+            <label className="live-toggle" title="腾讯实时报价，约 3 秒延迟；交易时段每 5 秒刷新">
+              <input type="checkbox" checked={live} onChange={(e) => toggleLive(e.target.checked)} />
+              实时价格
+            </label>
           </div>
+          {live && (
+            <p className="muted small live-status">
+              {liveQuotes.error
+                ? `实时价格读取失败：${liveQuotes.error.slice(0, 60)}${liveQuotes.error.length > 60 ? "…" : ""}`
+                : liveQuotes.updated
+                  ? `${marketHoursNow() ? "每 5 秒刷新" : "已收盘"} · ${liveQuotes.updated.toLocaleTimeString("zh-CN", { hour12: false })} 更新`
+                  : "正在读取实时价格…"}
+            </p>
+          )}
           <ul>
             {sorted.map((item) => (
               <li key={item.symbol}>
@@ -321,6 +441,7 @@ export function MarketPage({
                   <span className="meta">
                     {formatNumber(item.bar_count, 0)} 根 · {item.last_trade_time?.slice(0, 10) || "-"}
                   </span>
+                  {live && liveQuotes.quotes[item.symbol] && <LivePrice quote={liveQuotes.quotes[item.symbol]} />}
                 </button>
               </li>
             ))}

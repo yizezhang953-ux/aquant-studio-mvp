@@ -8,6 +8,7 @@ from app.db.session import get_db
 from app.models import User
 from app.services.auth_service import get_current_user
 from app.services.market_service import normalize_symbol
+from app.services.quote_service import get_quotes
 from app.services.signal_service import (
     MAX_PAPER_SYMBOLS,
     MAX_SCAN,
@@ -31,6 +32,7 @@ class ScanStrategy(BaseModel):
 class SignalScanRequest(BaseModel):
     strategies: list[ScanStrategy] = Field(min_length=1, max_length=20)
     symbols: list[str] = Field(min_length=1, max_length=100)
+    live: bool = False  # judge on today's live price (盘中预判)
 
 
 class PaperCreateRequest(BaseModel):
@@ -52,7 +54,13 @@ def scan(request: SignalScanRequest, current_user: User = Depends(get_current_us
     symbols = _symbols(request.symbols)
     if len(symbols) * len(request.strategies) > MAX_SCAN:
         raise HTTPException(status_code=400, detail=f"一次最多扫描 {MAX_SCAN} 组（股票数 × 策略数）")
-    return scan_signals(db, [s.model_dump() for s in request.strategies], symbols)
+    quotes = None
+    if request.live:
+        try:
+            quotes = get_quotes(symbols)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return scan_signals(db, [s.model_dump() for s in request.strategies], symbols, quotes)
 
 
 @router.get("/paper")

@@ -1,9 +1,13 @@
 """Market data endpoints. Reads are public; every write to the shared market data needs an admin."""
+from datetime import date
+from typing import Literal
+
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.db.session import get_db
+from app.db.session import SessionLocal, get_db
 from app.models import User
 from app.schemas.market import (
     IndexSyncRequest,
@@ -36,7 +40,8 @@ from app.services.market_data_source_service import (
     fetch_hk_board_lots,
     list_market_data_sources,
 )
-from app.services.market_sync_service import TooManyBars, sync_symbol
+from app.services.market_sync_service import MAX_BATCH, TooManyBars, cancel_batch, get_batch, start_batch, sync_symbol
+from app.services.quote_service import get_quotes, parse_symbols
 from app.services.market_service import (
     delete_market_data,
     fx_coverage,
@@ -52,6 +57,7 @@ from app.services.market_service import (
     list_market_bars,
     list_market_import_batches,
     list_market_instruments,
+    market_for_symbol,
     normalize_symbol,
     record_market_import_batch,
     set_board_lots,
@@ -166,6 +172,61 @@ def sync_data_source(
         fx_rates=result["fx_rates"],
         message="market data synchronized",
     )
+
+
+class BatchSyncRequest(BaseModel):
+    symbols: list[str] = Field(min_length=1, max_length=MAX_BATCH)
+    start_date: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")  # for stocks with no data yet
+    end_date: str | None = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+    provider_id: Literal["tencent", "demo"] = "tencent"
+
+
+@router.post("/sync-batch")
+def start_batch_sync(request: BatchSyncRequest, current_user: User = Depends(get_current_admin)) -> dict:
+    """Sync many stocks in the background: new ones from start_date, the rest from their last bar."""
+    symbols = parse_symbols(request.symbols)
+    bad = [s for s in symbols if not _valid_symbol(s)]
+    if bad:
+        raise HTTPException(status_code=400, detail=f"看不懂这些代码：{'、'.join(bad[:10])}")
+    end = request.end_date or date.today().isoformat()
+    if request.start_date > end:
+        raise HTTPException(status_code=400, detail="开始日期不能晚于结束日期")
+    try:
+        return start_batch(SessionLocal, owner_id=current_user.id, provider_id=request.provider_id, symbols=symbols,
+                           first_start=request.start_date, end_date=end)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@router.get("/sync-batch")
+def latest_batch_sync(current_user: User = Depends(get_current_user)) -> dict:
+    return {"job": get_batch()}
+
+
+@router.post("/sync-batch/{job_id}/cancel")
+def cancel_batch_sync(job_id: str, current_user: User = Depends(get_current_admin)) -> dict:
+    job = cancel_batch(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="sync job not found")
+    return {"job": job}
+
+
+@router.get("/quotes")
+def live_quotes(symbols: str = Query(min_length=1, max_length=8000)) -> dict:
+    """Live prices (Tencent, ~3 s delayed). symbols: comma or space separated."""
+    try:
+        quotes = get_quotes(parse_symbols(symbols))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"quotes": list(quotes.values())}
+
+
+def _valid_symbol(symbol: str) -> bool:
+    try:
+        market_for_symbol(symbol)
+    except ValueError:
+        return False
+    return True
 
 
 @router.get("/indices")

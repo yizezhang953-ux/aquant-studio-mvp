@@ -89,6 +89,12 @@ It does not connect to a real broker, does not place real orders, and does not p
 | Audit stage 11 delivery | `audit_module/audit-stage-11-delivery.md` |
 | Final readiness stage 12 delivery | `live_readiness_module/final-readiness-stage-12-delivery.md` |
 
+## Bulk sync and live quotes
+
+- 「行情数据」: paste many codes at once (`600519 000001 700.hk`, spaces / commas / new lines) or press 「更新全部」. The batch runs in the background, downloading 4 stocks at a time; stocks already stored are only topped up from their last bar. 「每日信号」 and 「批量回测」 use the same batch sync.
+- 「实时价格」 on the stock list shows Tencent live quotes (about 3 s delayed, refreshed every 5 s during trading hours). 「每日信号」→「盘中预判」 treats the current price as today's close to preview the signals before the close.
+- Tencent's endpoints are free and unofficial: fine for a personal watchlist, not for scraping the whole market every few seconds.
+
 ## Daily automation (每日自动运行)
 
 「每日信号」→「收盘后自动运行」 runs a job on every A-share / HK trading day at the chosen Beijing time (default 16:30):
