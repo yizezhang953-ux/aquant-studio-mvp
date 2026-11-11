@@ -85,7 +85,7 @@ export function BatchPage({
   isAdmin,
   strategies,
   instruments,
-  syncSymbol,
+  syncSymbols,
   onBacktestSaved,
   notify,
 }: {
@@ -93,7 +93,7 @@ export function BatchPage({
   isAdmin: boolean;
   strategies: StrategyRecord[];
   instruments: MarketInstrument[];
-  syncSymbol: (symbol: string, startDate: string, endDate?: string) => Promise<boolean>;
+  syncSymbols: (symbols: string[], startDate: string, endDate?: string) => Promise<boolean>;
   onBacktestSaved: () => void;
   notify: Notify;
 }) {
@@ -177,7 +177,7 @@ export function BatchPage({
     setBusy("sync");
     // a year of extra history so indicators are warmed up on the first day
     const from = `${Number(earliest.slice(0, 4)) - 1}${earliest.slice(4)}`;
-    for (const symbol of missing) await syncSymbol(symbol, from, today());
+    await syncSymbols(missing, from, today());
     setBusy("");
     notify("info", "同步完成，可以再点一次「开始批量回测」。");
   }

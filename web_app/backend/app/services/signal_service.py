@@ -15,7 +15,7 @@ from app.services.backtest_service import batch_market, batch_strategy
 from app.services.market_data_access import load_engine_bars, load_engine_context
 from app.services.strategy_service import validate_strategy_payload
 
-from backtest_engine import build_series_cache, condition_met, required_warmup_bars, rule_group_met, run_backtest  # noqa: E402
+from backtest_engine import Bar, build_series_cache, condition_met, required_warmup_bars, rule_group_met, run_backtest  # noqa: E402
 
 MAX_SCAN = 300
 MAX_PAPER_SYMBOLS = 20
@@ -54,8 +54,25 @@ def evaluate_last_bar(strategy: dict[str, Any], bars: list) -> dict[str, Any]:
     }
 
 
-def scan_signals(db: Session, strategies: list[dict[str, Any]], symbols: list[str]) -> dict[str, Any]:
-    """Every strategy x stock on that stock's latest bar. Strategies are {strategy_id, name, strategy}."""
+def with_live_bar(bars: list, quote: dict[str, Any] | None) -> tuple[list, bool]:
+    """Today's bar built from a live quote: replaces a stored bar of the same day or is appended.
+    Rules then read the current price as if it were the close (盘中预判)."""
+    if not bars or not quote or not quote.get("traded") or not quote.get("time"):
+        return bars, False
+    day, last = quote["time"][:10], bars[-1]
+    if day < last.trade_time[:10]:
+        return bars, False
+    price = float(quote["price"])
+    live = Bar(last.symbol, last.frequency, day, float(quote.get("open") or price), float(quote.get("high") or price),
+               float(quote.get("low") or price), price, float(quote.get("volume") or 0), float(quote.get("amount") or 0),
+               last.adj_factor)
+    return (bars[:-1] if day == last.trade_time[:10] else bars) + [live], True
+
+
+def scan_signals(db: Session, strategies: list[dict[str, Any]], symbols: list[str],
+                 quotes: dict[str, dict[str, Any]] | None = None) -> dict[str, Any]:
+    """Every strategy x stock on that stock's latest bar. Strategies are {strategy_id, name, strategy}.
+    With ``quotes`` (live prices), daily strategies are judged on today's price as if it were the close."""
     names = _names(db, symbols)
     rows: list[dict[str, Any]] = []
     for item in strategies:
@@ -77,11 +94,14 @@ def scan_signals(db: Session, strategies: list[dict[str, Any]], symbols: list[st
                 row["error"] = "没有行情"
                 rows.append(row)
                 continue
+            live = False
+            if quotes is not None and frequency == "1d":
+                bars, live = with_live_bar(bars, quotes.get(symbol))
             result = evaluate_last_bar(run, bars)
             signal = "buy" if result["entry"] and not result["exit"] else "sell" if result["exit"] and not result["entry"] \
                 else "both" if result["entry"] else None
             previous = bars[-2].close if len(bars) > 1 else None
-            row.update(date=bars[-1].trade_time, close=bars[-1].close, signal=signal, market=run["market"],
+            row.update(date=bars[-1].trade_time, close=bars[-1].close, signal=signal, market=run["market"], live=live,
                        change=round(bars[-1].close / previous - 1, 6) if previous else None,
                        entry_conditions=result["entry_conditions"], exit_conditions=result["exit_conditions"])
             rows.append(row)

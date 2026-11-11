@@ -143,3 +143,21 @@ def test_factors_stay_continuous_across_sync_windows(tmp_path):
         md.rebuild_adj_factors(conn, "600036.SH")
         stored = [r[0] for r in conn.execute("SELECT adj_factor FROM bars ORDER BY trade_time")]
     assert stored[-1] == 1.0 and stored[2] == 0.95 and stored[0] < stored[1]
+
+
+def test_tencent_live_quotes_parse_a_share_hk_and_suspended():
+    from data_module.sources.tencent import fetch_quotes
+
+    pad = lambda n: "~".join(["0"] * n)  # noqa: E731
+    a = f"1~贵州茅台~600519~1500.50~1490.00~1492.00~23456~1~2~{pad(21)}~20261027143001~10.50~0.70~1505.00~1488.00~x~y~350000~"
+    hk = f"100~腾讯控股~00700~420.200~415.000~416.000~12345678.0~{pad(23)}~2026/10/27 16:08:12~5.2~1.25~423.0~414.0~x~y~5180000000~"
+    halted = f"1~平安银行~000001~0.00~11.00~0.00~0~{pad(40)}"
+    text = f'v_sh600519="{a}";\nv_hk00700="{hk}";\nv_sz000001="{halted}";'.encode("gbk")
+    urls = []
+    quotes = fetch_quotes(["600519.SH", "00700.HK", "000001.SZ"], lambda url: urls.append(url) or text)
+    assert urls == ["https://qt.gtimg.cn/q=sh600519,hk00700,sz000001"]
+    moutai = quotes["600519.SH"]
+    assert moutai["name"] == "贵州茅台" and moutai["price"] == 1500.5 and moutai["volume"] == 2_345_600
+    assert moutai["amount"] == 3_500_000_000 and moutai["time"] == "2026-10-27 14:30:01" and moutai["traded"]
+    assert quotes["00700.HK"]["time"] == "2026-10-27 16:08:12" and quotes["00700.HK"]["volume"] == 12_345_678
+    assert quotes["000001.SZ"]["price"] == 11.0 and not quotes["000001.SZ"]["traded"]

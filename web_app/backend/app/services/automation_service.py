@@ -11,13 +11,13 @@ import threading
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Callable
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import AutomationRun, AutomationSetting, MarketBar, User
+from app.models import AutomationRun, AutomationSetting, User
 from app.services import notify_service
 from app.services.benchmark_service import sync_indices
-from app.services.market_sync_service import sync_symbol
+from app.services.market_sync_service import start_dates, sync_many
 from app.services.signal_service import evaluate_paper_account, list_paper_accounts
 from app.services.trading_calendar_service import is_trading_day
 
@@ -25,7 +25,6 @@ logger = logging.getLogger(__name__)
 
 BEIJING = timezone(timedelta(hours=8))  # A-share and HK sessions both run on UTC+8, no daylight saving
 FIRST_SYNC_DAYS = 400  # history fetched for a stock with no bars yet (covers MA200-style warm-up)
-OVERLAP_DAYS = 7  # re-fetch the last week too, so late corrections and adjustments are picked up
 SIDES = {"buy": "买入", "sell": "卖出"}
 
 Sender = Callable[[str, str, str, str], None]
@@ -95,26 +94,11 @@ def run_view(run: AutomationRun) -> dict[str, Any]:
 # --------------------------------------------------------------------------- the run
 
 def _sync_stocks(db: Session, user: User, provider_id: str, symbols: dict[str, str], today: date) -> list[dict[str, Any]]:
-    """symbols: {symbol: earliest paper start date}. Fetch from just before the last stored bar."""
-    last = dict(db.execute(select(MarketBar.symbol, func.max(MarketBar.trade_time))
-                           .where(MarketBar.symbol.in_(list(symbols)), MarketBar.frequency == "1d")
-                           .group_by(MarketBar.symbol)).all())
-    out = []
-    for symbol, earliest in sorted(symbols.items()):
-        if last.get(symbol):
-            start = date.fromisoformat(last[symbol][:10]) - timedelta(days=OVERLAP_DAYS)
-        else:
-            start = date.fromisoformat(earliest) - timedelta(days=FIRST_SYNC_DAYS)
-        row: dict[str, Any] = {"symbol": symbol, "ok": False, "last_date": None, "error": None}
-        try:
-            result = sync_symbol(db, owner_id=user.id, provider_id=provider_id, symbol=symbol,
-                                 start_date=start.isoformat(), end_date=today.isoformat())
-            row.update(ok=True, last_date=result["last_date"], bars=result["fetched_bars"])
-        except ValueError as exc:
-            db.rollback()
-            row["error"] = str(exc)
-        out.append(row)
-    return out
+    """symbols: {symbol: earliest paper start date}. Stocks with no bars yet get FIRST_SYNC_DAYS of history."""
+    first = {s: (date.fromisoformat(d) - timedelta(days=FIRST_SYNC_DAYS)).isoformat() for s, d in symbols.items()}
+    starts = start_dates(db, list(symbols), first)
+    rows = sync_many(db, owner_id=user.id, provider_id=provider_id, starts=starts, end_date=today.isoformat())
+    return sorted(rows, key=lambda r: r["symbol"])
 
 
 def _order_line(order: dict[str, Any], account_name: str) -> str:

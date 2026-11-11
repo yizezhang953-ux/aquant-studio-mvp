@@ -175,3 +175,71 @@ def fetch_name(symbol: str, fetch_bytes: Callable[[str], bytes] | None = None) -
         return None
     parts = match.group(1).split("~")
     return parts[1].strip() if len(parts) > 1 and parts[1].strip() else None
+
+
+QUOTE_BATCH = 60  # codes per qt.gtimg.cn request
+
+
+def _num(parts: list[str], index: int) -> float | None:
+    try:
+        value = float(parts[index])
+    except (IndexError, ValueError):
+        return None
+    return value
+
+
+def _quote_time(raw: str) -> str | None:
+    """'20261027150003' (A-share) or '2026/10/27 16:08:12' (HK) -> '2026-10-27 15:00:03'."""
+    digits = re.sub(r"\D", "", raw or "")
+    if len(digits) < 12:
+        return None
+    seconds = digits[12:14] or "00"
+    return f"{digits[:4]}-{digits[4:6]}-{digits[6:8]} {digits[8:10]}:{digits[10:12]}:{seconds}"
+
+
+def parse_quote(symbol: str, line: str) -> dict[str, Any] | None:
+    """One ``v_sh600519="1~贵州茅台~600519~price~prev_close~open~volume~..."`` record.
+
+    Fields used: 1 name, 3 price, 4 previous close, 5 open, 6 volume (A-share lots of 100 / HK shares),
+    30 time, 33 high, 34 low, 37 turnover (A-share in 10k CNY / HK in HKD).
+    """
+    parts = line.split("~")
+    price, prev_close = _num(parts, 3), _num(parts, 4)
+    if price is None or prev_close is None or len(parts) < 35:
+        return None
+    is_hk = symbol.endswith(".HK")
+    volume = (_num(parts, 6) or 0.0) * (1 if is_hk else 100)
+    amount = (_num(parts, 37) or 0.0) * (1 if is_hk else 10_000)
+    open_, high, low = _num(parts, 5), _num(parts, 33), _num(parts, 34)
+    traded = price > 0 and volume > 0
+    return {
+        "symbol": symbol,
+        "name": parts[1].strip(),
+        "price": price if price > 0 else prev_close,
+        "prev_close": prev_close,
+        "open": open_ if open_ else None,
+        "high": high if high else None,
+        "low": low if low else None,
+        "volume": volume,
+        "amount": round(amount, 2),
+        "change": round(price - prev_close, 4) if traded and prev_close else 0.0,
+        "change_pct": round(price / prev_close - 1, 6) if traded and prev_close else 0.0,
+        "time": _quote_time(parts[30]) if len(parts) > 30 else None,
+        "traded": traded,  # False before the open and for suspended stocks
+    }
+
+
+def fetch_quotes(symbols: list[str], fetch_bytes: Callable[[str], bytes] | None = None) -> dict[str, dict[str, Any]]:
+    """Live quotes (about 3 s delayed) for many symbols, 60 per request."""
+    fetch_bytes = fetch_bytes or (lambda url: get_bytes(url, timeout=8, retries=1))
+    by_code = {tencent_code(s): s for s in symbols}
+    out: dict[str, dict[str, Any]] = {}
+    codes = list(by_code)
+    for i in range(0, len(codes), QUOTE_BATCH):
+        text = fetch_bytes(QUOTE_URL + ",".join(codes[i:i + QUOTE_BATCH])).decode("gbk", errors="replace")
+        for code, body in re.findall(r'v_(\w+)="([^"]*)"', text):
+            symbol = by_code.get(code)
+            quote = parse_quote(symbol, body) if symbol else None
+            if quote:
+                out[symbol] = quote
+    return out
