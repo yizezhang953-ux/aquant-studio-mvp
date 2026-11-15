@@ -95,6 +95,18 @@ It does not connect to a real broker, does not place real orders, and does not p
 - 「实时价格」 on the stock list shows Tencent live quotes (about 3 s delayed, refreshed every 5 s during trading hours). 「每日信号」→「盘中预判」 treats the current price as today's close to preview the signals before the close.
 - Tencent's endpoints are free and unofficial: fine for a personal watchlist, not for scraping the whole market every few seconds.
 
+## Sector rotation (行业轮动)
+
+The 「行业轮动」 page backtests cross-sectional strategies: score every sector with a factor, hold the top N with equal weights, rebalance weekly or monthly, and compare with the equal-weight basket of all sectors. The factor is read after the close of the period's last trading day and the portfolio is switched at the close of the next trading day.
+
+- Factors: net active buying (the first factor of 华泰《行业资金流向图应用于行业轮动》: active-buy share minus active-sell share, divided by turnover share, W-day average), momentum, reversal, turnover. Several look-back windows can be run at once.
+- Sector data is stored in the `sector_daily` table, grouped into universes:
+  - **Tushare** (`citic40`): paste a Tushare Pro token; the app builds the report's 40 CITIC sectors from stock-level tables (`ci_index_member`, `daily`, `daily_basic`, `moneyflow`). Sector returns are float-market-value weighted from the constituents, close to but not identical with the CITIC indices. Needs 5000 points for `ci_index_member` and 2000 for `moneyflow`. The token is kept in the local database only.
+  - **CSV**: long-format exports from Wind / iFinD / Choice, one row per sector per day: `trade_date, code, name, close` plus optional `amount, float_mv, buy_amount, sell_amount`.
+  - **Demo**: random sectors for trying the page; results mean nothing.
+- Code: `backtest_module/rotation_engine.py` (engine), `data_module/sources/tushare.py` (Tushare client), `web_app/backend/app/services/sector_data_service.py`, API under `/api/v1/sectors`.
+- Not included yet: the report's fund-flow-graph factors (part 2) and a direct Wind API connection.
+
 ## Daily automation (每日自动运行)
 
 「每日信号」→「收盘后自动运行」 runs a job on every A-share / HK trading day at the chosen Beijing time (default 16:30):
