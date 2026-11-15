@@ -2296,3 +2296,68 @@ p.sync-bar {
   background: var(--primary-soft);
   color: var(--muted);
 }
+
+/* ---------- sector rotation ---------- */
+
+.rotation {
+  display: grid;
+  gap: 16px;
+}
+
+.rotation .paper-form .span-2 {
+  grid-column: span 2;
+}
+
+.rotation .paper-form-foot.end {
+  align-self: end;
+}
+
+.rotation .paper-form p.wide {
+  margin: 0;
+}
+
+.rotation .chart-legend {
+  flex-wrap: wrap;
+}
+
+.rotation .chart-legend .legend-text {
+  color: var(--muted);
+}
+
+.rot-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 8px;
+  border-radius: 2px;
+}
+
+.rot-swatch.bench {
+  background: var(--faint);
+}
+
+.rotation .summary-row td {
+  background: var(--surface-2);
+  font-weight: 600;
+}
+
+.rotation .sub-title {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+
+.rotation-split {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  gap: 16px;
+}
+
+@media (max-width: 900px) {
+  .rotation-split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .rotation .paper-form .span-2 {
+    grid-column: 1 / -1;
+  }
+}

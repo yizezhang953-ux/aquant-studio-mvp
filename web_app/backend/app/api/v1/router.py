@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1.routes import auth, automation, backtests, database, market, paper, security, strategies, system, templates
+from app.api.v1.routes import auth, automation, backtests, database, market, paper, sectors, security, strategies, system, templates
 
 
 api_router = APIRouter()
@@ -14,3 +14,4 @@ api_router.include_router(market.router, prefix="/market", tags=["market"])
 api_router.include_router(database.router, prefix="/database", tags=["database"])
 api_router.include_router(paper.router, tags=["paper"])
 api_router.include_router(automation.router, prefix="/automation", tags=["automation"])
+api_router.include_router(sectors.router, prefix="/sectors", tags=["sectors"])

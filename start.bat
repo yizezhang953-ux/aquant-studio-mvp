@@ -122,7 +122,7 @@ if exist "%VENV%\Scripts\python.exe" (
 set "REQ=%BACKEND%\requirements.txt"
 set "STAMP=%RUNTIME%\requirements.installed.txt"
 set "NEED_INSTALL=0"
-"%VPY%" -c "import fastapi, uvicorn, sqlalchemy, alembic, pydantic_settings, multipart, exchange_calendars" >nul 2>nul
+"%VPY%" -c "import fastapi, uvicorn, sqlalchemy, alembic, pydantic_settings, multipart, exchange_calendars, numpy" >nul 2>nul
 if errorlevel 1 set "NEED_INSTALL=1"
 if not exist "%STAMP%" set "NEED_INSTALL=1"
 if exist "%STAMP%" fc /b "%REQ%" "%STAMP%" >nul 2>nul || set "NEED_INSTALL=1"
@@ -133,7 +133,7 @@ if "%NEED_INSTALL%"=="1" (
     echo 默认源安装失败，改用清华镜像重试 ...
     "%VPY%" -m pip install --disable-pip-version-check -r "%REQ%" -i https://pypi.tuna.tsinghua.edu.cn/simple
   )
-  "%VPY%" -c "import fastapi, uvicorn, sqlalchemy, alembic, pydantic_settings, multipart, exchange_calendars" >nul 2>nul
+  "%VPY%" -c "import fastapi, uvicorn, sqlalchemy, alembic, pydantic_settings, multipart, exchange_calendars, numpy" >nul 2>nul
   if errorlevel 1 (
     echo.
     echo [错误] 依赖安装失败，请检查网络后重新双击 start.bat。

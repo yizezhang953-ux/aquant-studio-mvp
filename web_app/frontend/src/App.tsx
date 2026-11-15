@@ -16,14 +16,16 @@ import { OptimizePage } from "./OptimizePage";
 import { SignalsPage } from "./SignalsPage";
 import { HistoryPage } from "./HistoryPage";
 import { MarketPage } from "./MarketPage";
+import { RotationPage } from "./RotationPage";
 import { BatchJob } from "./live";
 import { StrategyPage } from "./StrategyPage";
 
-type Page = "strategy" | "batch" | "optimize" | "signals" | "history" | "market";
+type Page = "strategy" | "batch" | "optimize" | "rotation" | "signals" | "history" | "market";
 const PAGES: [Page, string][] = [
   ["strategy", "策略研究"],
   ["batch", "批量回测"],
   ["optimize", "参数优化"],
+  ["rotation", "行业轮动"],
   ["signals", "每日信号"],
   ["history", "回测记录"],
   ["market", "行情数据"],
@@ -48,7 +50,7 @@ function storeToken(token: string) {
 
 function initialPage(): Page {
   const hash = window.location.hash.replace("#", "");
-  return hash === "batch" || hash === "optimize" || hash === "signals" || hash === "history" || hash === "market" ? hash : "strategy";
+  return hash === "batch" || hash === "optimize" || hash === "rotation" || hash === "signals" || hash === "history" || hash === "market" ? hash : "strategy";
 }
 
 export default function App() {
@@ -281,6 +283,8 @@ export default function App() {
             syncSymbols={syncSymbols}
             notify={notify}
           />
+        ) : page === "rotation" ? (
+          <RotationPage token={token} isAdmin={Boolean(user.is_admin)} notify={notify} />
         ) : page === "history" ? (
           <HistoryPage token={token} history={history} notify={notify} onChanged={() => reloadHistory()} />
         ) : (
